@@ -10,7 +10,7 @@
 class_name TileVisualAutotiler
 extends Node
 
-enum LayerKind { WALL, HOLE }
+enum LayerKind { WALL, HOLE, FLOOR }
 
 ## Recompute each painted cell's tile art from the surrounding FloorLayer + same-layer
 ## neighbours. Run after painting markers or editing the floor.
@@ -35,7 +35,9 @@ enum LayerKind { WALL, HOLE }
 @export var tilemap_layer:TileMapLayer
 ## FloorLayer used to decide which side the floor is on and where boundaries go (cross-layer input).
 @export var floor_layer:TileMapLayer
-## WALL = ring floor islands' outer edge; HOLE = fill enclosed gaps inside the floor.
+## WALL = ring floor islands' outer edge; HOLE = fill enclosed gaps inside the floor;
+## FLOOR = normalise the floor layer's own edge art from its 4 diagonal neighbours (Fix
+## Visual only — the Generate-from-floor buttons do not apply to FLOOR).
 @export var layer_kind:LayerKind = LayerKind.WALL
 ## Atlas coord stamped when placing a plain marker before Fix Visual / Generate from floor.
 @export var marker_atlas:Vector2i = Vector2i(0, 2)
@@ -60,13 +62,14 @@ const _DELTAS := {
 }
 
 # --- ATLAS TABLES ----------------------------------------------------------------------
-# HOLE rule, derived & verified 28/28 vs room_0_test. The two back sides (BL, TL) decide
-# the edge class; the top-left back-diagonal (-1,-1) selects a "continuing" variant used
-# where the hole wraps diagonally behind. See _pick_hole().
+# HOLE rule. The two back sides (BL, TL) decide the edge class; the top-left back-diagonal
+# (-1,-1) selects a "continuing" variant where the hole wraps diagonally behind. The interior
+# case is floor-driven (like walls): a floor tile up-left means the room edge wraps behind,
+# selecting the 1:0 strip/corner variant. See _pick_hole().
 #   neither BL nor TL          -> 0:0   (front corner / cap)
 #   BL only                    -> 0:1 , or 1:1 when TL-diagonal is also hole
 #   TL only                    -> 2:0 , or 2:1 when TL-diagonal is also hole
-#   both BL and TL             -> 0:2 , or 1:0 for a thin strip (both back-diagonals empty)
+#   both BL and TL             -> 0:2 , or 1:0 when TL-diagonal (-1,-1) is a floor tile
 const HOLE_NONE := Vector2i(0, 0)
 const HOLE_BL := Vector2i(0, 1)
 const HOLE_BL_CONT := Vector2i(1, 1)
@@ -77,6 +80,48 @@ const HOLE_INTERIOR_STRIP := Vector2i(1, 0)
 
 # WALL rule: the tile is a pure function of the surrounding FLOOR topology (a wall wraps a
 # floor cell), verified 200/200 against the hand-made room_0_test layout. See _pick_wall().
+#
+# FLOOR rule. Godot's built-in terrain mis-fires here because the art only encodes which of
+# the four diagonal SIDES (TL/TR/BL/BR) carry a raised border, yet the tileset was authored
+# with 8-bit corner+side peering — most fingerprints undefined, so the brush substitutes a
+# wrong nearest-match that flips as neighbours change. This picker ignores corners entirely:
+# the tile is a pure function of the 4-bit "is this diagonal neighbour also floor" side mask.
+# A set bit = neighbour is floor (no border on that side). Only 9 of 16 masks have art; the
+# 7 unreachable-in-practice masks (isolated tile, single spur, opposite-diagonal strip) fall
+# back to the nearest covered mask so nothing breaks if the user paints one. See _pick_floor().
+# Key = 4-bit side mask, bit order TL=8 TR=4 BL=2 BR=1 (see _pick_floor). Value = atlas coord.
+# Derived empirically from the hand/terrain-authored floors in room_A01 + room_B01: for each
+# mask, the dominant authored tile (e.g. 0111 -> 1:1 was 76/76, 1011 -> 0:2 was 122/128). This
+# reproduces 89% of authored cells; the remainder are decorative interior tiles (preserved,
+# see _pick_floor) or edge cells where the old built-in terrain mis-fired (the bug being fixed).
+# The 7 masks with no art fall back to the nearest covered variant.
+const _FLOOR_ATLAS := {
+	0b0011: Vector2i(2, 0),  # BL,BR
+	0b0101: Vector2i(0, 0),  # TR,BR
+	0b0111: Vector2i(1, 1),  # TR,BL,BR
+	0b1010: Vector2i(1, 0),  # TL,BL
+	0b1011: Vector2i(0, 2),  # TL,BL,BR
+	0b1100: Vector2i(3, 0),  # TL,TR
+	0b1101: Vector2i(0, 1),  # TL,TR,BR
+	0b1110: Vector2i(1, 2),  # TL,TR,BL
+	0b1111: Vector2i(0, 3),  # all four             -> interior fill
+	# Fallbacks for masks with no art (unreachable in normal contiguous layouts):
+	0b0000: Vector2i(0, 3),  # isolated
+	0b0001: Vector2i(2, 0),  # BR only
+	0b0010: Vector2i(0, 0),  # BL only
+	0b0100: Vector2i(1, 0),  # TR only
+	0b1000: Vector2i(3, 0),  # TL only
+	0b0110: Vector2i(1, 1),  # TR,BL (opp strip)
+	0b1001: Vector2i(1, 1),  # TL,BR (opp strip)
+}
+
+# Interior tiles the artist may hand-place on a fully-surrounded (0b1111) cell — plain-fill
+# variants plus decorative "cracked" floors. Fix Visual leaves these untouched so decoration
+# survives a re-run; only edge cells (any mask != 0b1111) are rewritten from the rule.
+const _FLOOR_INTERIOR_KEEP := [
+	Vector2i(0, 3), Vector2i(1, 3), Vector2i(2, 3), Vector2i(3, 3),  # fill variants
+	Vector2i(2, 1), Vector2i(2, 2), Vector2i(3, 1), Vector2i(3, 2),  # cracked decor
+]
 # ---------------------------------------------------------------------------------------
 
 
@@ -135,6 +180,9 @@ func _marker_source()->int:
 ## open toward TR or BR puts the wall on the floor cell itself (overlap).
 ## HOLE: marks floor cells that border an interior empty region (a gap enclosed by floor).
 func generate_from_floor()->void:
+	if layer_kind == LayerKind.FLOOR:
+		push_warning("TileVisualAutotiler: Generate-from-floor does not apply to FLOOR kind; paint floor tiles then tick Fix Visual.")
+		return
 	var _src:int = _marker_source()
 	if _src == -1:
 		push_warning("TileVisualAutotiler: layer tileset has no source to place markers.")
@@ -252,6 +300,8 @@ func erase_tiles()->void:
 ## Choose the atlas coord for one cell. Holes use the same-layer hole mask; walls are
 ## chosen purely from the surrounding floor topology (see _pick_wall()).
 func _pick_atlas(cell:Vector2i)->Vector2i:
+	if layer_kind == LayerKind.FLOOR:
+		return _pick_floor(cell)
 	if layer_kind == LayerKind.HOLE:
 		var _hole_mask:int = 0
 		for bit:int in _DELTAS:
@@ -270,16 +320,18 @@ func _hole_at(cell:Vector2i, dx:int, dy:int)->bool:
 	return tilemap_layer.get_cell_source_id(cell + Vector2i(dx, dy)) != -1
 
 
-## Hole atlas from hole-neighbor shape + back-diagonals. Rule verified 28/28 vs room_0_test.
-## The two back sides BL and TL decide the edge; the top-left back-diagonal (-1,-1) selects
-## the "continuing" variant; an interior strip open on both back-diagonals uses 1:0.
+## Hole atlas from hole-neighbor shape + back-diagonals. The two back sides BL and TL decide
+## the edge; the top-left back-diagonal (-1,-1) selects the "continuing" variant. The interior
+## case is floor-driven: a floor tile at the up-left back-diagonal uses the 1:0 strip variant.
 func _pick_hole(cell:Vector2i, hole_mask:int)->Vector2i:
 	var _has_bl:bool = (hole_mask & SIDE_BL) != 0
 	var _has_tl:bool = (hole_mask & SIDE_TL) != 0
 	var _diag_tl:bool = _hole_at(cell, -1, -1)
 	if _has_bl and _has_tl:
-		# Interior. Thin diagonal strip (both back-diagonals empty) uses the 1:0 variant.
-		if not _diag_tl and not _hole_at(cell, 1, 1):
+		# Interior. Floor-driven, like walls: when the up-left back-diagonal is a floor
+		# tile the room edge wraps behind here, so use the 1:0 strip/corner variant;
+		# otherwise the cell is solid interior (0:2).
+		if _floor_at(cell, -1, -1):
 			return HOLE_INTERIOR_STRIP
 		return HOLE_INTERIOR
 	if _has_bl:
@@ -292,6 +344,29 @@ func _pick_hole(cell:Vector2i, hole_mask:int)->Vector2i:
 ## True if a floor tile exists at the given map offset from `cell`.
 func _floor_at(cell:Vector2i, dx:int, dy:int)->bool:
 	return floor_layer.get_cell_source_id(cell + Vector2i(dx, dy)) != -1
+
+
+## Floor atlas from the four diagonal side neighbours on THIS layer (the floor is both the
+## painted layer and its own topology source). A side bit is set when that neighbour is also
+## floor, meaning no border is drawn on that side. Corners are ignored on purpose — the art
+## only distinguishes the four sides, so an 8-bit match (Godot terrain) is what mis-fires.
+func _pick_floor(cell:Vector2i)->Vector2i:
+	var _mask:int = 0
+	if tilemap_layer.get_cell_source_id(cell + _DELTAS[SIDE_TL]) != -1:
+		_mask |= 0b1000
+	if tilemap_layer.get_cell_source_id(cell + _DELTAS[SIDE_TR]) != -1:
+		_mask |= 0b0100
+	if tilemap_layer.get_cell_source_id(cell + _DELTAS[SIDE_BL]) != -1:
+		_mask |= 0b0010
+	if tilemap_layer.get_cell_source_id(cell + _DELTAS[SIDE_BR]) != -1:
+		_mask |= 0b0001
+	# Fully-surrounded cell already holding a hand-placed fill or decorative tile: keep it,
+	# so cracked-floor decoration survives Fix Visual. Only edge cells are rewritten.
+	if _mask == 0b1111:
+		var _cur:Vector2i = tilemap_layer.get_cell_atlas_coords(cell)
+		if _cur in _FLOOR_INTERIOR_KEEP:
+			return _cur
+	return _FLOOR_ATLAS[_mask]
 
 
 ## Wall atlas from the surrounding FLOOR topology alone. Verified 200/200 vs room_0_test.

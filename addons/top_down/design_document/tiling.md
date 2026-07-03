@@ -7,9 +7,18 @@ custom data layers: `TileCollisionGenerator` (physics colliders) and
 spawns until you generate.
 
 ## Floor-aware visual autotiling
-`FloorLayer` uses Godot's built-in terrain brush. `ObstacleLayer` (holes) and
-`WallLayer_Ysorted` (walls) instead use a custom `@tool` node,
-`TileVisualAutotiler` (`addons/great_games_library/nodes/utility/TileVisualAutotiler.gd`).
+All three tile layers use the custom `@tool` node `TileVisualAutotiler`
+(`addons/great_games_library/nodes/utility/TileVisualAutotiler.gd`), each with a different
+`layer_kind`: `FloorLayer` = FLOOR, `ObstacleLayer` = HOLE, `WallLayer_Ysorted` = WALL.
+
+`FloorLayer` originally used Godot's built-in terrain brush, but that mis-fired: the floor
+art only distinguishes which of the four diagonal **sides** (TL/TR/BL/BR) carry a raised
+border, yet the tileset was authored with 8-bit corner+side peering, leaving most neighbour
+fingerprints undefined. Godot then substitutes a wrong nearest-match tile that flips as
+neighbours change. FLOOR kind fixes this: paint any floor tiles, tick **Fix Visual**, and
+each cell is rewritten from its 4-bit "which diagonal neighbour is also floor" side mask
+(corners ignored). Deterministic and re-runnable. The Generate-from-floor buttons do not
+apply to FLOOR (there is no boundary to ring — the floor is its own topology).
 
 Why custom: built-in terrain is single-layer and picks one tile per neighbor-fingerprint.
 Walls/holes here need the **FloorLayer relationship**. A wall tile wraps a floor cell, so
