@@ -85,6 +85,7 @@ speed = 60.0
 [node name="ProjectileSetup" parent="." index="0"]
 base_damage = Array[ExtResource("2_mr7yn")]([SubResource("Resource_78e1m")])
 kickback = 100.0
+is_melee = true
 
 [node name="Shadow" type="Sprite2D" parent="." index="1"]
 visible = false

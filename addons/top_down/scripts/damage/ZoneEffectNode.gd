@@ -12,12 +12,15 @@ var zone_resource:ZoneEffectResource
 
 var health_resource:HealthResource
 
+var damage_resource:DamageResource
+
 var _poison_tick:float
 
 func _ready()->void:
 	speed_resource = resource_node.get_resource("speed_scale")
 	zone_resource = resource_node.get_resource("zone")
 	health_resource = resource_node.get_resource("health")
+	damage_resource = resource_node.get_resource("damage")
 	assert(speed_resource != null)
 	assert(zone_resource != null)
 	assert(health_resource != null)
@@ -43,3 +46,5 @@ func _process(delta:float)->void:
 		_poison_tick += 1.0
 		if !health_resource.is_dead:
 			health_resource.add_hp(-zone_resource.poison_damage)
+			# shows the damage number like any other hit
+			damage_resource.receive_points(zone_resource.poison_damage)

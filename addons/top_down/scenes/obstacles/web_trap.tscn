@@ -33,6 +33,7 @@ description = "Web dies when a shot hits it."
 [sub_resource type="Resource" id="Resource_webdamage"]
 script = ExtResource("5_damage")
 can_receive_damage = true
+ignores_melee = true
 version = 0
 not_saved = false
 
