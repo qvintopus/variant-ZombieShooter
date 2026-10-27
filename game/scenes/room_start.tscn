@@ -1,24 +1,36 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene format=3 uid="uid://dx7unkqhb0d0a"]
 
 [ext_resource type="PackedScene" uid="uid://3betq3gbp57h" path="res://addons/top_down/scenes/levels/room_start.tscn" id="1_start"]
-[ext_resource type="Script" path="res://game/scripts/RoomController.gd" id="2_ctrl"]
+[ext_resource type="Script" uid="uid://beja08wyrf37a" path="res://game/scripts/RoomController.gd" id="2_ctrl"]
 [ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="3_overlay"]
 [ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="4_fight"]
 [ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="5_remain"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="6_state"]
+[ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="6_state"]
 [ext_resource type="Resource" path="res://game/resources/room_cleared_resource.tres" id="7_cleared"]
-[ext_resource type="Script" path="res://game/scripts/FreshStart.gd" id="8_fresh"]
+[ext_resource type="Script" uid="uid://dnnatgkr4qvoh" path="res://game/scripts/FreshStart.gd" id="8_fresh"]
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="9_playerref"]
 [ext_resource type="Resource" uid="uid://c5cbxaiec2jk1" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="10_trans"]
+[ext_resource type="PackedScene" uid="uid://dgd3xomk1rk27" path="res://addons/top_down/scenes/obstacles/web_trap.tscn" id="11_webtrap"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/obstacles/acid_puddle.tscn" id="12_acid"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/obstacles/slime_puddle.tscn" id="13_slime"]
 
-[node name="Room" instance=ExtResource("1_start")]
+[node name="Room" unique_id=1286240155 instance=ExtResource("1_start")]
 
-[node name="Stairs" parent="Behind" index="1"]
+[node name="Stairs" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="1"]
 tag = "from_next"
 connect_tag = "from_prev"
 scene_path = "res://game/scenes/room_1.tscn"
 
-[node name="RoomController" type="Node" parent="."]
+[node name="WebTrap" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="2" unique_id=1991900479 instance=ExtResource("11_webtrap")]
+position = Vector2(158, 95)
+
+[node name="AcidPuddle" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="3" instance=ExtResource("12_acid")]
+position = Vector2(96, 121)
+
+[node name="SlimePuddle" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="4" instance=ExtResource("13_slime")]
+position = Vector2(150, 140)
+
+[node name="RoomController" type="Node" parent="." index="21" unique_id=724244660]
 script = ExtResource("2_ctrl")
 room_id = &"room_start"
 room_state_resource = ExtResource("6_state")
@@ -26,9 +38,9 @@ room_cleared_resource = ExtResource("7_cleared")
 fight_mode_resource = ExtResource("4_fight")
 remaining_wave_count_resource = ExtResource("5_remain")
 
-[node name="FreshStart" type="Node" parent="."]
+[node name="FreshStart" type="Node" parent="." index="22" unique_id=1030334815]
 script = ExtResource("8_fresh")
 player_reference = ExtResource("9_playerref")
 scene_transition_resource = ExtResource("10_trans")
 
-[node name="GameHudOverlay" parent="." instance=ExtResource("3_overlay")]
+[node name="GameHudOverlay" parent="." index="23" unique_id=1173246793 instance=ExtResource("3_overlay")]
