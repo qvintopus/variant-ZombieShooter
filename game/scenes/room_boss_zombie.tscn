@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/levels/room_0.tscn" id="1_room0"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/arena/SpawnWaveList.gd" id="4_wave"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="5_inst"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/giant_zombie_instance_resource.tres" id="inst_0"]
+[ext_resource type="Script" path="res://game/scripts/RoomController.gd" id="8_ctrl"]
+[ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="9_overlay"]
+[ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="10_fight"]
+[ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="11_remain"]
+[ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="12_state"]
+[ext_resource type="Resource" path="res://game/resources/room_cleared_resource.tres" id="13_cleared"]
+
+[sub_resource type="Resource" id="Wave_1"]
+script = ExtResource("4_wave")
+is_boss = true
+count = 1
+instance_list = Array[ExtResource("5_inst")]([ExtResource("inst_0")])
+
+[node name="Room" instance=ExtResource("1_room0")]
+
+[node name="Stairs" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="0"]
+tag = "boss_zombie_entry"
+connect_tag = "test_exit"
+scene_path = "res://game/scenes/room_test.tscn"
+
+[node name="Stairs2" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="1"]
+visible = false
+monitoring = false
+tag = "boss_zombie_exit"
+connect_tag = "boss_broodmother_entry"
+scene_path = "res://game/scenes/room_boss_broodmother.tscn"
+
+[node name="Stairs3" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="2"]
+visible = false
+monitoring = false
+
+[node name="Stairs4" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="3"]
+visible = false
+monitoring = false
+
+[node name="Section1" parent="EnemyManager" parent_id_path=PackedInt32Array(1112234375) index="0"]
+waves = Array[ExtResource("4_wave")]([SubResource("Wave_1")])
+
+[node name="EnemySpawnPoints" parent="." index="9" unique_id=1628598410 node_paths=PackedStringArray("default_section")]
+default_section = NodePath("../EnemyManager/Section1")
+
+[node name="RoomController" type="Node" parent="." index="18" node_paths=PackedStringArray("arena_entry", "exit_stair")]
+script = ExtResource("8_ctrl")
+room_id = &"room_boss_zombie"
+room_state_resource = ExtResource("12_state")
+room_cleared_resource = ExtResource("13_cleared")
+fight_mode_resource = ExtResource("10_fight")
+remaining_wave_count_resource = ExtResource("11_remain")
+arena_entry = NodePath("../ArenaEntry")
+exit_stair = NodePath("../Behind/Stairs2")
+
+[node name="GameHudOverlay" parent="." index="19" instance=ExtResource("9_overlay")]
+
+[editable path="EnemyManager"]

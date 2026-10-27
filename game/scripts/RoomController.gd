@@ -26,6 +26,9 @@ extends Node
 ## The inherited ArenaEntry node (Area2D) that starts the fight on player enter.
 @export var arena_entry: Node
 
+## Optional stair that is hidden until the room is cleared, used to move on after a fight.
+@export var exit_stair: Node
+
 ## Tracks whether a real fight has started, so the initial count==0 isn't
 ## mistaken for "cleared".
 var _was_fighting: bool = false
@@ -44,6 +47,7 @@ func _ready() -> void:
 		if is_instance_valid(arena_entry):
 			arena_entry.queue_free()
 		room_cleared_resource.set_value(true)
+		_show_exit_stair()
 		return
 
 	# Fresh room: hide any lingering cleared text, then watch for completion.
@@ -66,3 +70,11 @@ func _on_remaining_waves_changed() -> void:
 	# All waves defeated.
 	room_state_resource.mark_cleared(room_id)
 	room_cleared_resource.set_value(true)
+	_show_exit_stair()
+
+## Hidden exit stairs appear once the fight is won.
+func _show_exit_stair() -> void:
+	if exit_stair == null:
+		return
+	exit_stair.visible = true
+	exit_stair.monitoring = true
