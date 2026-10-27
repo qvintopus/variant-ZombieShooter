@@ -44,7 +44,8 @@ waves = Array[ExtResource("4_wave")]([SubResource("Wave_1")])
 [node name="EnemySpawnPoints" parent="." index="9" unique_id=1628598410 node_paths=PackedStringArray("default_section")]
 default_section = NodePath("../EnemyManager/Section1")
 
-[node name="RoomController" type="Node" parent="." index="18" unique_id=1153284251 node_paths=PackedStringArray("arena_entry", "exit_stair")]
+[node name="RoomController" type="Node" parent="." index="18" unique_id=1153284251 node_paths=PackedStringArray("arena_entry", "exit_stair", "arena_aggregator")]
+arena_aggregator = NodePath("../EnemyManager/Aggregator")
 script = ExtResource("8_ctrl")
 room_id = &"room_boss_zombie"
 room_state_resource = ExtResource("12_state")

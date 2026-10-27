@@ -29,6 +29,11 @@ extends Node
 ## Optional stair that is hidden until the room is cleared, used to move on after a fight.
 @export var exit_stair: Node
 
+## The room's sections. When set, the room only counts as cleared if every section
+## was really cleared: freeing the room mid-fight (game over, leaving by stair) also
+## zeroes the wave counts, which would otherwise look like a clear.
+@export var arena_aggregator: ArenaSectionAggregator
+
 ## Tracks whether a real fight has started, so the initial count==0 isn't
 ## mistaken for "cleared".
 var _was_fighting: bool = false
@@ -68,10 +73,21 @@ func _on_remaining_waves_changed() -> void:
 		return
 	if remaining_wave_count_resource.value > 0:
 		return
+	if arena_aggregator != null and !_all_sections_cleared():
+		return
 	# All waves defeated.
 	room_state_resource.mark_cleared(room_id)
 	room_cleared_resource.set_value(true)
 	_show_exit_stair()
+
+## Sections without waves are never started, so they do not count.
+func _all_sections_cleared() -> bool:
+	for _section:ArenaSection in arena_aggregator.sections:
+		if _section == null or _section.waves.is_empty():
+			continue
+		if !_section.is_cleared:
+			return false
+	return true
 
 ## Hidden exit stairs appear once the fight is won.
 func _show_exit_stair() -> void:

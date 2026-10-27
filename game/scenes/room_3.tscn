@@ -61,7 +61,8 @@ scene_path = "res://game/scenes/victory.tscn"
 [node name="Section1" parent="EnemyManager" index="0"]
 waves = Array[ExtResource("4_wave")]([SubResource("Wave_1"), SubResource("Wave_2"), SubResource("Wave_3")])
 
-[node name="RoomController" type="Node" parent="." node_paths=PackedStringArray("arena_entry")]
+[node name="RoomController" type="Node" parent="." node_paths=PackedStringArray("arena_entry", "arena_aggregator")]
+arena_aggregator = NodePath("../EnemyManager/Aggregator")
 script = ExtResource("9_ctrl")
 room_id = &"room_3"
 room_state_resource = ExtResource("13_state")
