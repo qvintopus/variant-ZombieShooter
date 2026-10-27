@@ -1,8 +1,7 @@
-[gd_scene load_steps=16 format=4 uid="uid://dksjs6yft863n"]
+[gd_scene load_steps=15 format=4 uid="uid://dksjs6yft863n"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/web_spider_instance_resource.tres" id="rm_webspider"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/skitter_spider_instance_resource.tres" id="rm_skitter"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="rm_acidslime"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/mutant_slime_instance_resource.tres" id="rm_mutant"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/bloater_instance_resource.tres" id="rm_bloater"]
 
 [ext_resource type="PackedScene" uid="uid://cpjckxc4g3s0w" path="res://addons/top_down/scenes/levels/room_template.tscn" id="1_rhar3"]
@@ -19,19 +18,19 @@
 script = ExtResource("5_7frwm")
 is_boss = false
 count = 10
-instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_mutant"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
+instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
 
 [sub_resource type="Resource" id="Resource_3f22w"]
 script = ExtResource("5_7frwm")
 is_boss = false
 count = 10
-instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_mutant"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
+instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
 
 [sub_resource type="Resource" id="Resource_iyyns"]
 script = ExtResource("5_7frwm")
 is_boss = false
 count = 10
-instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_mutant"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
+instance_list = Array[ExtResource("6_t3b7o")]([ExtResource("7_8b3ag"), ExtResource("8_vssl0"), ExtResource("rm_bloater"), ExtResource("rm_acidslime"), ExtResource("rm_skitter"), ExtResource("rm_webspider")])
 
 [sub_resource type="Resource" id="Resource_2ifak"]
 script = ExtResource("5_7frwm")

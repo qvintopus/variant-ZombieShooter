@@ -274,11 +274,6 @@ BLOATER_MAP = [
 	'gppPppppPppg', 'gppppppppppg', 'gggpppppggg', 'gggggggggg',
 	'rrrrrrrrrr', 'rrrrrrrr', 'bb....bb', 'bb....bb', 'bbb..bbb', '',
 ]
-MUTANT_SLIME_MAP = [
-	'', '', 'd.d.d.d', 'gggggggggggg', 'gllgggggggggg', 'gggRggggRggg',
-	'gggggggggggg', 'ggglllgggggg', 'gggggggggggg', 'gggggggggggg',
-	'dddddddddddd', '', '', '', '', '',
-]
 ACID_SLIME_MAP = [
 	'', '', 'a.a..a.a', 'aaaaaaaaaa', 'aAaaaaaaaaa', 'aaRaaaaRaaa',
 	'aaaaaaaaaaaa', 'aaaaaAaaaaaa', 'aaaaaaaaaaaa', 'aaaaaaaaaaa',
@@ -291,7 +286,6 @@ def main():
 	projectile = os.path.join(HERE, 'projectile')
 
 	write_strip(os.path.join(characters, 'bloater_16x16_strip8.png'), walk_frames(from_rows(BLOATER_MAP)))
-	write_strip(os.path.join(characters, 'mutant_slime_16x16_strip8.png'), walk_frames(from_rows(MUTANT_SLIME_MAP)))
 	write_strip(os.path.join(characters, 'acid_slime_16x16_strip8.png'), walk_frames(from_rows(ACID_SLIME_MAP)))
 	write_strip(
 		os.path.join(characters, 'skitter_spider_16x16_strip8.png'),
