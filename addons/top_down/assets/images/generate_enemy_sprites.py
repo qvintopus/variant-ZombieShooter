@@ -36,6 +36,7 @@ PALETTE = {
 	't': (24, 110, 96, 255),    # acid rim
 	'x': (42, 36, 48, 255),     # spider black
 	'X': (77, 69, 88, 255),     # spider grey
+	'Y': (128, 118, 146, 255),   # spider leg grey
 	'w': (232, 226, 200, 255),  # bone white
 	'e': (223, 233, 240, 255),  # web white
 	'R': (224, 48, 46, 255),    # red eyes
@@ -128,30 +129,40 @@ def walk_frames(base):
 	return frames
 
 
-def spider_frames(body, abdomen, leg_color, eye_color, abdomen_rx, marks=None):
-	"""Radial 8-legged spider with the legs wiggling over the frames."""
-	angles = [-170, -125, -85, -50, -10, 35, 80, 125]
+## Left-side legs as (anchor, knee, foot) in 16x16 pixel space, top-down.
+## Group 'A' and 'B' take turns lifting during the walk; the right side mirrors them.
+SPIDER_LEGS = [
+	((5.0, 4.5), (3.0, 2.0), (2.0, 0.5), 'A'),
+	((5.0, 6.5), (2.5, 6.0), (1.0, 5.0), 'B'),
+	((5.0, 8.5), (2.5, 9.5), (1.0, 10.5), 'A'),
+	((5.0, 10.5), (3.0, 13.0), (2.0, 14.5), 'B'),
+]
+
+
+def spider_frames(body, abdomen, leg_color, eye_color, fang_color, marks=None):
+	"""Top-down spider: head and fangs up top, round abdomen below, legs alternate groups while walking."""
 	frames = []
 	for frame in range(FRAME_COUNT):
-		phase = frame / FRAME_COUNT * 2 * math.pi
+		step = math.sin(frame / FRAME_COUNT * 2 * math.pi)
 		canvas = new_canvas(16, 16)
-		cx = 7.5
-		cy = 8.0
-		for index, angle_deg in enumerate(angles):
-			angle = math.radians(angle_deg)
-			wiggle = 0.3 * math.sin(phase + index * math.pi / 2)
-			knee_x = cx + 4.0 * math.cos(angle + wiggle)
-			knee_y = cy + 4.0 * math.sin(angle + wiggle)
-			foot_x = knee_x + 3.2 * math.cos(angle + 0.9 * (1 if index % 2 == 0 else -1))
-			foot_y = knee_y + 3.2 * math.sin(angle + 0.9 * (1 if index % 2 == 0 else -1))
-			thick_line(canvas, cx, cy, knee_x, knee_y, 1.0, leg_color)
-			thick_line(canvas, knee_x, knee_y, foot_x, foot_y, 1.0, leg_color)
-		ellipse(canvas, cx - 2.5, cy, abdomen_rx, 2.8, abdomen)
-		ellipse(canvas, cx + 2.5, cy - 0.5, 2.3, 2.1, body)
+		for side in (0, 1):
+			for anchor, knee, foot, group in SPIDER_LEGS:
+				lift = step if group == 'A' else -step
+				points = [anchor, (knee[0], knee[1] + 0.8 * lift), (foot[0], foot[1] + 1.0 * lift)]
+				if side == 1:
+					points = [(16.0 - x, y) for x, y in points]
+				thick_line(canvas, points[0][0], points[0][1], points[1][0], points[1][1], 1.0, leg_color)
+				thick_line(canvas, points[1][0], points[1][1], points[2][0], points[2][1], 1.0, leg_color)
+		bob = 0.4 * step
+		ellipse(canvas, 7.5, 11.0 + bob, 3.2, 3.0, abdomen)
+		ellipse(canvas, 7.5, 5.0 + bob, 2.4, 2.2, body)
 		if marks is not None:
-			ellipse(canvas, cx - 2.5, cy, 1.2, 1.0, marks)
-		put(canvas, 10, 7, eye_color)
-		put(canvas, 12, 7, eye_color)
+			for x, y in ((7, 10), (8, 10), (7, 12), (8, 12)):
+				put(canvas, x, y + round(bob), marks)
+		put(canvas, 6, 3, eye_color)
+		put(canvas, 9, 3, eye_color)
+		put(canvas, 7, 4, fang_color)
+		put(canvas, 8, 4, fang_color)
 		frames.append(add_outline(canvas))
 	return frames
 
@@ -289,11 +300,11 @@ def main():
 	write_strip(os.path.join(characters, 'acid_slime_16x16_strip8.png'), walk_frames(from_rows(ACID_SLIME_MAP)))
 	write_strip(
 		os.path.join(characters, 'skitter_spider_16x16_strip8.png'),
-		spider_frames(PALETTE['X'], PALETTE['X'], PALETTE['w'], PALETTE['R'], 3.0),
+		spider_frames(PALETTE['X'], PALETTE['x'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['R']),
 	)
 	write_strip(
 		os.path.join(characters, 'web_spider_16x16_strip8.png'),
-		spider_frames(PALETTE['e'], PALETTE['w'], PALETTE['X'], PALETTE['R'], 3.4, marks=PALETTE['p']),
+		spider_frames(PALETTE['X'], PALETTE['e'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['p']),
 	)
 
 	write_png(os.path.join(characters, 'giant_zombie_64x64.png'), giant_zombie_boss())
