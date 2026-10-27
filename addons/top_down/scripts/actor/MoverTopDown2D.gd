@@ -26,6 +26,9 @@ var input_resource:InputResource
 ## Stats for movement
 var actor_stats_resource:ActorStatsResource
 
+## Optional speed multiplier set by zones, like webs or slowing puddles
+var speed_resource:FloatResource
+
 var velocity:Vector2
 
 var axis_compensation:Vector2
@@ -45,7 +48,9 @@ func _ready()->void:
 	
 	actor_stats_resource = resource_node.get_resource("movement")
 	assert(actor_stats_resource != null)
-	
+
+	speed_resource = resource_node.get_resource("speed_scale")
+
 	var _push_resource = resource_node.get_resource("push")
 	assert(_push_resource != null)
 	_push_resource.impulse_event.connect(add_impulse)
@@ -69,7 +74,8 @@ func _ready()->void:
 func _physics_process(delta:float)->void:
 	_remove_overlap()
 	
-	var _target_velocity:Vector2 = actor_stats_resource.max_speed * input_resource.axis
+	var _speed_scale:float = speed_resource.value if speed_resource != null else 1.0
+	var _target_velocity:Vector2 = actor_stats_resource.max_speed * _speed_scale * input_resource.axis
 	velocity += get_impulse(velocity, _target_velocity, actor_stats_resource.acceleration, delta)
 	velocity *= axis_multiplier_resource.value
 	move_and_slide(delta)
