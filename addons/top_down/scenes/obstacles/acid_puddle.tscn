@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/Puddle.gd" id="1_puddle"]
 [ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="2_dct"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/AreaTransmitter2D.gd" id="5_tx"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/ZoneTransmission.gd" id="3_zone"]
 [ext_resource type="Texture2D" path="res://addons/top_down/assets/images/misc/acid_puddle_24x16.png" id="4_tex"]
 
@@ -26,6 +27,8 @@ texture = ExtResource("4_tex")
 [node name="PuddleArea" type="Area2D" parent="."]
 collision_layer = 0
 collision_mask = 2
+monitorable = false
+script = ExtResource("5_tx")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PuddleArea"]
 shape = SubResource("CircleShape2D_acid")
