@@ -3,7 +3,6 @@ extends Node
 
 @export var player_reference:ReferenceNodeResource
 
-## Optional: without it the boss stays in place and only shoots
 @export var chase:BigJellyChase
 
 @export var actor_damage:ActorDamage
@@ -19,11 +18,7 @@ extends Node
 
 @export var shoot_slime:BigJellyShootSlime
 
-## Optional: used on every other attack instead of shoot_slime
-@export var secondary_shoot:BigJellyShootSlime
-
 var enabled:bool
-var shoot_count:int
 
 var CLOSE_IN_MAX_JUMPS:int = 4
 var close_in_counter:int
@@ -31,8 +26,7 @@ var tween_wait:Tween
 
 func _ready()->void:
 	close_in_counter = CLOSE_IN_MAX_JUMPS
-	if chase != null:
-		chase.finished.connect(_state_update.call_deferred)
+	chase.finished.connect(_state_update.call_deferred)
 	actor_damage.actor_died.connect(owner.queue_free)
 	player_reference.listen(self, _on_player_changed)
 	# DEATH
@@ -45,25 +39,20 @@ func _on_player_changed()->void:
 func _state_update()->void:
 	if !enabled:
 		return
-	if chase != null && close_in_counter > 0 && _need_move_in_range():
+	if close_in_counter > 0 && _need_move_in_range():
 		close_in_counter -= 1
 		chase.target_calculation(player_reference.node.global_position, player_reference.node.velocity, max_jump_close_in)
 		chase.jump_at_target()
 		return
 	close_in_counter = CLOSE_IN_MAX_JUMPS
-	var _shooter:BigJellyShootSlime = shoot_slime
-	if secondary_shoot != null && shoot_count % 2 == 1:
-		_shooter = secondary_shoot
-	shoot_count += 1
-	## A static boss has nothing to chase, so it waits after every shot and decides again.
-	if _shooter.shoot(player_reference.node.global_position) || chase == null:
+	if shoot_slime.shoot(player_reference.node.global_position):
 		## TODO: has to perform something to keep loop going
 		if tween_wait != null:
 			tween_wait.kill()
 		tween_wait = create_tween()
 		tween_wait.tween_callback(_state_update.call_deferred).set_delay(2.0)
 		return
-
+	
 	chase.target_calculation(player_reference.node.global_position, player_reference.node.velocity, max_jump_distance)
 	chase.jump_at_target()
 

@@ -13,9 +13,6 @@ extends Node
 
 @export var landing_vfx:InstanceResource
 
-## Optional thing left on the ground where the projectile lands, like a web trap
-@export var landing_instance:InstanceResource
-
 @export var landing_sound:SoundResource
 
 func _ready()->void:
@@ -32,8 +29,6 @@ func _on_lerp_finished()->void:
 	var _config_callback:Callable = func (inst:Node2D)->void:
 		inst.global_position = _position
 	var _inst:Node2D = landing_vfx.instance(_config_callback)
-	if landing_instance != null:
-		landing_instance.instance(_config_callback)
-
+	
 	landing_sound.play_managed()
 	projectile.prepare_exit()

@@ -1,38 +1,8 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://addons/top_down/scripts/damage/Puddle.gd" id="1_puddle"]
-[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="2_dct"]
-[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/AreaTransmitter2D.gd" id="5_tx"]
-[ext_resource type="Script" path="res://addons/top_down/scripts/damage/ZoneTransmission.gd" id="3_zone"]
 [ext_resource type="Texture2D" path="res://addons/top_down/assets/images/misc/slime_puddle_24x16.png" id="4_tex"]
 
-[sub_resource type="Resource" id="Resource_slimezone"]
-script = ExtResource("3_zone")
-transmission_name = &"zone"
-slow_time = 1.0
-slow_factor = 0.5
+[node name="SlimePuddle" type="Node2D" unique_id=1440199260]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_slime"]
-radius = 9.0
-
-[node name="SlimePuddle" type="Node2D" node_paths=PackedStringArray("area", "data_transmitter")]
-script = ExtResource("1_puddle")
-lifetime = 60.0
-area = NodePath("PuddleArea")
-data_transmitter = NodePath("PuddleArea/ZoneDataTransmitter")
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=962246961]
 texture = ExtResource("4_tex")
-
-[node name="PuddleArea" type="Area2D" parent="."]
-collision_layer = 0
-collision_mask = 6
-monitorable = false
-script = ExtResource("5_tx")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PuddleArea"]
-shape = SubResource("CircleShape2D_slime")
-
-[node name="ZoneDataTransmitter" type="Node" parent="PuddleArea"]
-script = ExtResource("2_dct")
-transmission_resource = SubResource("Resource_slimezone")

@@ -30,10 +30,6 @@ extends TransmissionResource
 ## Set by projectile uppon hitting a target.
 @export var kickback_strength:float
 
-## Melee hits (like a sword slash) are set by ProjectileSetup.
-## Targets with DamageResource.ignores_melee take no damage from them.
-@export var is_melee:bool
-
 ## These are set at collision time
 
 ## Direction of dealth damage
@@ -81,10 +77,6 @@ func process(resource_node:ResourceNode)->void:
 		return
 	if _damage_resource.can_receive_damage == false:
 		try_again()
-		return
-	
-	if is_melee && _damage_resource.ignores_melee:
-		denied()
 		return
 	
 	var _health_resource:HealthResource = resource_node.get_resource("health")

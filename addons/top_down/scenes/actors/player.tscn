@@ -35,9 +35,6 @@
 [ext_resource type="Resource" uid="uid://ct82cq803r2si" path="res://addons/top_down/resources/RoomResources/obstacle_reference.tres" id="29_4dv8f"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/HoleRecovery.gd" id="30_n8poo"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/VisualInvulnerability.gd" id="32_82fau"]
-[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/ZoneEffectResource.gd" id="33_zoneres"]
-[ext_resource type="Script" path="res://addons/top_down/scripts/damage/ZoneEffectNode.gd" id="34_zonenode"]
-[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/FloatResource.gd" id="35_floatres"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -149,32 +146,6 @@ script = ExtResource("2_20qkb")
 resource = ExtResource("10_3846y")
 make_unique = false
 description = ""
-
-[sub_resource type="Resource" id="Resource_speedscale"]
-script = ExtResource("35_floatres")
-value = 1.0
-default_value = 1.0
-version = 0
-not_saved = false
-
-[sub_resource type="Resource" id="Resource_speedscale_item"]
-resource_name = "speed_scale"
-script = ExtResource("2_20qkb")
-resource = SubResource("Resource_speedscale")
-make_unique = true
-description = "FloatResource multiplying movement speed. Webs and slowing puddles lower it."
-
-[sub_resource type="Resource" id="Resource_zone"]
-script = ExtResource("33_zoneres")
-version = 0
-not_saved = true
-
-[sub_resource type="Resource" id="Resource_zone_item"]
-resource_name = "zone"
-script = ExtResource("2_20qkb")
-resource = SubResource("Resource_zone")
-make_unique = true
-description = "ZoneEffectResource with stuck, slow and poison timers. Ticked by ZoneEffectNode."
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gfelk"]
 resource_local_to_scene = true
@@ -309,7 +280,7 @@ disable_mode = 2
 collision_layer = 2
 
 [node name="ResourceNode" parent="." index="0"]
-list = Array[ExtResource("2_20qkb")]([SubResource("Resource_y1d7o"), SubResource("Resource_3g443"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_or6sa"), SubResource("Resource_cna70"), SubResource("Resource_sj2w3"), SubResource("Resource_speedscale_item"), SubResource("Resource_zone_item")])
+list = Array[ExtResource("2_20qkb")]([SubResource("Resource_y1d7o"), SubResource("Resource_3g443"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_or6sa"), SubResource("Resource_cna70"), SubResource("Resource_sj2w3")])
 
 [node name="AreaReceiver2D" parent="." index="2"]
 collision_layer = 2
@@ -317,12 +288,6 @@ collision_layer = 2
 [node name="ItemDataReceiver" type="Node" parent="AreaReceiver2D" index="4" node_paths=PackedStringArray("area_receiver", "resource_node")]
 script = ExtResource("11_qswmv")
 transmission_name = &"item"
-area_receiver = NodePath("..")
-resource_node = NodePath("../../ResourceNode")
-
-[node name="ZoneDataReceiver" type="Node" parent="AreaReceiver2D" index="5" node_paths=PackedStringArray("area_receiver", "resource_node")]
-script = ExtResource("11_qswmv")
-transmission_name = &"zone"
 area_receiver = NodePath("..")
 resource_node = NodePath("../../ResourceNode")
 
@@ -408,10 +373,6 @@ script = ExtResource("30_n8poo")
 safe_tile_tracker = NodePath("../SafeTileTracker")
 resource_node = NodePath("../ResourceNode")
 hole_trigger = NodePath("../HoleTrigger")
-
-[node name="ZoneEffectNode" type="Node" parent="." index="26" node_paths=PackedStringArray("resource_node")]
-script = ExtResource("34_zonenode")
-resource_node = NodePath("../ResourceNode")
 
 [node name="VisualInvulnerability" type="Node" parent="." index="25" node_paths=PackedStringArray("resource_node", "animation_player")]
 script = ExtResource("32_82fau")

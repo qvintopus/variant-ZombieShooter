@@ -1061,8 +1061,7 @@ polygon = PackedVector2Array(589, 63, 641, 89, 639, 90, 587, 64)
 position = Vector2(280, -296)
 polygon = PackedVector2Array(589, 63, 641, 89, 639, 90, 587, 64)
 
-[node name="RoomController" type="Node" parent="." index="20" unique_id=1109893700 node_paths=PackedStringArray("arena_entry", "arena_aggregator")]
-arena_aggregator = NodePath("../EnemyManager/Aggregator")
+[node name="RoomController" type="Node" parent="." index="20" unique_id=1109893700 node_paths=PackedStringArray("arena_entry")]
 script = ExtResource("11_ctrl")
 room_id = &"room_A01"
 room_state_resource = ExtResource("14_state")

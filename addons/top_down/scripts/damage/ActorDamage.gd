@@ -11,9 +11,6 @@ signal actor_died
 @export var sound_resource_dead:SoundResource
 @export var dead_vfx_instance_resource:InstanceResource
 
-## Optional puddle left where the actor dies, like an acid or slime puddle
-@export var death_puddle_instance:InstanceResource
-
 func _ready()->void:
 	var _health_resource:HealthResource = resource_node.get_resource("health")
 	# workaround to retrigger color flash - stop and then play again
@@ -45,10 +42,4 @@ func _play_dead()->void:
 		inst.scale.x = sprite_flip.dir
 	
 	dead_vfx_instance_resource.instance.call_deferred(_config_callback)
-
-	if death_puddle_instance != null:
-		var _puddle_position:Vector2 = owner.global_position
-		var _puddle_callback:Callable = func (inst:Node2D)->void:
-			inst.global_position = _puddle_position
-		death_puddle_instance.instance.call_deferred(_puddle_callback)
 	actor_died.emit()

@@ -68,10 +68,6 @@ var enemy_resource:ActiveEnemyResource
 
 ## trigger when instance counts as "killed", but not when replaces self
 func remove_self()->void:
-	# Can run twice for one enemy, e.g. a splitting enemy removes itself on the kill
-	# and its death signal calls it again. Counting twice would skip a whole wave.
-	if !enemy_resource.nodes.has(self):
-		return
 	if destroy_children:
 		# since elements gets removed from array, start from end
 		var _children_count:int = enemy_resource.children.size()

@@ -4,7 +4,6 @@ extends Node
 @export var base_damage:Array[DamageTypeResource]
 @export var status_damage:Array[DamageStatusResource]
 @export var kickback:float
-@export var is_melee:bool
 
 @export_category("References")
 @export var projectile:Projectile2D
@@ -33,6 +32,5 @@ func _on_update_requested(transmission_resource:TransmissionResource, _receiver:
 	## TODO: something similar but create a new DamageDataResource only when needed
 	_damage_data_resource.direction = projectile.direction
 	_damage_data_resource.kickback_strength = kickback
-	_damage_data_resource.is_melee = is_melee
 	_damage_data_resource.base_damage.append_array(base_damage)
 	_damage_data_resource.status_list.append_array(status_damage)

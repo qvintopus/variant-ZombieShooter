@@ -10,9 +10,6 @@ signal can_receive_changed
 
 @export var can_receive_damage:bool = true
 
-## Melee hits pass through when true, so only shots can damage this (like a web trap).
-@export var ignores_melee:bool = false
-
 ## Resistance value for each DamageType summed.
 ## Placed in an array for optimized value fetching.
 ## It is initialized and managed by DamageSetup Node.
