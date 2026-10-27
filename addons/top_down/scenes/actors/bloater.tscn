@@ -273,10 +273,8 @@ replacement_instance_resource = ExtResource("19_p8daw")
 sound_effect = ExtResource("20_oj468")
 damage_data_receiver = NodePath("../AreaReceiver2D/DamageDataReceiver")
 
-[node name="ActiveEnemy" type="Node" parent="." index="19" node_paths=PackedStringArray("listen_node", "resource_node")]
+[node name="ActiveEnemy" type="Node" parent="." index="19" node_paths=PackedStringArray("resource_node")]
 script = ExtResource("21_snkgf")
-listen_node = NodePath("../ActorDamage")
-signal_name = &"actor_died"
 resource_node = NodePath("../ResourceNode")
 
 [node name="SlimeSplit" type="Node" parent="." node_paths=PackedStringArray("resource_node", "position_node", "active_enemy")]

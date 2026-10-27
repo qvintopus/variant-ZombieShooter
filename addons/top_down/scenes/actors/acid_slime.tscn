@@ -288,8 +288,10 @@ animation_player_list = [NodePath("../Body/Stretch/Sprite2D/CharacterAnimator"),
 listen_node = NodePath("../ActorDamage")
 signal_name = &"actor_died"
 
-[node name="ActiveEnemy" type="Node" parent="." index="18" node_paths=PackedStringArray("resource_node")]
+[node name="ActiveEnemy" type="Node" parent="." index="18" node_paths=PackedStringArray("listen_node", "resource_node")]
 script = ExtResource("21_7bapl")
+listen_node = NodePath("../ActorDamage")
+signal_name = &"actor_died"
 resource_node = NodePath("../ResourceNode")
 
 [node name="ProximityShoot" type="Node" parent="." node_paths=PackedStringArray("target_finder", "bot_input")]
