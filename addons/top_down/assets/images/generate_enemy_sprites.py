@@ -182,60 +182,57 @@ def web_projectile():
 	return add_outline(canvas)
 
 
-def giant_zombie_boss():
+def giant_zombie_pose(stride=0.0, bob=0.0, hand_y=48.0):
+	"""64x64 brute pose. stride swings the legs, bob lifts the body, hand_y is where the arms reach."""
 	canvas = new_canvas(64, 64)
-	thick_line(canvas, 24, 50, 22, 62, 7, PALETTE['b'])
-	thick_line(canvas, 40, 50, 42, 62, 7, PALETTE['b'])
-	thick_line(canvas, 16, 30, 6, 48, 8, PALETTE['g'])
-	thick_line(canvas, 48, 30, 58, 48, 8, PALETTE['g'])
-	ellipse(canvas, 32, 38, 19, 15, PALETTE['g'])
-	ellipse(canvas, 32, 47, 17, 9, PALETTE['r'])
-	ellipse(canvas, 32, 17, 11, 11, PALETTE['g'])
-	ellipse(canvas, 28, 11, 5, 3, PALETTE['l'])
-	ellipse(canvas, 26, 17, 1.6, 1.6, PALETTE['R'])
-	ellipse(canvas, 38, 17, 1.6, 1.6, PALETTE['R'])
-	thick_line(canvas, 26, 25, 38, 25, 2, PALETTE['k'])
-	thick_line(canvas, 26, 38, 30, 44, 1, PALETTE['b'])
-	thick_line(canvas, 36, 36, 38, 42, 1, PALETTE['b'])
+	thick_line(canvas, 24 + 4 * stride, 50, 22 + 4 * stride, 62, 7, PALETTE['b'])
+	thick_line(canvas, 40 - 4 * stride, 50, 42 - 4 * stride, 62, 7, PALETTE['b'])
+	thick_line(canvas, 16, 30 + bob, 6, hand_y, 8, PALETTE['g'])
+	thick_line(canvas, 48, 30 + bob, 58, hand_y, 8, PALETTE['g'])
+	ellipse(canvas, 32, 38 + bob, 19, 15, PALETTE['g'])
+	ellipse(canvas, 32, 47 + bob, 17, 9, PALETTE['r'])
+	ellipse(canvas, 32, 17 + bob, 11, 11, PALETTE['g'])
+	ellipse(canvas, 28, 11 + bob, 5, 3, PALETTE['l'])
+	ellipse(canvas, 26, 17 + bob, 1.6, 1.6, PALETTE['R'])
+	ellipse(canvas, 38, 17 + bob, 1.6, 1.6, PALETTE['R'])
+	thick_line(canvas, 26, 25 + bob, 38, 25 + bob, 2, PALETTE['k'])
+	thick_line(canvas, 26, 38 + bob, 30, 44 + bob, 1, PALETTE['b'])
+	thick_line(canvas, 36, 36 + bob, 38, 42 + bob, 1, PALETTE['b'])
 	return add_outline(canvas)
 
 
-def plague_mother_boss():
-	canvas = new_canvas(64, 64)
-	thick_line(canvas, 14, 20, 6, 6, 3, PALETTE['a'])
-	thick_line(canvas, 50, 20, 58, 6, 3, PALETTE['a'])
-	thick_line(canvas, 32, 18, 32, 4, 3, PALETTE['a'])
-	ellipse(canvas, 6, 6, 2, 2, PALETTE['A'])
-	ellipse(canvas, 58, 6, 2, 2, PALETTE['A'])
-	ellipse(canvas, 32, 38, 22, 20, PALETTE['p'])
-	ellipse(canvas, 32, 47, 16, 9, PALETTE['P'])
-	ellipse(canvas, 24, 28, 7, 4, PALETTE['P'])
-	ellipse(canvas, 44, 46, 3, 3, PALETTE['y'])
-	ellipse(canvas, 20, 46, 2, 2, PALETTE['y'])
-	ellipse(canvas, 40, 30, 2, 2, PALETTE['y'])
-	ellipse(canvas, 24, 34, 3.5, 3.5, PALETTE['R'])
-	ellipse(canvas, 40, 34, 3.5, 3.5, PALETTE['R'])
-	ellipse(canvas, 32, 27, 4, 4, PALETTE['R'])
-	ellipse(canvas, 24, 34, 1.2, 1.2, PALETTE['k'])
-	ellipse(canvas, 40, 34, 1.2, 1.2, PALETTE['k'])
-	ellipse(canvas, 32, 27, 1.4, 1.4, PALETTE['k'])
-	ellipse(canvas, 32, 48, 6, 3, PALETTE['k'])
-	ellipse(canvas, 14, 56, 2, 3, PALETTE['a'])
-	ellipse(canvas, 30, 58, 2, 4, PALETTE['a'])
-	ellipse(canvas, 48, 57, 2, 3, PALETTE['a'])
-	return add_outline(canvas)
+def giant_zombie_frames():
+	"""Walk x4 (legs swing, body bobs), attack x3 (arms raise, slam down, recover)."""
+	frames = []
+	for frame in range(4):
+		phase = frame / 4 * 2 * math.pi
+		frames.append(giant_zombie_pose(stride=math.sin(phase), bob=-1.0 * abs(math.sin(phase))))
+	frames.append(giant_zombie_pose(hand_y=6.0))
+	frames.append(giant_zombie_pose(bob=2.0, hand_y=60.0))
+	frames.append(giant_zombie_pose(hand_y=34.0))
+	return frames
 
 
-def broodmother_boss():
+BROODMOTHER_LEG_ANGLES = (-150, -120, -95, -70, 70, 95, 120, 150)
+
+
+def broodmother_pose(front_left=-150, front_right=150, spread=0.0, step=0.0):
+	"""64x64 spider pose. front legs set the forelimb swing, spread pushes all legs outwards, step wobbles them."""
 	canvas = new_canvas(64, 64)
 	center_x = 32.0
 	center_y = 36.0
-	for angle_deg in (-150, -120, -95, -70, 70, 95, 120, 150):
-		angle = math.radians(angle_deg)
-		knee_x = center_x + 20 * math.cos(angle)
-		knee_y = center_y + 18 * math.sin(angle)
-		foot_x = center_x + 29 * math.cos(angle)
-		foot_y = center_y + 27 * math.sin(angle)
+	for index, angle_deg in enumerate(BROODMOTHER_LEG_ANGLES):
+		if index == 0:
+			angle_deg = front_left
+		elif index == 7:
+			angle_deg = front_right
+		wobble = 4.0 * step * (1 if index % 2 == 0 else -1)
+		angle = math.radians(angle_deg + wobble)
+		reach = 1.0 + 0.12 * spread
+		knee_x = center_x + 20 * reach * math.cos(angle)
+		knee_y = center_y + 18 * reach * math.sin(angle)
+		foot_x = center_x + 29 * reach * math.cos(angle)
+		foot_y = center_y + 27 * reach * math.sin(angle)
 		thick_line(canvas, center_x + 10 * math.cos(angle), center_y + 10 * math.sin(angle), knee_x, knee_y, 3, PALETTE['X'])
 		thick_line(canvas, knee_x, knee_y, foot_x, foot_y, 3, PALETTE['X'])
 	ellipse(canvas, 32, 42, 16, 14, PALETTE['X'])
@@ -247,7 +244,63 @@ def broodmother_boss():
 		ellipse(canvas, x, y, 1.3, 1.3, PALETTE['R'])
 	thick_line(canvas, 28, 26, 26, 31, 2, PALETTE['w'])
 	thick_line(canvas, 36, 26, 38, 31, 2, PALETTE['w'])
+	if spread > 0:
+		for x, y in ((20, 46), (44, 46), (24, 52), (40, 52)):
+			ellipse(canvas, x, y, 1.2, 1.2, PALETTE['a'])
 	return add_outline(canvas)
+
+
+def broodmother_frames():
+	"""Idle x1, acid throw x3 (left foreleg whips forward), acid fan x3 (both forelegs raised and spread)."""
+	frames = [broodmother_pose(step=0.0)]
+	frames.append(broodmother_pose(front_left=-150))
+	frames.append(broodmother_pose(front_left=-100))
+	frames.append(broodmother_pose(front_left=-125))
+	frames.append(broodmother_pose(front_left=-110, front_right=110, spread=0.5))
+	frames.append(broodmother_pose(front_left=-100, front_right=100, spread=1.0))
+	frames.append(broodmother_pose(front_left=-120, front_right=120, spread=0.5))
+	return frames
+
+
+def plague_mother_pose(left_tip=(6, 6), right_tip=(58, 6), glow=False, pulse=0.0):
+	"""64x64 boss pose. left_tip and right_tip move the tentacles, glow lights the summon tips, pulse swells the eyes."""
+	canvas = new_canvas(64, 64)
+	thick_line(canvas, 14, 20, left_tip[0], left_tip[1], 3, PALETTE['a'])
+	thick_line(canvas, 50, 20, right_tip[0], right_tip[1], 3, PALETTE['a'])
+	thick_line(canvas, 32, 18, 32, 4, 3, PALETTE['a'])
+	ellipse(canvas, left_tip[0], left_tip[1], 2, 2, PALETTE['A'])
+	ellipse(canvas, right_tip[0], right_tip[1], 2, 2, PALETTE['A'])
+	if glow:
+		ellipse(canvas, 32, 4, 4, 4, PALETTE['y'])
+	ellipse(canvas, 32, 38, 22, 20, PALETTE['p'])
+	ellipse(canvas, 32, 47, 16, 9, PALETTE['P'])
+	ellipse(canvas, 24, 28, 7, 4, PALETTE['P'])
+	ellipse(canvas, 44, 46, 3, 3, PALETTE['y'])
+	ellipse(canvas, 20, 46, 2, 2, PALETTE['y'])
+	ellipse(canvas, 40, 30, 2, 2, PALETTE['y'])
+	ellipse(canvas, 24, 34, 3.5 + pulse, 3.5 + pulse, PALETTE['R'])
+	ellipse(canvas, 40, 34, 3.5 + pulse, 3.5 + pulse, PALETTE['R'])
+	ellipse(canvas, 32, 27, 4, 4, PALETTE['R'])
+	ellipse(canvas, 24, 34, 1.2, 1.2, PALETTE['k'])
+	ellipse(canvas, 40, 34, 1.2, 1.2, PALETTE['k'])
+	ellipse(canvas, 32, 27, 1.4, 1.4, PALETTE['k'])
+	ellipse(canvas, 32, 48, 6, 3, PALETTE['k'])
+	ellipse(canvas, 14, 56, 2, 3, PALETTE['a'])
+	ellipse(canvas, 30, 58, 2, 4, PALETTE['a'])
+	ellipse(canvas, 48, 57, 2, 3, PALETTE['a'])
+	return add_outline(canvas)
+
+
+def plague_mother_frames():
+	"""Idle x2 (pulse), acid throw x3 (left tentacle whips out and down), summon x3 (tentacles lift and glow)."""
+	frames = [plague_mother_pose(pulse=0.0), plague_mother_pose(pulse=0.8)]
+	frames.append(plague_mother_pose(left_tip=(10, 2)))
+	frames.append(plague_mother_pose(left_tip=(0, 30)))
+	frames.append(plague_mother_pose(left_tip=(8, 12)))
+	frames.append(plague_mother_pose(left_tip=(6, 0), right_tip=(58, 0), glow=True))
+	frames.append(plague_mother_pose(left_tip=(4, 0), right_tip=(60, 0), glow=True, pulse=0.5))
+	frames.append(plague_mother_pose(left_tip=(6, 0), right_tip=(58, 0), glow=True, pulse=0.8))
+	return frames
 
 
 def write_png(path, rows):
@@ -270,8 +323,10 @@ def write_png(path, rows):
 
 
 def write_strip(path, frames):
+	"""Joins square frames left to right into one PNG; works for 16x16 and 64x64 frames."""
+	height = len(frames[0])
 	rows = []
-	for y in range(16):
+	for y in range(height):
 		row = []
 		for frame in frames:
 			row.extend(frame[y])
@@ -307,9 +362,9 @@ def main():
 		spider_frames(PALETTE['X'], PALETTE['e'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['p']),
 	)
 
-	write_png(os.path.join(characters, 'giant_zombie_64x64.png'), giant_zombie_boss())
-	write_png(os.path.join(characters, 'plague_mother_64x64.png'), plague_mother_boss())
-	write_png(os.path.join(characters, 'broodmother_64x64.png'), broodmother_boss())
+	write_strip(os.path.join(characters, 'giant_zombie_64x64.png'), giant_zombie_frames())
+	write_strip(os.path.join(characters, 'plague_mother_64x64.png'), plague_mother_frames())
+	write_strip(os.path.join(characters, 'broodmother_64x64.png'), broodmother_frames())
 
 	write_png(os.path.join(projectile, 'acid_spit_8x8.png'), acid_spit_projectile())
 	write_png(os.path.join(projectile, 'web_8x8.png'), web_projectile())
