@@ -1,6 +1,8 @@
 class_name BigJellyShootSlime
 extends Node
 
+signal shot
+
 @export var projectile_instance:InstanceResource
 
 @export var origin_node:Node2D
@@ -36,4 +38,5 @@ func shoot(target_position:Vector2)->bool:
 	projectile_instance.instance(_config_callback)
 
 	shoot_sound.play_managed()
+	shot.emit()
 	return true

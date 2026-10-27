@@ -25,4 +25,5 @@ func shoot(_target_position:Vector2)->bool:
 		summon_instance_resource.instance(_config_callback)
 
 	shoot_sound.play_managed()
+	shot.emit()
 	return true

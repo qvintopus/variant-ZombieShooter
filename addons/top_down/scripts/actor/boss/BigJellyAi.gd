@@ -18,7 +18,11 @@ extends Node
 
 @export var shoot_slime:BigJellyShootSlime
 
+## Optional: used on every other attack instead of shoot_slime
+@export var secondary_shoot:BigJellyShootSlime
+
 var enabled:bool
+var shoot_count:int
 
 var CLOSE_IN_MAX_JUMPS:int = 4
 var close_in_counter:int
@@ -45,7 +49,11 @@ func _state_update()->void:
 		chase.jump_at_target()
 		return
 	close_in_counter = CLOSE_IN_MAX_JUMPS
-	if shoot_slime.shoot(player_reference.node.global_position):
+	var _shooter:BigJellyShootSlime = shoot_slime
+	if secondary_shoot != null && shoot_count % 2 == 1:
+		_shooter = secondary_shoot
+	shoot_count += 1
+	if _shooter.shoot(player_reference.node.global_position):
 		## TODO: has to perform something to keep loop going
 		if tween_wait != null:
 			tween_wait.kill()
