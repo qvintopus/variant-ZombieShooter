@@ -10,7 +10,7 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageStatusResource.gd" id="5_mmy6w"]
 [ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="6_ylp04"]
 [ext_resource type="Texture2D" uid="uid://bevk5id3o0bei" path="res://addons/top_down/assets/images/shadow.png" id="7_lqjr0"]
-[ext_resource type="Texture2D" uid="uid://b5udb538gwcb7" path="res://addons/top_down/assets/images/projectile/acid_spit_8x8.png" id="8_d4ddn"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/projectile/acid_spit_8x8.png" id="8_d4ddn"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/weapon_system/projectile/ProjectileRotation.gd" id="9_msmb4"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/weapon_system/projectile/ProjectileImpact.gd" id="10_3acil"]
 [ext_resource type="Resource" uid="uid://s3oxaww7qjgi" path="res://addons/top_down/resources/InstanceResources/vfx/impact_instance_resource.tres" id="11_rsty3"]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=73 format=3]
+[gd_scene load_steps=82 format=3]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="acid_summon"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/projectiles/acid_spit_instance_resource.tres" id="acid_proj"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossSummon.gd" id="plague_summon"]
@@ -18,7 +18,7 @@
 [ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/ShapeCastTransmitter2D.gd" id="11_t3c8m"]
 [ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="12_e4ngx"]
 [ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/color_flash.gdshader" id="12_ne4r3"]
-[ext_resource type="Texture2D" uid="uid://d3ysd0tnj6n1k" path="res://addons/top_down/assets/images/characters/plague_mother_64x64.png" id="13_bxjpi"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/characters/plague_mother_64x64.png" id="13_bxjpi"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageDataResource.gd" id="14_l7ih1"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageStatusResource.gd" id="15_b27pt"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/DamageCooldown.gd" id="16_lme8q"]
@@ -49,6 +49,7 @@
 [ext_resource type="Resource" uid="uid://htqn5bygvbq5" path="res://addons/top_down/resources/sounds/slime_throw.tres" id="43_yb7th"]
 [ext_resource type="Script" uid="uid://nd4w6e5zt0o5" path="res://addons/top_down/scripts/damage/DifficultyHealth.gd" id="44_diffh"]
 [ext_resource type="Resource" uid="uid://st0m3unxtv15" path="res://addons/top_down/resources/global_resources/difficulty_resource.tres" id="45_diff"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossAnimator.gd" id="boss_animator"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -263,6 +264,62 @@ tracks/1/keys = {
 "values": [Vector2(0.8, 1.279), Vector2(1, 1)]
 }
 
+[sub_resource type="Animation" id="Animation_boss_idle"]
+resource_name = "idle"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [0, 1]
+}
+
+[sub_resource type="Animation" id="Animation_boss_throw"]
+resource_name = "throw"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.1333, 0.2667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [2, 3, 4]
+}
+
+[sub_resource type="Animation" id="Animation_boss_summon"]
+resource_name = "summon"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.1667, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [5, 6, 7]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_boss_anim"]
+_data = {
+"idle": SubResource("Animation_boss_idle"),
+"throw": SubResource("Animation_boss_throw"),
+"summon": SubResource("Animation_boss_summon")
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_tbujk"]
 _data = {
 "RESET": SubResource("Animation_itq31"),
@@ -371,8 +428,12 @@ position = Vector2(0, -11)
 material = SubResource("ShaderMaterial_218jm")
 position = Vector2(0, -16)
 texture = ExtResource("13_bxjpi")
+hframes = 8
 
 [node name="CharacterAnimator" type="AnimationPlayer" parent="Body/JellyStretch/Stretch/Sprite2D"]
+libraries = {
+"": SubResource("AnimationLibrary_boss_anim")
+}
 
 [node name="ColorFlash" type="AnimationPlayer" parent="Body/JellyStretch/Stretch/Sprite2D"]
 libraries = {
@@ -477,3 +538,11 @@ origin_node = NodePath("../../ShapeCastTransmitterDamage")
 active_enemy = NodePath("../ActiveEnemy")
 axis_multiply = ExtResource("31_uobbx")
 shoot_sound = ExtResource("43_yb7th")
+
+[node name="BossAnimator" type="Node" parent="." node_paths=PackedStringArray("animation_player", "primary_shot", "secondary_shot")]
+script = ExtResource("boss_animator")
+animation_player = NodePath("../Body/JellyStretch/Stretch/Sprite2D/CharacterAnimator")
+primary_shot = NodePath("../BigJellyAi/ShootSlime")
+primary_animation = &"throw"
+secondary_shot = NodePath("../BigJellyAi/SummonAcid")
+secondary_animation = &"summon"
