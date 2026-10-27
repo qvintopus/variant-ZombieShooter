@@ -13,7 +13,8 @@ extends BigJellyShootSlime
 ## return bool if summoning is performed
 func shoot(_target_position:Vector2)->bool:
 	var _branch:ActiveEnemyResource = active_enemy.enemy_resource
-	if _branch.children.size() > child_limit:
+	# Same rule as enemy spawners: never go past child_limit alive enemies.
+	if _branch.children.size() + summon_count > child_limit:
 		return false
 
 	var _origin:Vector2 = origin_node.global_position
