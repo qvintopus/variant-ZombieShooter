@@ -16,6 +16,7 @@ radius = 9.0
 
 [node name="SlimePuddle" type="Node2D" node_paths=PackedStringArray("area", "data_transmitter")]
 script = ExtResource("1_puddle")
+lifetime = 60.0
 area = NodePath("PuddleArea")
 data_transmitter = NodePath("PuddleArea/ZoneDataTransmitter")
 
@@ -24,7 +25,7 @@ texture = ExtResource("4_tex")
 
 [node name="PuddleArea" type="Area2D" parent="."]
 collision_layer = 0
-collision_mask = 2
+collision_mask = 6
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PuddleArea"]
 shape = SubResource("CircleShape2D_slime")
