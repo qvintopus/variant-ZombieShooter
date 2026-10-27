@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://c4vi4hfp1xokj" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="5_inst"]
 [ext_resource type="Resource" uid="uid://cwxx7lc1yjet4" path="res://addons/top_down/resources/InstanceResources/actors/slime_instance_resource.tres" id="6_slime"]
 [ext_resource type="Resource" uid="uid://c05ys7ybsfv4u" path="res://addons/top_down/resources/InstanceResources/actors/zomby_instance_resource.tres" id="7_zomby"]
-[ext_resource type="Script" uid="uid://lfus6gq2nqsa" path="res://game/scripts/RoomController.gd" id="8_ctrl"]
+[ext_resource type="Script" uid="uid://beja08wyrf37a" path="res://game/scripts/RoomController.gd" id="8_ctrl"]
 [ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="9_overlay"]
 [ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="10_fight"]
 [ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="11_remain"]
@@ -40,8 +40,8 @@ tag = "extra_b"
 connect_tag = "from_prev"
 scene_path = "res://game/scenes/room_2.tscn"
 
-[node name="Stairs5" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="4" instance=ExtResource("14_testroute")]
-position = Vector2(296, 62)
+[node name="Stairs5" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="4" unique_id=778396638 instance=ExtResource("14_testroute")]
+position = Vector2(341, 232)
 tag = "room1_test"
 connect_tag = "test_entry"
 scene_path = "res://game/scenes/room_test.tscn"

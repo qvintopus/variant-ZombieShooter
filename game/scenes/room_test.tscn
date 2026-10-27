@@ -1,20 +1,20 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://vy1ksv81c0ns"]
 
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/levels/room_0.tscn" id="1_room0"]
-[ext_resource type="Script" path="res://addons/top_down/scripts/arena/SpawnWaveList.gd" id="4_wave"]
-[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="5_inst"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/skitter_spider_instance_resource.tres" id="inst_0"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/web_spider_instance_resource.tres" id="inst_1"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/bloater_instance_resource.tres" id="inst_2"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="inst_3"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/slime_instance_resource.tres" id="inst_4"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/zomby_crawler_instance_resource.tres" id="inst_5"]
-[ext_resource type="Script" path="res://game/scripts/RoomController.gd" id="8_ctrl"]
+[ext_resource type="PackedScene" uid="uid://dksjs6yft863n" path="res://addons/top_down/scenes/levels/room_0.tscn" id="1_room0"]
+[ext_resource type="Script" uid="uid://b82gi6nils34f" path="res://addons/top_down/scripts/arena/SpawnWaveList.gd" id="4_wave"]
+[ext_resource type="Script" uid="uid://c4vi4hfp1xokj" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="5_inst"]
+[ext_resource type="Script" uid="uid://beja08wyrf37a" path="res://game/scripts/RoomController.gd" id="8_ctrl"]
 [ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="9_overlay"]
 [ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="10_fight"]
 [ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="11_remain"]
 [ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="12_state"]
 [ext_resource type="Resource" path="res://game/resources/room_cleared_resource.tres" id="13_cleared"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/skitter_spider_instance_resource.tres" id="inst_0"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/web_spider_instance_resource.tres" id="inst_1"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/bloater_instance_resource.tres" id="inst_2"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="inst_3"]
+[ext_resource type="Resource" uid="uid://cwxx7lc1yjet4" path="res://addons/top_down/resources/InstanceResources/actors/slime_instance_resource.tres" id="inst_4"]
+[ext_resource type="Resource" uid="uid://ddp7qf0qghy82" path="res://addons/top_down/resources/InstanceResources/actors/zomby_crawler_instance_resource.tres" id="inst_5"]
 
 [sub_resource type="Resource" id="Wave_1"]
 script = ExtResource("4_wave")
@@ -46,7 +46,7 @@ script = ExtResource("4_wave")
 count = 1
 instance_list = Array[ExtResource("5_inst")]([ExtResource("inst_5")])
 
-[node name="Room" instance=ExtResource("1_room0")]
+[node name="Room" unique_id=2018039819 instance=ExtResource("1_room0")]
 
 [node name="Stairs" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="0"]
 tag = "test_entry"
@@ -54,7 +54,6 @@ connect_tag = "room1_test"
 scene_path = "res://game/scenes/room_1.tscn"
 
 [node name="Stairs2" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="1"]
-visible = false
 monitoring = false
 tag = "test_exit"
 connect_tag = "boss_zombie_entry"
@@ -74,7 +73,7 @@ waves = Array[ExtResource("4_wave")]([SubResource("Wave_1"), SubResource("Wave_2
 [node name="EnemySpawnPoints" parent="." index="9" unique_id=1628598410 node_paths=PackedStringArray("default_section")]
 default_section = NodePath("../EnemyManager/Section1")
 
-[node name="RoomController" type="Node" parent="." index="18" node_paths=PackedStringArray("arena_entry", "exit_stair")]
+[node name="RoomController" type="Node" parent="." index="18" unique_id=560836088 node_paths=PackedStringArray("arena_entry", "exit_stair")]
 script = ExtResource("8_ctrl")
 room_id = &"room_test"
 room_state_resource = ExtResource("12_state")
@@ -84,6 +83,6 @@ remaining_wave_count_resource = ExtResource("11_remain")
 arena_entry = NodePath("../ArenaEntry")
 exit_stair = NodePath("../Behind/Stairs2")
 
-[node name="GameHudOverlay" parent="." index="19" instance=ExtResource("9_overlay")]
+[node name="GameHudOverlay" parent="." index="19" unique_id=989946561 instance=ExtResource("9_overlay")]
 
 [editable path="EnemyManager"]

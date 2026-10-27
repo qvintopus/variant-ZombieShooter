@@ -50,7 +50,8 @@ func _ready() -> void:
 		_show_exit_stair()
 		return
 
-	# Fresh room: hide any lingering cleared text, then watch for completion.
+	# Fresh room: the exit waits for the fight, then hide any lingering cleared text.
+	_hide_exit_stair()
 	room_cleared_resource.set_value(false)
 	fight_mode_resource.changed_true.connect(_on_fight_started)
 	remaining_wave_count_resource.updated.connect(_on_remaining_waves_changed)
@@ -78,3 +79,9 @@ func _show_exit_stair() -> void:
 		return
 	exit_stair.visible = true
 	exit_stair.monitoring = true
+
+func _hide_exit_stair() -> void:
+	if exit_stair == null:
+		return
+	exit_stair.visible = false
+	exit_stair.monitoring = false
