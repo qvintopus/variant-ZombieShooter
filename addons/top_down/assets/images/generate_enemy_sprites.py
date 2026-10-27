@@ -41,6 +41,9 @@ PALETTE = {
 	'e': (223, 233, 240, 255),  # web white
 	'R': (224, 48, 46, 255),    # red eyes
 	'k': (27, 20, 32, 255),     # black
+	'S': (96, 150, 220, 255),   # slime puddle blue
+	's': (56, 92, 150, 255),    # slime puddle rim
+	'L': (190, 220, 250, 255),  # slime puddle highlight
 }
 OUTLINE = (20, 14, 26, 255)
 TRANSPARENT = (0, 0, 0, 0)
@@ -320,6 +323,25 @@ def web_trap_frame():
 	return canvas
 
 
+def acid_puddle_frame():
+	"""A flat acid pool, 24 wide: teal body with a darker rim and bright highlights."""
+	canvas = new_canvas(24, 16)
+	ellipse(canvas, 12, 8, 11.5, 7.0, PALETTE['t'])
+	ellipse(canvas, 12, 8, 10.0, 5.8, PALETTE['a'])
+	ellipse(canvas, 8, 6, 2.0, 1.0, PALETTE['A'])
+	ellipse(canvas, 16, 10, 1.0, 0.7, PALETTE['A'])
+	return canvas
+
+
+def slime_puddle_frame():
+	"""A flat slime pool, 24 wide: blue body with a darker rim and a highlight."""
+	canvas = new_canvas(24, 16)
+	ellipse(canvas, 12, 8, 11.5, 7.0, PALETTE['s'])
+	ellipse(canvas, 12, 8, 10.0, 5.8, PALETTE['S'])
+	ellipse(canvas, 8, 6, 2.0, 1.0, PALETTE['L'])
+	return canvas
+
+
 def write_png(path, rows):
 	"""Writes RGBA rows (None means transparent) as a PNG using zlib and struct."""
 	height = len(rows)
@@ -387,6 +409,8 @@ def main():
 	write_png(os.path.join(projectile, 'web_8x8.png'), web_projectile())
 
 	write_png(os.path.join(HERE, 'misc', 'web_trap_16x16.png'), web_trap_frame())
+	write_png(os.path.join(HERE, 'misc', 'acid_puddle_24x16.png'), acid_puddle_frame())
+	write_png(os.path.join(HERE, 'misc', 'slime_puddle_24x16.png'), slime_puddle_frame())
 
 
 if __name__ == '__main__':

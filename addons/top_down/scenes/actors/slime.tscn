@@ -12,6 +12,7 @@
 [ext_resource type="Texture2D" uid="uid://b5udb538gwcb7" path="res://addons/top_down/assets/images/characters/slime_16x16_strip8.png" id="10_3q2oh"]
 [ext_resource type="Resource" uid="uid://pvw6k1ntsles" path="res://addons/top_down/resources/sounds/zombie_split.tres" id="11_upwne"]
 [ext_resource type="Resource" uid="uid://lm63dcddpjhf" path="res://addons/top_down/resources/InstanceResources/vfx/dead/slime_dead_instance_resource.tres" id="12_fht2r"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/traps/slime_puddle_instance_resource.tres" id="12_slimepud"]
 [ext_resource type="PackedScene" uid="uid://cenq1bawfywu8" path="res://addons/top_down/scenes/actors/ai/enemy_ai.tscn" id="13_6l5hi"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageTypeResource.gd" id="13_woinq"]
 [ext_resource type="PackedScene" uid="uid://baisjmcsnk3on" path="res://addons/top_down/scenes/weapons/zombie_attack.tscn" id="14_b55j1"]
@@ -265,6 +266,7 @@ libraries = {
 [node name="ActorDamage" parent="." index="11"]
 sound_resource_dead = ExtResource("11_upwne")
 dead_vfx_instance_resource = ExtResource("12_fht2r")
+death_puddle_instance = ExtResource("12_slimepud")
 
 [node name="DamageSetup" parent="." index="13"]
 resistance_list = Array[ExtResource("13_woinq")]([SubResource("Resource_7dwox")])
