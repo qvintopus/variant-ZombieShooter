@@ -1,6 +1,7 @@
 [gd_scene load_steps=82 format=3]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="acid_summon"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/projectiles/acid_spit_instance_resource.tres" id="acid_proj"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossAcidFan.gd" id="plague_fan"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossSummon.gd" id="plague_summon"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/PlagueMotherAi.gd" id="plague_ai"]
 
@@ -523,7 +524,9 @@ axis_multiplication = ExtResource("31_uobbx")
 landing_vfx = ExtResource("32_jbh10")
 
 [node name="ShootSlime" type="Node" parent="BigJellyAi" node_paths=PackedStringArray("origin_node", "active_enemy")]
-script = ExtResource("40_6mqnu")
+script = ExtResource("plague_fan")
+spit_count = 3
+aim_at_target = true
 projectile_instance = ExtResource("acid_proj")
 origin_node = NodePath("../../ShapeCastTransmitterDamage")
 active_enemy = NodePath("../ActiveEnemy")
@@ -534,6 +537,7 @@ shoot_sound = ExtResource("43_yb7th")
 script = ExtResource("plague_summon")
 summon_instance_resource = ExtResource("acid_summon")
 summon_count = 2
+child_limit = 8
 origin_node = NodePath("../../ShapeCastTransmitterDamage")
 active_enemy = NodePath("../ActiveEnemy")
 axis_multiply = ExtResource("31_uobbx")
