@@ -20,15 +20,11 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/weapon_system/projectile/LerpProjectileTrajectory.gd" id="17_b78gi"]
 [ext_resource type="Resource" uid="uid://lm63dcddpjhf" path="res://addons/top_down/resources/InstanceResources/vfx/dead/slime_dead_instance_resource.tres" id="18_7elpp"]
 [ext_resource type="Resource" uid="uid://pvw6k1ntsles" path="res://addons/top_down/resources/sounds/zombie_split.tres" id="19_628eu"]
-
-[sub_resource type="Resource" id="Resource_crd4l"]
-script = ExtResource("3_ppetm")
-value = 3.0
-type = 0
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/traps/web_trap_instance_resource.tres" id="20_webtrap"]
 
 [sub_resource type="Resource" id="Resource_51n5c"]
 script = ExtResource("4_ydjpq")
-base_damage = Array[ExtResource("3_ppetm")]([SubResource("Resource_crd4l")])
+base_damage = Array[ExtResource("3_ppetm")]([])
 critical_chance = 0.3
 critical_multiply = 1.5
 status_list = Array[ExtResource("5_mmy6w")]([])
@@ -133,6 +129,7 @@ height_node = NodePath("../RotatedNode")
 curve = SubResource("Curve_hi6mx")
 shape_cast_transmitter = NodePath("../ShapeCastTransmitter2D")
 landing_vfx = ExtResource("18_7elpp")
+landing_instance = ExtResource("20_webtrap")
 landing_sound = ExtResource("19_628eu")
 
 [node name="PoolNode" type="Node" parent="." node_paths=PackedStringArray("ready_nodes")]

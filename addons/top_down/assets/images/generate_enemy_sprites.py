@@ -303,6 +303,23 @@ def plague_mother_frames():
 	return frames
 
 
+def web_trap_frame():
+	"""A sticky web tile on the floor: spokes from the centre joined by rings, no outline."""
+	canvas = new_canvas(16, 16)
+	for angle in range(0, 360, 45):
+		radians = math.radians(angle)
+		thick_line(canvas, 8, 8, 8 + 7 * math.cos(radians), 8 + 7 * math.sin(radians), 1.0, PALETTE['e'])
+	# Two thin rings between the spokes, so it reads as a web and not a target.
+	for radius in (3.5, 6.0):
+		for y in range(16):
+			for x in range(16):
+				distance = math.hypot(x + 0.5 - 8, y + 0.5 - 8)
+				if abs(distance - radius) <= 0.35:
+					canvas[y][x] = PALETTE['e']
+	canvas[8][8] = PALETTE['w']
+	return canvas
+
+
 def write_png(path, rows):
 	"""Writes RGBA rows (None means transparent) as a PNG using zlib and struct."""
 	height = len(rows)
@@ -368,6 +385,8 @@ def main():
 
 	write_png(os.path.join(projectile, 'acid_spit_8x8.png'), acid_spit_projectile())
 	write_png(os.path.join(projectile, 'web_8x8.png'), web_projectile())
+
+	write_png(os.path.join(HERE, 'misc', 'web_trap_16x16.png'), web_trap_frame())
 
 
 if __name__ == '__main__':

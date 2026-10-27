@@ -320,6 +320,12 @@ transmission_name = &"item"
 area_receiver = NodePath("..")
 resource_node = NodePath("../../ResourceNode")
 
+[node name="ZoneDataReceiver" type="Node" parent="AreaReceiver2D" index="5" node_paths=PackedStringArray("area_receiver", "resource_node")]
+script = ExtResource("11_qswmv")
+transmission_name = &"zone"
+area_receiver = NodePath("..")
+resource_node = NodePath("../../ResourceNode")
+
 [node name="Sprite2D" parent="Body/Stretch" index="0"]
 modulate = Color(0.99, 0.99, 0.99, 1)
 material = SubResource("ShaderMaterial_gfelk")
