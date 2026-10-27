@@ -1,8 +1,85 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dgd3xomk1rk27"]
 
-[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/misc/web_trap_16x16.png" id="11_tex"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/pickups/trap_pickup.tscn" id="1_trap"]
+[ext_resource type="Texture2D" uid="uid://yfx3pu844yt7" path="res://addons/top_down/assets/images/misc/web_trap_16x16.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://clyq6iprf3wd4" path="res://addons/top_down/scripts/obstackles/TrapTransmission.gd" id="3_trap"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/obstackles/WebTrap.gd" id="4_web"]
+[ext_resource type="Script" uid="uid://kjvhpm5y61xb" path="res://addons/great_games_library/nodes/ResourceNode/ResourceNode.gd" id="5_rn"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/ResourceNode/ResourceNodeItem.gd" id="6_item"]
+[ext_resource type="Script" uid="uid://c4mj55eumewsg" path="res://addons/top_down/scripts/damage/HealthResource.gd" id="7_health"]
+[ext_resource type="Script" uid="uid://drjowwxypperd" path="res://addons/top_down/scripts/damage/DamageResource.gd" id="8_damage"]
+[ext_resource type="Script" uid="uid://cke22g3r77rke" path="res://addons/great_games_library/nodes/AreaTransmitter/AreaReceiver2D.gd" id="9_receiver"]
+[ext_resource type="Script" uid="uid://djauem3ggp3vq" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelReceiver.gd" id="10_channel"]
+[ext_resource type="Script" uid="uid://b2pbj40ssvyeu" path="res://addons/top_down/scripts/damage/DamageSetup.gd" id="11_setup"]
 
-[node name="WebTrap" type="Node2D" unique_id=242193297]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shape"]
+size = Vector2(6, 8)
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1251263546]
-texture = ExtResource("11_tex")
+[sub_resource type="Resource" id="Resource_web"]
+script = ExtResource("3_trap")
+effect_name = &"stuck"
+transmission_name = &"trap"
+
+[sub_resource type="Resource" id="Resource_health"]
+resource_name = "Health resource"
+script = ExtResource("7_health")
+hp = 1.0
+max_hp = 1.0
+reset_hp = 1.0
+reset_max_hp = 1.0
+
+[sub_resource type="Resource" id="Resource_health_item"]
+resource_name = "health"
+script = ExtResource("6_item")
+resource = SubResource("Resource_health")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_damage"]
+resource_name = "Damage Resource"
+script = ExtResource("8_damage")
+
+[sub_resource type="Resource" id="Resource_damage_item"]
+resource_name = "damage"
+script = ExtResource("6_item")
+resource = SubResource("Resource_damage")
+make_unique = true
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hit"]
+size = Vector2(14, 10)
+
+[node name="WebTrap" unique_id=307765315 node_paths=PackedStringArray("data_transmitter", "damage_receiver") instance=ExtResource("1_trap")]
+script = ExtResource("4_web")
+data_transmitter = NodePath("AreaTransmitter2D/TrapDataTransmitter")
+damage_receiver = NodePath("AreaReceiver2D/DamageDataReceiver")
+
+[node name="CollisionShape2D" parent="AreaTransmitter2D" index="0"]
+shape = SubResource("RectangleShape2D_shape")
+
+[node name="TrapDataTransmitter" parent="AreaTransmitter2D" index="1"]
+transmission_resource = SubResource("Resource_web")
+
+[node name="Sprite2D" parent="." index="1"]
+texture = ExtResource("2_tex")
+
+[node name="ResourceNode" type="Node" parent="."]
+script = ExtResource("5_rn")
+list = Array[ExtResource("6_item")]([SubResource("Resource_health_item"), SubResource("Resource_damage_item")])
+
+[node name="AreaReceiver2D" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+script = ExtResource("9_receiver")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AreaReceiver2D"]
+shape = SubResource("RectangleShape2D_hit")
+
+[node name="DamageDataReceiver" type="Node" parent="AreaReceiver2D" node_paths=PackedStringArray("area_receiver", "resource_node")]
+script = ExtResource("10_channel")
+transmission_name = &"damage"
+area_receiver = NodePath("..")
+resource_node = NodePath("../../ResourceNode")
+
+[node name="DamageSetup" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("11_setup")
+resource_node = NodePath("../ResourceNode")

@@ -34,7 +34,9 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/SafeTileTracker.gd" id="28_ww0nn"]
 [ext_resource type="Resource" uid="uid://ct82cq803r2si" path="res://addons/top_down/resources/RoomResources/obstacle_reference.tres" id="29_4dv8f"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/HoleRecovery.gd" id="30_n8poo"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/StuckEffect.gd" id="31_stuck"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/VisualInvulnerability.gd" id="32_82fau"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/PoisonEffect.gd" id="32_poison"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -100,6 +102,19 @@ script = ExtResource("2_20qkb")
 resource = SubResource("Resource_kivos")
 make_unique = true
 description = "BoolResource if value is true, it means actor fell in a hole"
+
+[sub_resource type="Resource" id="Resource_stuckb"]
+resource_name = "Stuck bool"
+script = ExtResource("5_smnd7")
+value = false
+default_value = false
+
+[sub_resource type="Resource" id="Resource_stucki"]
+resource_name = "stuck"
+script = ExtResource("2_20qkb")
+resource = SubResource("Resource_stuckb")
+make_unique = true
+description = "BoolResource if value is true, actor is held by a trap (spider web)"
 
 [sub_resource type="Resource" id="Resource_k8ute"]
 resource_name = "Input resource"
@@ -275,12 +290,38 @@ _data = {
 "invulnerable": SubResource("Animation_67stq")
 }
 
+[sub_resource type="Resource" id="Resource_slowb"]
+resource_name = "Slow bool"
+script = ExtResource("5_smnd7")
+value = false
+default_value = false
+
+[sub_resource type="Resource" id="Resource_slowi"]
+resource_name = "slow"
+script = ExtResource("2_20qkb")
+resource = SubResource("Resource_slowb")
+make_unique = true
+description = "BoolResource set every frame while inside a slowing puddle, read by SlowEffect"
+
+[sub_resource type="Resource" id="Resource_poisonb"]
+resource_name = "Poison bool"
+script = ExtResource("5_smnd7")
+value = false
+default_value = false
+
+[sub_resource type="Resource" id="Resource_poisoni"]
+resource_name = "poison"
+script = ExtResource("2_20qkb")
+resource = SubResource("Resource_poisonb")
+make_unique = true
+description = "BoolResource set every frame while inside an acid puddle, read by PoisonEffect"
+
 [node name="Player" instance=ExtResource("1_mvls6")]
 disable_mode = 2
 collision_layer = 2
 
 [node name="ResourceNode" parent="." index="0"]
-list = Array[ExtResource("2_20qkb")]([SubResource("Resource_y1d7o"), SubResource("Resource_3g443"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_or6sa"), SubResource("Resource_cna70"), SubResource("Resource_sj2w3")])
+list = Array[ExtResource("2_20qkb")]([SubResource("Resource_y1d7o"), SubResource("Resource_3g443"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_or6sa"), SubResource("Resource_cna70"), SubResource("Resource_sj2w3"), SubResource("Resource_stucki"), SubResource("Resource_slowi"), SubResource("Resource_poisoni")])
 
 [node name="AreaReceiver2D" parent="." index="2"]
 collision_layer = 2
@@ -373,6 +414,15 @@ script = ExtResource("30_n8poo")
 safe_tile_tracker = NodePath("../SafeTileTracker")
 resource_node = NodePath("../ResourceNode")
 hole_trigger = NodePath("../HoleTrigger")
+
+[node name="PoisonEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("32_poison")
+resource_node = NodePath("../ResourceNode")
+
+[node name="StuckEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node", "dash_ability")]
+script = ExtResource("31_stuck")
+resource_node = NodePath("../ResourceNode")
+dash_ability = NodePath("../DashAbility")
 
 [node name="VisualInvulnerability" type="Node" parent="." index="25" node_paths=PackedStringArray("resource_node", "animation_player")]
 script = ExtResource("32_82fau")

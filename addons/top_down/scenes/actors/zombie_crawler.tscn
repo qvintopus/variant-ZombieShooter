@@ -215,12 +215,25 @@ _data = {
 "walk": SubResource("Animation_d7gcn")
 }
 
+[sub_resource type="Resource" id="Resource_slowb"]
+resource_name = "Slow bool"
+script = ExtResource("6_5mrbd")
+value = false
+default_value = false
+
+[sub_resource type="Resource" id="Resource_slowi"]
+resource_name = "slow"
+script = ExtResource("2_dyii5")
+resource = SubResource("Resource_slowb")
+make_unique = true
+description = "BoolResource set every frame while inside a slowing puddle, read by SlowEffect"
+
 [node name="ZombieCrawler" instance=ExtResource("1_e3uie")]
 collision_layer = 4
 collision_mask = 5
 
 [node name="ResourceNode" parent="." index="0"]
-list = Array[ExtResource("2_dyii5")]([SubResource("Resource_7jqce"), SubResource("Resource_vm74s"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_gytac")])
+list = Array[ExtResource("2_dyii5")]([SubResource("Resource_7jqce"), SubResource("Resource_vm74s"), SubResource("Resource_ltyge"), SubResource("Resource_dsnfh"), SubResource("Resource_j3dss"), SubResource("Resource_ju227"), SubResource("Resource_gytac"), SubResource("Resource_slowi")])
 
 [node name="DifficultyHealth" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("21_diffh")

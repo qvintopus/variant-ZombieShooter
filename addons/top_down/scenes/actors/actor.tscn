@@ -26,6 +26,7 @@
 [ext_resource type="Script" uid="uid://dv83lyrd01i1q" path="res://addons/top_down/scripts/actor/DamageDisplay.gd" id="26_oudld"]
 [ext_resource type="Script" uid="uid://b2pbj40ssvyeu" path="res://addons/top_down/scripts/damage/DamageSetup.gd" id="28_oavm0"]
 [ext_resource type="Script" uid="uid://dbfo8pojgaitr" path="res://addons/top_down/scripts/damage/StatusSetup.gd" id="29_t6rdw"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/SlowEffect.gd" id="30_slow"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -222,6 +223,12 @@ transmission_name = &"damage"
 area_receiver = NodePath("..")
 resource_node = NodePath("../../ResourceNode")
 
+[node name="TrapDataReceiver" type="Node" parent="AreaReceiver2D" node_paths=PackedStringArray("area_receiver", "resource_node")]
+script = ExtResource("7_aib52")
+transmission_name = &"trap"
+area_receiver = NodePath("..")
+resource_node = NodePath("../../ResourceNode")
+
 [node name="Shadow" type="Sprite2D" parent="."]
 modulate = Color(0.0196078, 0.0352941, 0.0784314, 0.454902)
 texture = ExtResource("1_1xdx7")
@@ -293,4 +300,8 @@ resource_node = NodePath("../ResourceNode")
 
 [node name="StatusSetup" type="Node2D" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("29_t6rdw")
+resource_node = NodePath("../ResourceNode")
+
+[node name="SlowEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("30_slow")
 resource_node = NodePath("../ResourceNode")

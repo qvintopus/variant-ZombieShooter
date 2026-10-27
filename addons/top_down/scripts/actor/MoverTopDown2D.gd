@@ -69,7 +69,7 @@ func _ready()->void:
 func _physics_process(delta:float)->void:
 	_remove_overlap()
 	
-	var _target_velocity:Vector2 = actor_stats_resource.max_speed * input_resource.axis
+	var _target_velocity:Vector2 = actor_stats_resource.get_max_speed() * input_resource.axis
 	velocity += get_impulse(velocity, _target_velocity, actor_stats_resource.acceleration, delta)
 	velocity *= axis_multiplier_resource.value
 	move_and_slide(delta)
