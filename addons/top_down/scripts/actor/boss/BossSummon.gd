@@ -13,6 +13,13 @@ extends BossAttack
 ## Alive children limit, counts every child branch of the boss
 @export var child_limit:int = 4
 
+## Easy difficulty uses easy_count and easy_child_limit instead
+@export var difficulty_resource:DifficultyResource
+
+@export var easy_count:int = 1
+
+@export var easy_child_limit:int = 2
+
 @export var spawn_radius:float = 28.0
 
 @export var axis_multiplication:Vector2Resource
@@ -27,13 +34,24 @@ extends BossAttack
 func is_available(time:float, distance:float, health_ratio:float)->bool:
 	if active_enemy.enemy_resource == null:
 		return false
-	if active_enemy.enemy_resource.children.size() >= child_limit:
+	if active_enemy.enemy_resource.children.size() >= get_child_limit():
 		return false
 	return super.is_available(time, distance, health_ratio)
 
+func _is_easy()->bool:
+	return difficulty_resource != null && difficulty_resource.is_easy()
+
+func get_count()->int:
+	return easy_count if _is_easy() else count
+
+func get_child_limit()->int:
+	return easy_child_limit if _is_easy() else child_limit
+
 func perform()->void:
 	var _branch:ActiveEnemyResource = active_enemy.enemy_resource
-	var _count:int = mini(count, child_limit - _branch.children.size())
+	var _count:int = mini(get_count(), get_child_limit() - _branch.children.size())
+	if _count < 1:
+		return
 	var _start_angle:float = randf() * TAU
 	for i:int in _count:
 		var _direction:Vector2 = Vector2.from_angle(_start_angle + TAU * i / _count) * axis_multiplication.value

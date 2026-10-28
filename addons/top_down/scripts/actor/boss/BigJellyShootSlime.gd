@@ -15,14 +15,24 @@ extends Node
 
 @export var child_limit:int = 8
 
+## Easy difficulty uses easy_child_limit instead
+@export var difficulty_resource:DifficultyResource
+
+@export var easy_child_limit:int = 4
+
 func _ready() -> void:
 	BigJellySlimeSpawner.active_enemy_branch = active_enemy.enemy_resource
+
+func get_child_limit()->int:
+	if difficulty_resource != null && difficulty_resource.is_easy():
+		return easy_child_limit
+	return child_limit
 
 ## return bool if shooting is performed
 func shoot(target_position:Vector2)->bool:
 	# TODO: limit spawning too many
 	var _child_count:int = active_enemy.enemy_resource.children.size()
-	if _child_count > child_limit:
+	if _child_count > get_child_limit():
 		return false
 	
 	var _direction:Vector2 = (target_position - origin_node.global_position).normalized()

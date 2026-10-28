@@ -20,6 +20,9 @@ func toggle() -> void:
 func health_multiplier() -> float:
 	return 0.25 if mode == Mode.EASY else 1.0
 
+func is_easy() -> bool:
+	return mode == Mode.EASY
+
 func mode_name() -> String:
 	return "Easy" if mode == Mode.EASY else "Normal"
 

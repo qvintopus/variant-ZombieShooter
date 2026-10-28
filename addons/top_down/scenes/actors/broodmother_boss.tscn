@@ -356,6 +356,9 @@ recovery = 0.9
 cooldown = 9.0
 weight = 1.5
 child_limit = 4
+difficulty_resource = ExtResource("17_diff")
+easy_count = 2
+easy_child_limit = 2
 lob = NodePath("Lob")
 
 [node name="Lob" type="Node" parent="BossAttackLoop/Brood" node_paths=PackedStringArray("origin_node", "active_enemy")]
