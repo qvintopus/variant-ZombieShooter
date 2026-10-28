@@ -13,7 +13,7 @@
 [ext_resource type="Resource" uid="uid://bmurrqosq7bec" path="res://addons/top_down/resources/sounds/kill_zombie.tres" id="7_uiw1f"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/damage/DamageResource.gd" id="8_3mtk0"]
 [ext_resource type="PackedScene" uid="uid://cenq1bawfywu8" path="res://addons/top_down/scenes/actors/ai/enemy_ai.tscn" id="9_4t8nd"]
-[ext_resource type="Resource" uid="uid://h86cdxneli8u" path="res://addons/top_down/resources/InstanceResources/vfx/dead/zomby_dead_instance_resource.tres" id="12_bo37y"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/dead/skitter_spider_dead_instance_resource.tres" id="12_bo37y"]
 [ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/PoolNode.gd" id="16_brvnb"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/bots/ActiveEnemy.gd" id="21_snkgf"]
 [ext_resource type="Script" uid="uid://nd4w6e5zt0o5" path="res://addons/top_down/scripts/damage/DifficultyHealth.gd" id="22_diffh"]
@@ -172,7 +172,7 @@ tracks/0/keys = {
 
 [sub_resource type="Animation" id="Animation_d7gcn"]
 resource_name = "walk"
-length = 0.6
+length = 0.36
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -181,7 +181,7 @@ tracks/0/path = NodePath(".:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"times": PackedFloat32Array(0, 0.06, 0.12, 0.18, 0.24, 0.3),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 1,
 "values": [2, 3, 4, 5, 6, 7]

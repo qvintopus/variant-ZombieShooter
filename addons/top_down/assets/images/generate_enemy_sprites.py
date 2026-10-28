@@ -143,7 +143,8 @@ SPIDER_LEGS = [
 
 
 def spider_frames(body, abdomen, leg_color, eye_color, fang_color, marks=None):
-	"""Top-down spider: head and fangs up top, round abdomen below, legs alternate groups while walking."""
+	"""Top-down spider: head and fangs up top, round abdomen below, legs alternate groups while walking.
+	Frame 0 is used as the dead spider lying on its back."""
 	frames = []
 	for frame in range(FRAME_COUNT):
 		step = math.sin(frame / FRAME_COUNT * 2 * math.pi)
@@ -167,6 +168,87 @@ def spider_frames(body, abdomen, leg_color, eye_color, fang_color, marks=None):
 		put(canvas, 7, 4, fang_color)
 		put(canvas, 8, 4, fang_color)
 		frames.append(add_outline(canvas))
+	return frames
+
+
+## Near side legs front to back as (anchor x, foot x, knee height above the ground), side view facing right.
+## Outer legs arch higher; far side legs are drawn from the same list, reaching less.
+CRAWL_LEGS = [(10.0, 15.0, 10.0), (9.5, 12.5, 9.0), (8.5, 3.5, 10.0), (8.0, 0.5, 11.0)]
+CRAWL_GROUND = 15
+
+
+def line_pixels(x0, y0, x1, y1):
+	"""1px Bresenham line between rounded points, so legs stay thin and readable at 16x16."""
+	x0, y0, x1, y1 = round(x0), round(y0), round(x1), round(y1)
+	points = set()
+	dx = abs(x1 - x0)
+	dy = -abs(y1 - y0)
+	sx = 1 if x0 < x1 else -1
+	sy = 1 if y0 < y1 else -1
+	error = dx + dy
+	while True:
+		points.add((x0, y0))
+		if x0 == x1 and y0 == y1:
+			return points
+		e2 = 2 * error
+		if e2 >= dy:
+			error += dy
+			x0 += sx
+		if e2 <= dx:
+			error += dx
+			y0 += sy
+
+
+def spider_crawl_pose(t, moving, body, abdomen, leg_color, far_color, eye_color, fang_color, marks):
+	"""Side view spider, facing right. t is the 0..1 gait phase; legs step in two alternating groups of four."""
+	# whole pixel body lift halfway through each step keeps the shapes clean
+	lift_body = -1 if moving and math.sin(4 * math.pi * t) > 0.5 else 0
+	if not moving and t >= 0.5:
+		lift_body = -1
+
+	def leg(index, near):
+		anchor_x, foot_x, knee_height = CRAWL_LEGS[index]
+		phase = t + (0.0 if (index % 2 == 0) == near else 0.5)
+		# lifted foot swings forward, planted foot pushes back
+		swing = 1.5 * math.sin(2 * math.pi * phase) if moving else 0.0
+		lift = 1.5 * max(0.0, math.cos(2 * math.pi * phase)) if moving else 0.0
+		outward = 1 if foot_x > anchor_x else -1
+		if not near:
+			foot_x -= 1.5 * outward
+			knee_height -= 1.0
+		foot = (foot_x + swing, CRAWL_GROUND - lift)
+		anchor = (anchor_x, 11 + lift_body)
+		knee = (anchor_x + (0.35 if outward > 0 else 0.6) * (foot[0] - anchor_x), CRAWL_GROUND - knee_height + lift_body - 0.5 * lift)
+		return line_pixels(*anchor, *knee) | line_pixels(*knee, *foot)
+
+	body_canvas = new_canvas(16, 16)
+	ellipse(body_canvas, 5.0, 10.5 + lift_body, 3.8, 2.9, abdomen)
+	if marks is not None:
+		put(body_canvas, 3, 9 + lift_body, marks)
+		put(body_canvas, 4, 9 + lift_body, marks)
+		put(body_canvas, 3, 10 + lift_body, marks)
+	ellipse(body_canvas, 10.5, 11.5 + lift_body, 2.4, 1.8, body)
+	put(body_canvas, 11, 11 + lift_body, eye_color)
+	put(body_canvas, 12, 11 + lift_body, eye_color)
+	put(body_canvas, 12, 13 + lift_body, fang_color)
+	body_canvas = add_outline(body_canvas)
+	# legs arch over the body and reach the ground below it; the body covers their roots
+	canvas = new_canvas(16, 16)
+	for near, color in ((False, far_color), (True, leg_color)):
+		for i in range(4):
+			for x, y in leg(i, near):
+				put(canvas, x, y, color)
+	for y in range(16):
+		for x in range(16):
+			if body_canvas[y][x] is not None:
+				canvas[y][x] = body_canvas[y][x]
+	return canvas
+
+
+def spider_crawl_frames(body, abdomen, leg_color, far_color, eye_color, fang_color, marks=None):
+	"""Frames 0-1 idle (breathing), 2-7 one crawl cycle; same idle/walk layout as the other strips."""
+	frames = [spider_crawl_pose(i / 2, False, body, abdomen, leg_color, far_color, eye_color, fang_color, marks) for i in range(2)]
+	frames += [spider_crawl_pose(i / 6, True, body, abdomen, leg_color, far_color, eye_color, fang_color, marks) for i in range(6)]
 	return frames
 
 
@@ -394,11 +476,19 @@ def main():
 	write_strip(os.path.join(characters, 'acid_slime_16x16_strip8.png'), walk_frames(from_rows(ACID_SLIME_MAP)))
 	write_strip(
 		os.path.join(characters, 'skitter_spider_16x16_strip8.png'),
-		spider_frames(PALETTE['X'], PALETTE['x'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['R']),
+		spider_crawl_frames(PALETTE['X'], PALETTE['x'], PALETTE['Y'], PALETTE['X'], PALETTE['R'], PALETTE['w'], marks=PALETTE['R']),
 	)
 	write_strip(
 		os.path.join(characters, 'web_spider_16x16_strip8.png'),
-		spider_frames(PALETTE['X'], PALETTE['e'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['p']),
+		spider_crawl_frames(PALETTE['X'], PALETTE['e'], PALETTE['Y'], PALETTE['X'], PALETTE['R'], PALETTE['w'], marks=PALETTE['p']),
+	)
+	write_png(
+		os.path.join(characters, 'skitter_spider_dead_16x16.png'),
+		spider_frames(PALETTE['X'], PALETTE['x'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['R'])[0],
+	)
+	write_png(
+		os.path.join(characters, 'web_spider_dead_16x16.png'),
+		spider_frames(PALETTE['X'], PALETTE['e'], PALETTE['Y'], PALETTE['R'], PALETTE['w'], marks=PALETTE['p'])[0],
 	)
 
 	write_strip(os.path.join(characters, 'giant_zombie_64x64.png'), giant_zombie_frames())
