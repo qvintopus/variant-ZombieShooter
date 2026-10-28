@@ -206,12 +206,29 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.1667, 0.3333),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
-"values": [4, 5, 6]
+"values": [8, 9, 10]
+}
+
+[sub_resource type="Animation" id="Animation_boss_charge"]
+resource_name = "charge"
+length = 0.4
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [14, 15]
 }
 
 [sub_resource type="Animation" id="Animation_boss_idle"]
 resource_name = "idle"
-length = 0.1
+length = 0.8
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -220,15 +237,31 @@ tracks/0/path = NodePath(".:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
 "update": 1,
-"values": [0]
+"values": [0, 1]
+}
+
+[sub_resource type="Animation" id="Animation_boss_roar"]
+resource_name = "roar"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1667, 0.3333),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [11, 12, 13]
 }
 
 [sub_resource type="Animation" id="Animation_boss_walk"]
 resource_name = "walk"
-length = 0.6
+length = 0.72
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -237,16 +270,18 @@ tracks/0/path = NodePath(".:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.15, 0.3, 0.45),
-"transitions": PackedFloat32Array(1, 1, 1, 1),
+"times": PackedFloat32Array(0, 0.12, 0.24, 0.36, 0.48, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 1,
-"values": [0, 1, 2, 3]
+"values": [2, 3, 4, 5, 6, 7]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_boss_anim"]
 _data = {
 &"attack": SubResource("Animation_boss_attack"),
+&"charge": SubResource("Animation_boss_charge"),
 &"idle": SubResource("Animation_boss_idle"),
+&"roar": SubResource("Animation_boss_roar"),
 &"walk": SubResource("Animation_boss_walk")
 }
 
@@ -282,7 +317,7 @@ texture = ExtResource("5_shadow")
 material = SubResource("ShaderMaterial_flash")
 position = Vector2(0, -29)
 texture = ExtResource("4_tex")
-hframes = 7
+hframes = 16
 
 [node name="CharacterAnimator" parent="Body/Stretch/Sprite2D" index="0"]
 libraries/ = SubResource("AnimationLibrary_boss_anim")
@@ -406,7 +441,7 @@ camera_shake = ExtResource("35_shake")
 
 [node name="Charge" type="Node" parent="BossAttackLoop" node_paths=PackedStringArray("telegraph", "character", "resource_node", "damage_transmitter", "damage_channel_transmitter")]
 script = ExtResource("38_charge")
-animation = &"walk"
+animation = &"charge"
 windup = 0.8
 perform_animation = &"walk"
 perform_animation_speed = 2.5
@@ -427,7 +462,7 @@ camera_shake = ExtResource("35_shake")
 
 [node name="Roar" type="Node" parent="BossAttackLoop" node_paths=PackedStringArray("active_enemy", "origin_node")]
 script = ExtResource("40_summon")
-animation = &"attack"
+animation = &"roar"
 windup = 0.6
 recovery = 0.6
 cooldown = 12.0

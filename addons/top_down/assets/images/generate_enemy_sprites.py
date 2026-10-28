@@ -44,6 +44,16 @@ PALETTE = {
 	'S': (96, 150, 220, 255),   # slime puddle blue
 	's': (56, 92, 150, 255),    # slime puddle rim
 	'L': (190, 220, 250, 255),  # slime puddle highlight
+	'm': (128, 28, 44, 255),    # dark crimson
+	'q': (134, 148, 98, 255),   # plague skin
+	'Q': (172, 186, 126, 255),  # plague skin light
+	'z': (90, 100, 66, 255),    # plague skin dark
+	'B': (38, 26, 18, 255),     # deep rags shadow
+	'v': (78, 52, 108, 255),    # shawl purple dark
+	'o': (112, 138, 92, 255),   # rotting skin
+	'O': (146, 168, 116, 255),  # rotting skin light
+	'n': (68, 88, 60, 255),     # rotting skin dark
+	'W': (184, 172, 140, 255),  # bone shadow
 }
 OUTLINE = (20, 14, 26, 255)
 TRANSPARENT = (0, 0, 0, 0)
@@ -54,6 +64,8 @@ def new_canvas(width, height):
 
 
 def put(canvas, x, y, color):
+	x = round(x)
+	y = round(y)
 	if 0 <= y < len(canvas) and 0 <= x < len(canvas[0]):
 		canvas[y][x] = color
 
@@ -267,124 +279,323 @@ def web_projectile():
 	return add_outline(canvas)
 
 
-def giant_zombie_pose(stride=0.0, bob=0.0, hand_y=48.0):
-	"""64x64 brute pose. stride swings the legs, bob lifts the body, hand_y is where the arms reach."""
-	canvas = new_canvas(64, 64)
-	thick_line(canvas, 24 + 4 * stride, 50, 22 + 4 * stride, 62, 7, PALETTE['b'])
-	thick_line(canvas, 40 - 4 * stride, 50, 42 - 4 * stride, 62, 7, PALETTE['b'])
-	thick_line(canvas, 16, 30 + bob, 6, hand_y, 8, PALETTE['g'])
-	thick_line(canvas, 48, 30 + bob, 58, hand_y, 8, PALETTE['g'])
-	ellipse(canvas, 32, 38 + bob, 19, 15, PALETTE['g'])
-	ellipse(canvas, 32, 47 + bob, 17, 9, PALETTE['r'])
-	ellipse(canvas, 32, 17 + bob, 11, 11, PALETTE['g'])
-	ellipse(canvas, 28, 11 + bob, 5, 3, PALETTE['l'])
-	ellipse(canvas, 26, 17 + bob, 1.6, 1.6, PALETTE['R'])
-	ellipse(canvas, 38, 17 + bob, 1.6, 1.6, PALETTE['R'])
-	thick_line(canvas, 26, 25 + bob, 38, 25 + bob, 2, PALETTE['k'])
-	thick_line(canvas, 26, 38 + bob, 30, 44 + bob, 1, PALETTE['b'])
-	thick_line(canvas, 36, 36 + bob, 38, 42 + bob, 1, PALETTE['b'])
-	return add_outline(canvas)
+def giant_zombie_pose(t=0.0, moving=False, near_fist=None, far_fist=None, jaw=0.0, head_back=0.0, lean=0.0, bob=0):
+	"""64x64 hulking zombie brute facing right: bone spikes through the hunched back, ribs showing
+	through a torn belly, a stitched shoulder and a broken forearm bone.
+	near_fist / far_fist place the fists (None lets them hang by the knees), jaw opens the hanging jaw,
+	head_back throws the head up (roar), lean pushes the upper body forward, bob lifts it in pixels."""
+	stride = math.sin(2 * math.pi * t) if moving else 0.0
+	up = bob + round(2 * lean)
+	shift = round(4 * lean)
+	shoulder_near = (40.0 + shift, 26.0 + up)
+	shoulder_far = (30.0 + shift, 24.0 + up)
+	if near_fist is None:
+		near_fist = (50.0 + shift + 3 * stride, 50.0 + up)
+	if far_fist is None:
+		far_fist = (40.0 + shift - 3 * stride, 48.0 + up)
+	head_x = 47 + shift - round(3 * head_back)
+	head_y = 23 + up - round(6 * head_back)
+
+	back = new_canvas(64, 64)
+	# far leg and arm in shadow
+	jointed_limb(back, [(32, 44 + up), (36 - 4 * stride, 53 + up), (35 - 6 * stride, 61)], 8, PALETTE['n'])
+	jointed_limb(back, [shoulder_far, ((shoulder_far[0] + far_fist[0]) / 2 - 2, (shoulder_far[1] + far_fist[1]) / 2 + 2), far_fist], 7, PALETTE['n'])
+	ellipse(back, far_fist[0], far_fist[1], 5, 4.5, PALETTE['n'])
+
+	body = new_canvas(64, 64)
+	jointed_limb(body, [(24, 44 + up), (25 + 4 * stride, 53 + up), (23 + 6 * stride, 61)], 9, PALETTE['o'])
+	thick_line(body, 19 + 6 * stride, 61, 29 + 6 * stride, 61, 3, PALETTE['n'])
+	# torn trousers
+	shaded_ellipse(body, 28, 46 + up, 13, 6, PALETTE['r'], PALETTE['r'], PALETTE['b'])
+	for x in (18, 23, 30, 36):
+		thick_line(body, x, 50 + up, x + 1, 54 + up, 2, PALETTE['b'])
+	# tapered bone spikes breaking out of the spine, bloody where they tear through
+	for (x0, y0), (x1, y1) in (((15, 27), (6, 17)), ((21, 20), (14, 7)), ((29, 16), (26, 2))):
+		for step in range(6):
+			k = step / 5
+			thick_line(body, x0 + shift + (x1 - x0) * k * 0.8, y0 + up + (y1 - y0) * k * 0.8,
+				x0 + shift + (x1 - x0) * min(1.0, k + 0.25), y0 + up + (y1 - y0) * min(1.0, k + 0.25),
+				4.2 - 3.2 * k, PALETTE['W'] if step < 2 else PALETTE['w'])
+		ellipse(body, x0 + shift, y0 + up, 3, 2.4, PALETTE['m'])
+	# hunched torso and gut
+	shaded_ellipse(body, 28 + shift, 31 + up, 18, 15, PALETTE['o'], PALETTE['O'], PALETTE['n'])
+	shaded_ellipse(body, 34 + shift, 39 + up, 12, 8, PALETTE['o'], PALETTE['O'], PALETTE['n'])
+	# torn open belly: ragged raw edge, dark cavity, ribs showing through
+	for x, y, rx, ry in ((36, 35, 6.5, 7.5), (32, 32, 3.0, 3.0), (40, 40, 3.5, 3.0), (35, 41, 3.5, 2.5)):
+		ellipse(body, x + shift, y + up, rx, ry, PALETTE['m'])
+	ellipse(body, 37 + shift, 36 + up, 4.2, 5.2, PALETTE['k'])
+	for y, x0, x1 in ((32, 34, 39), (35, 33, 40), (38, 34, 40)):
+		thick_line(body, x0 + shift, y + up, x1 + shift, y + 1.5 + up, 1.1, PALETTE['W'])
+		put(body, x1 + shift, y + 1 + up, PALETTE['w'])
+	# bruised, rotting patches
+	for x, y, r in ((23, 40, 3.0), (31, 22, 2.2)):
+		ellipse(body, x + shift, y + up, r, r * 0.8, PALETTE['n'])
+		put(body, x + shift, y + up, PALETTE['v'])
+	jointed_limb(body, [(37 + shift, 41 + up), (39 + shift + stride, 46 + up), (37 + shift + 2 * stride, 50 + up)], 2, PALETTE['R'])
+	# blood smears and a stitched gash on the back
+	for x, y in ((20, 36), (23, 40), (18, 31)):
+		ellipse(body, x + shift, y + up, 1.6, 1.2, PALETTE['m'])
+	thick_line(body, 15 + shift, 31 + up, 27 + shift, 25 + up, 1, PALETTE['m'])
+	for i in range(4):
+		x = 17 + shift + i * 3
+		y = 30 + up - i * 1.5
+		thick_line(body, x - 0.5, y - 1.5, x + 0.5, y + 1.5, 1, PALETTE['k'])
+
+	head = new_canvas(64, 64)
+	shaded_ellipse(head, head_x, head_y, 7, 6.5, PALETTE['o'], PALETTE['O'], PALETTE['n'])
+	# hanging lower jaw with broken teeth
+	jaw_drop = 2 + 5 * jaw
+	shaded_ellipse(head, head_x + 2, head_y + 4 + jaw_drop, 5, 2.5, PALETTE['n'], PALETTE['o'], PALETTE['n'])
+	ellipse(head, head_x + 3, head_y + 3 + jaw_drop / 2, 3.5, jaw_drop / 2 + 0.5, PALETTE['k'])
+	for x in (head_x + 1, head_x + 3, head_x + 5):
+		put(head, x, head_y + 2, PALETTE['w'])
+		put(head, x, head_y + 2 + jaw_drop, PALETTE['w'])
+	thick_line(head, head_x + 4, head_y + 5 + jaw_drop, head_x + 4, head_y + 8 + jaw_drop, 1.2, PALETTE['R'])
+	# one glowing eye, one gouged socket bleeding
+	ellipse(head, head_x + 4, head_y - 2, 1.4, 1.4, PALETTE['R'])
+	put(head, head_x + 4, head_y - 2, PALETTE['y'])
+	ellipse(head, head_x, head_y - 2, 1.5, 1.5, PALETTE['k'])
+	thick_line(head, head_x, head_y - 1, head_x - 1, head_y + 3, 1, PALETTE['m'])
+	# scalp torn back to bone
+	ellipse(head, head_x - 2, head_y - 5, 3, 1.6, PALETTE['w'])
+
+	front = new_canvas(64, 64)
+	elbow = ((shoulder_near[0] + near_fist[0]) / 2 + 3, (shoulder_near[1] + near_fist[1]) / 2 + 1)
+	jointed_limb(front, [shoulder_near, elbow, near_fist], 8, PALETTE['o'])
+	# broken bone sticking out of the forearm
+	mid = ((elbow[0] + near_fist[0]) / 2, (elbow[1] + near_fist[1]) / 2)
+	thick_line(front, mid[0], mid[1], mid[0] + 4, mid[1] - 3, 2, PALETTE['w'])
+	ellipse(front, mid[0], mid[1], 1.6, 1.6, PALETTE['m'])
+	# stitches around the shoulder where the arm was sewn back on
+	for i in range(4):
+		angle = math.radians(200 + i * 40)
+		x = shoulder_near[0] + 4.5 * math.cos(angle)
+		y = shoulder_near[1] + 4.5 * math.sin(angle)
+		thick_line(front, x - 1, y - 1, x + 1, y + 1, 1, PALETTE['k'])
+	shaded_ellipse(front, near_fist[0], near_fist[1], 5.5, 5, PALETTE['o'], PALETTE['O'], PALETTE['n'])
+	for i in range(3):
+		put(front, round(near_fist[0]) + 2, round(near_fist[1]) - 2 + 2 * i, PALETTE['n'])
+	return stack_layers([back, body, head, front])
 
 
 def giant_zombie_frames():
-	"""Walk x4 (legs swing, body bobs), attack x3 (arms raise, slam down, recover)."""
-	frames = []
-	for frame in range(4):
-		phase = frame / 4 * 2 * math.pi
-		frames.append(giant_zombie_pose(stride=math.sin(phase), bob=-1.0 * abs(math.sin(phase))))
-	frames.append(giant_zombie_pose(hand_y=6.0))
-	frames.append(giant_zombie_pose(bob=2.0, hand_y=60.0))
-	frames.append(giant_zombie_pose(hand_y=34.0))
+	"""Idle x2, stomp x6, slam x3 (fists overhead, smash down, recover), roar x3 (head thrown back,
+	arms spread, jaw hanging), charge windup x2 (head down, shoulder forward, fists back)."""
+	frames = [giant_zombie_pose(), giant_zombie_pose(bob=-1, jaw=0.2)]
+	frames += [giant_zombie_pose(t=i / 6, moving=True, bob=-1 if i % 3 == 1 else 0, lean=0.2) for i in range(6)]
+	frames.append(giant_zombie_pose(near_fist=(48.0, 8.0), far_fist=(36.0, 6.0), head_back=0.3, jaw=0.4, bob=-2))
+	frames.append(giant_zombie_pose(near_fist=(58.0, 57.0), far_fist=(52.0, 57.0), lean=1.0, jaw=1.0, bob=2))
+	frames.append(giant_zombie_pose(near_fist=(54.0, 48.0), far_fist=(46.0, 50.0), lean=0.5, jaw=0.4, bob=1))
+	frames.append(giant_zombie_pose(near_fist=(56.0, 34.0), far_fist=(14.0, 30.0), head_back=0.5, jaw=0.6))
+	frames.append(giant_zombie_pose(near_fist=(60.0, 26.0), far_fist=(10.0, 22.0), head_back=1.0, jaw=1.0, bob=-1))
+	frames.append(giant_zombie_pose(near_fist=(58.0, 30.0), far_fist=(12.0, 26.0), head_back=0.8, jaw=0.9))
+	frames.append(giant_zombie_pose(near_fist=(36.0, 50.0), far_fist=(28.0, 48.0), lean=1.0, jaw=0.5, bob=1))
+	frames.append(giant_zombie_pose(near_fist=(34.0, 52.0), far_fist=(26.0, 50.0), lean=1.0, jaw=0.7, bob=2))
 	return frames
 
 
-BROODMOTHER_LEG_ANGLES = (-150, -120, -95, -70, 70, 95, 120, 150)
+def shaded_ellipse(canvas, cx, cy, rx, ry, base, light, dark):
+	"""Ellipse lit from the top left: light rim on the upper left, dark rim on the lower right."""
+	for y in range(len(canvas)):
+		for x in range(len(canvas[0])):
+			dx = (x + 0.5 - cx) / rx
+			dy = (y + 0.5 - cy) / ry
+			if dx * dx + dy * dy > 1.0:
+				continue
+			facing = -0.55 * dx - 0.8 * dy
+			if facing > 0.55:
+				canvas[y][x] = light
+			elif facing < -0.5:
+				canvas[y][x] = dark
+			else:
+				canvas[y][x] = base
 
 
-def broodmother_pose(front_left=-150, front_right=150, spread=0.0, step=0.0):
-	"""64x64 spider pose. front legs set the forelimb swing, spread pushes all legs outwards, step wobbles them."""
-	canvas = new_canvas(64, 64)
-	center_x = 32.0
-	center_y = 36.0
-	for index, angle_deg in enumerate(BROODMOTHER_LEG_ANGLES):
-		if index == 0:
-			angle_deg = front_left
-		elif index == 7:
-			angle_deg = front_right
-		wobble = 4.0 * step * (1 if index % 2 == 0 else -1)
-		angle = math.radians(angle_deg + wobble)
-		reach = 1.0 + 0.12 * spread
-		knee_x = center_x + 20 * reach * math.cos(angle)
-		knee_y = center_y + 18 * reach * math.sin(angle)
-		foot_x = center_x + 29 * reach * math.cos(angle)
-		foot_y = center_y + 27 * reach * math.sin(angle)
-		thick_line(canvas, center_x + 10 * math.cos(angle), center_y + 10 * math.sin(angle), knee_x, knee_y, 3, PALETTE['X'])
-		thick_line(canvas, knee_x, knee_y, foot_x, foot_y, 3, PALETTE['X'])
-	ellipse(canvas, 32, 42, 16, 14, PALETTE['X'])
-	ellipse(canvas, 32, 46, 5, 6, PALETTE['R'])
-	ellipse(canvas, 26, 40, 1.5, 1.5, PALETTE['k'])
-	ellipse(canvas, 38, 40, 1.5, 1.5, PALETTE['k'])
-	ellipse(canvas, 32, 20, 9, 8, PALETTE['x'])
-	for x, y in ((27, 17), (31, 15), (35, 15), (39, 17), (29, 21), (35, 21)):
-		ellipse(canvas, x, y, 1.3, 1.3, PALETTE['R'])
-	thick_line(canvas, 28, 26, 26, 31, 2, PALETTE['w'])
-	thick_line(canvas, 36, 26, 38, 31, 2, PALETTE['w'])
-	if spread > 0:
-		for x, y in ((20, 46), (44, 46), (24, 52), (40, 52)):
-			ellipse(canvas, x, y, 1.2, 1.2, PALETTE['a'])
-	return add_outline(canvas)
+def stack_layers(layers, width=64, height=64):
+	"""Outlines each layer on its own and stacks them back to front, so overlapping parts stay readable."""
+	canvas = new_canvas(width, height)
+	for layer in layers:
+		outlined = add_outline(layer)
+		for y in range(height):
+			for x in range(width):
+				if outlined[y][x] is not None:
+					canvas[y][x] = outlined[y][x]
+	return canvas
+
+
+def jointed_limb(canvas, points, thickness, color, joint_color=None):
+	"""Thick segments through the points; joints get a dot in joint_color."""
+	for start, end in zip(points, points[1:]):
+		thick_line(canvas, start[0], start[1], end[0], end[1], thickness, color)
+	if joint_color is not None:
+		for x, y in points[1:-1]:
+			put(canvas, round(x - 0.5), round(y - 0.5), joint_color)
+
+
+## Broodmother near side legs front to back: (anchor, knee, foot) in 64x64 space, side view facing right.
+BROOD_LEGS = [
+	((48.0, 42.0), (57.0, 24.0), (63.0, 61.0)),
+	((45.0, 44.0), (50.0, 26.0), (54.0, 62.0)),
+	((41.0, 42.0), (33.0, 14.0), (26.0, 62.0)),
+	((39.0, 42.0), (21.0, 10.0), (6.0, 61.0)),
+]
+BROOD_GROUND = 62
+
+
+def broodmother_pose(t=0.0, moving=False, raise_front=0.0, crouch=0.0, rear=0.0, bob=0):
+	"""64x64 side view spider facing right.
+	t is the gait phase, raise_front lifts the front leg pair (web throw), crouch lowers the body
+	and spreads the legs (brood launch), rear tilts the head up, bob lifts the whole body in pixels."""
+	body_y = bob + round(4 * crouch)
+	head_lift = round(-5 * rear)
+
+	def leg_points(index, near):
+		anchor, knee, foot = BROOD_LEGS[index]
+		phase = t + (0.0 if (index % 2 == 0) == near else 0.5)
+		swing = 3.0 * math.sin(2 * math.pi * phase) if moving else 0.0
+		lift = 3.0 * max(0.0, math.cos(2 * math.pi * phase)) if moving else 0.0
+		outward = 1 if foot[0] > anchor[0] else -1
+		foot_x = foot[0] + swing + outward * 4 * crouch
+		foot_y = foot[1] - lift
+		knee_x = knee[0] + outward * 2 * crouch
+		knee_y = knee[1] + body_y + 4 * crouch - 0.6 * lift
+		anchor_y = anchor[1] + body_y + (head_lift if index < 2 else 0)
+		if index < 2 and raise_front > 0:
+			# front legs leave the ground and rise in a threat pose above the head
+			raised_knee = (54.0 - 5 * index, 13.0 + 4 * index + head_lift)
+			raised_foot = (63.0 - 4 * index, 25.0 + 4 * index + head_lift)
+			knee_x += (raised_knee[0] - knee_x) * raise_front
+			knee_y += (raised_knee[1] - knee_y) * raise_front
+			foot_x += (raised_foot[0] - foot_x) * raise_front
+			foot_y += (raised_foot[1] - foot_y) * raise_front
+		if not near:
+			foot_x -= 5 * outward
+			knee_x -= 3 * outward
+			knee_y += 3
+		return [(anchor[0], anchor_y), (knee_x, knee_y), (foot_x, foot_y)]
+
+	far_legs = new_canvas(64, 64)
+	for i in range(4):
+		jointed_limb(far_legs, leg_points(i, False), 2.0, PALETTE['x'])
+	# near back legs arch over the abdomen from behind it, near front legs pass behind the head
+	back_legs = new_canvas(64, 64)
+	for i in (2, 3):
+		jointed_limb(back_legs, leg_points(i, True), 2.6, PALETTE['X'], PALETTE['Y'])
+	body = new_canvas(64, 64)
+	shaded_ellipse(body, 20, 37 + body_y, 18, 15, PALETTE['x'], PALETTE['X'], PALETTE['k'])
+	# crimson hourglass bands and a clutch of eggs on her back
+	for x0, x1 in ((9, 12), (17, 19), (25, 26)):
+		thick_line(body, x0, 29 + body_y, x1, 47 + body_y, 2.2, PALETTE['m'])
+	ellipse(body, 30, 40 + body_y, 2.0, 3.5, PALETTE['R'])
+	for x, y in ((11, 24), (17, 22), (23, 23), (14, 28), (20, 27)):
+		ellipse(body, x, y + body_y, 2.6, 2.2, PALETTE['e'])
+		put(body, x - 1, y - 1 + body_y, PALETTE['w'])
+	head = new_canvas(64, 64)
+	head_y = 40 + body_y + head_lift
+	shaded_ellipse(head, 45, head_y, 10, 8, PALETTE['X'], PALETTE['Y'], PALETTE['x'])
+	for x, y, r in ((50, -4, 1.8), (53, -2, 1.8), (47, -6, 1.1), (51, -7, 1.1), (55, 1, 1.1)):
+		ellipse(head, x, head_y + y, r, r, PALETTE['R'])
+	thick_line(head, 51, head_y + 4, 54, head_y + 10, 2.6, PALETTE['x'])
+	thick_line(head, 54, head_y + 9, 53, head_y + 12, 1.4, PALETTE['w'])
+	front_legs = new_canvas(64, 64)
+	for i in (0, 1):
+		jointed_limb(front_legs, leg_points(i, True), 2.6, PALETTE['X'], PALETTE['Y'])
+	# fully raised front legs are seen in front of the head
+	if raise_front > 0.75:
+		return stack_layers([far_legs, back_legs, body, head, front_legs])
+	return stack_layers([far_legs, back_legs, body, front_legs, head])
 
 
 def broodmother_frames():
-	"""Idle x1, acid throw x3 (left foreleg whips forward), acid fan x3 (both forelegs raised and spread)."""
-	frames = [broodmother_pose(step=0.0)]
-	frames.append(broodmother_pose(front_left=-150))
-	frames.append(broodmother_pose(front_left=-100))
-	frames.append(broodmother_pose(front_left=-125))
-	frames.append(broodmother_pose(front_left=-110, front_right=110, spread=0.5))
-	frames.append(broodmother_pose(front_left=-100, front_right=100, spread=1.0))
-	frames.append(broodmother_pose(front_left=-120, front_right=120, spread=0.5))
+	"""Idle x2, crawl x6, web throw x3 (rears up, front legs raised, strikes), brood x3 (crouches, abdomen heaves)."""
+	frames = [broodmother_pose(), broodmother_pose(bob=-1)]
+	frames += [broodmother_pose(t=i / 6, moving=True, bob=-1 if i % 3 == 1 else 0) for i in range(6)]
+	frames.append(broodmother_pose(raise_front=0.5, rear=0.5))
+	frames.append(broodmother_pose(raise_front=1.0, rear=1.0))
+	frames.append(broodmother_pose(raise_front=0.2, rear=0.0, bob=1))
+	frames.append(broodmother_pose(crouch=0.5))
+	frames.append(broodmother_pose(crouch=1.0))
+	frames.append(broodmother_pose(crouch=0.3, bob=-2))
 	return frames
 
 
-def plague_mother_pose(left_tip=(6, 6), right_tip=(58, 6), glow=False, pulse=0.0):
-	"""64x64 boss pose. left_tip and right_tip move the tentacles, glow lights the summon tips, pulse swells the eyes."""
-	canvas = new_canvas(64, 64)
-	thick_line(canvas, 14, 20, left_tip[0], left_tip[1], 3, PALETTE['a'])
-	thick_line(canvas, 50, 20, right_tip[0], right_tip[1], 3, PALETTE['a'])
-	thick_line(canvas, 32, 18, 32, 4, 3, PALETTE['a'])
-	ellipse(canvas, left_tip[0], left_tip[1], 2, 2, PALETTE['A'])
-	ellipse(canvas, right_tip[0], right_tip[1], 2, 2, PALETTE['A'])
-	if glow:
-		ellipse(canvas, 32, 4, 4, 4, PALETTE['y'])
-	ellipse(canvas, 32, 38, 22, 20, PALETTE['p'])
-	ellipse(canvas, 32, 47, 16, 9, PALETTE['P'])
-	ellipse(canvas, 24, 28, 7, 4, PALETTE['P'])
-	ellipse(canvas, 44, 46, 3, 3, PALETTE['y'])
-	ellipse(canvas, 20, 46, 2, 2, PALETTE['y'])
-	ellipse(canvas, 40, 30, 2, 2, PALETTE['y'])
-	ellipse(canvas, 24, 34, 3.5 + pulse, 3.5 + pulse, PALETTE['R'])
-	ellipse(canvas, 40, 34, 3.5 + pulse, 3.5 + pulse, PALETTE['R'])
-	ellipse(canvas, 32, 27, 4, 4, PALETTE['R'])
-	ellipse(canvas, 24, 34, 1.2, 1.2, PALETTE['k'])
-	ellipse(canvas, 40, 34, 1.2, 1.2, PALETTE['k'])
-	ellipse(canvas, 32, 27, 1.4, 1.4, PALETTE['k'])
-	ellipse(canvas, 32, 48, 6, 3, PALETTE['k'])
-	ellipse(canvas, 14, 56, 2, 3, PALETTE['a'])
-	ellipse(canvas, 30, 58, 2, 4, PALETTE['a'])
-	ellipse(canvas, 48, 57, 2, 3, PALETTE['a'])
-	return add_outline(canvas)
+def plague_mother_pose(t=0.0, moving=False, hand=None, swell=0.0, glow=False, mouth=0.0, hunch=0.0, bob=0):
+	"""64x64 hunched, bloated zombie matriarch facing right, acid sacs growing out of her back.
+	hand is where the near arm reaches (None hangs it down), swell grows the sacs, glow lights them,
+	mouth opens the jaw, hunch drops the head forward, bob lifts the whole body in pixels."""
+	stride = math.sin(2 * math.pi * t) if moving else 0.0
+	body_y = bob
+	head_x = 46 + round(3 * hunch)
+	head_y = 25 + body_y + round(5 * hunch)
+	shoulder = (41.0, 30.0 + body_y)
+	if hand is None:
+		hand = (52.0 + 2 * stride, 52.0 + body_y)
+
+	back = new_canvas(64, 64)
+	# far leg and arm in shadow
+	thick_line(back, 35 - 3 * stride, 50 + body_y, 37 - 4 * stride, 61, 6, PALETTE['z'])
+	jointed_limb(back, [(36, 31 + body_y), (40 - 2 * stride, 43 + body_y), (44 - 2 * stride, 53 + body_y)], 4, PALETTE['z'])
+	body = new_canvas(64, 64)
+	thick_line(body, 24 + 3 * stride, 50 + body_y, 22 + 4 * stride, 61, 7, PALETTE['q'])
+	thick_line(body, 20 + 4 * stride, 61, 27 + 4 * stride, 61, 3, PALETTE['z'])
+	# bloated, veined belly hanging over a torn skirt
+	shaded_ellipse(body, 30, 40 + body_y, 19, 16, PALETTE['q'], PALETTE['Q'], PALETTE['z'])
+	shaded_ellipse(body, 35, 44 + body_y, 11, 10, PALETTE['Q'], PALETTE['Q'], PALETTE['q'])
+	shaded_ellipse(body, 28, 53 + body_y, 18, 6, PALETTE['v'], PALETTE['p'], PALETTE['B'])
+	for x in range(12, 46, 5):
+		thick_line(body, x, 55 + body_y, x + 1, 59 + body_y, 2, PALETTE['v'])
+	jointed_limb(body, [(28, 34 + body_y), (32, 40 + body_y), (30, 46 + body_y)], 1, PALETTE['p'])
+	jointed_limb(body, [(40, 38 + body_y), (38, 43 + body_y), (42, 48 + body_y)], 1, PALETTE['p'])
+	ellipse(body, 37, 45 + body_y, 1.6, 1.6, PALETTE['a'])
+	# acid sacs bulging from the hunched back; the summon swells and lights them
+	sac_core = PALETTE['y'] if glow else PALETTE['A']
+	for x, y, r in ((15, 30, 6.0), (22, 21, 5.0), (10, 41, 4.5), (31, 18, 3.5)):
+		rr = r + swell
+		ellipse(body, x, y + body_y, rr, rr, PALETTE['t'])
+		ellipse(body, x, y + body_y, rr - 1.2, rr - 1.2, PALETTE['a'])
+		core = rr * 0.35 + (0.6 if glow else 0)
+		ellipse(body, x - rr * 0.3, y + body_y - rr * 0.3, core, core, sac_core)
+	# torn shawl draped from the back over the shoulders into a hood
+	shawl = new_canvas(64, 64)
+	jointed_limb(shawl, [(30, 26 + body_y), (38, 24 + body_y), (head_x - 3, head_y - 2)], 7, PALETTE['p'])
+	shaded_ellipse(shawl, head_x - 1, head_y - 1, 9, 8.5, PALETTE['p'], PALETTE['P'], PALETTE['v'])
+	for x in range(32, 44, 4):
+		thick_line(shawl, x, 27 + body_y, x - 1, 33 + body_y, 2, PALETTE['v'])
+	head = new_canvas(64, 64)
+	shaded_ellipse(head, head_x + 2, head_y + 1, 6, 6, PALETTE['q'], PALETTE['Q'], PALETTE['z'])
+	# sunken sockets with glowing eyes
+	for x in (head_x + 2, head_x + 5):
+		ellipse(head, x, head_y - 0.5, 1.4, 1.4, PALETTE['k'])
+		put(head, x, head_y - 1, PALETTE['y'])
+	jaw = 1.0 + 3.0 * mouth
+	ellipse(head, head_x + 4, head_y + 3.5 + jaw / 2, 2.6, jaw, PALETTE['k'])
+	for x in (head_x + 3, head_x + 5):
+		put(head, x, head_y + 3, PALETTE['w'])
+	thick_line(head, head_x + 4, head_y + 4 + jaw, head_x + 4 + stride, head_y + 9 + 3 * mouth, 1.4, PALETTE['a'])
+	front = new_canvas(64, 64)
+	elbow = ((shoulder[0] + hand[0]) / 2 + 3, (shoulder[1] + hand[1]) / 2 + 2)
+	jointed_limb(front, [shoulder, elbow, hand], 5, PALETTE['q'])
+	ellipse(front, hand[0], hand[1], 2.6, 2.4, PALETTE['q'])
+	for dx in (-2, 0, 2):
+		thick_line(front, hand[0] + dx, hand[1] + 1, hand[0] + dx * 1.5 + 1, hand[1] + 5, 1.2, PALETTE['Q'])
+	if hand[1] < 40:
+		# acid gob held in the throwing hand
+		ellipse(front, hand[0], hand[1] - 3, 3, 3, PALETTE['a'])
+		put(front, round(hand[0]) - 1, round(hand[1]) - 4, PALETTE['A'])
+	return stack_layers([back, body, shawl, head, front])
 
 
 def plague_mother_frames():
-	"""Idle x2 (pulse), acid throw x3 (left tentacle whips out and down), summon x3 (tentacles lift and glow)."""
-	frames = [plague_mother_pose(pulse=0.0), plague_mother_pose(pulse=0.8)]
-	frames.append(plague_mother_pose(left_tip=(10, 2)))
-	frames.append(plague_mother_pose(left_tip=(0, 30)))
-	frames.append(plague_mother_pose(left_tip=(8, 12)))
-	frames.append(plague_mother_pose(left_tip=(6, 0), right_tip=(58, 0), glow=True))
-	frames.append(plague_mother_pose(left_tip=(4, 0), right_tip=(60, 0), glow=True, pulse=0.5))
-	frames.append(plague_mother_pose(left_tip=(6, 0), right_tip=(58, 0), glow=True, pulse=0.8))
+	"""Idle x2 (sacs breathe), waddle x6, acid throw x3 (arm winds over the head, flings, recovers),
+	summon x3 (hunches, sacs swell and glow, retches)."""
+	frames = [plague_mother_pose(), plague_mother_pose(swell=0.6, bob=-1)]
+	frames += [plague_mother_pose(t=i / 6, moving=True, bob=-1 if i % 3 == 1 else 0) for i in range(6)]
+	frames.append(plague_mother_pose(hand=(30.0, 8.0), mouth=0.3, bob=-1))
+	frames.append(plague_mother_pose(hand=(62.0, 26.0), mouth=1.0))
+	frames.append(plague_mother_pose(hand=(56.0, 44.0), mouth=0.4, bob=1))
+	frames.append(plague_mother_pose(swell=0.8, hunch=0.5, mouth=0.5))
+	frames.append(plague_mother_pose(swell=1.8, glow=True, hunch=1.0, mouth=1.0, bob=1))
+	frames.append(plague_mother_pose(swell=1.0, glow=True, hunch=0.6, mouth=0.6))
 	return frames
 
 
