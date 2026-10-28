@@ -143,3 +143,4 @@ ready_nodes = [NodePath(".."), NodePath("../ProjectileSetup"), NodePath("../Proj
 script = ExtResource("30_land")
 projectile = NodePath("..")
 instance_resource = ExtResource("31_spawn")
+lifetime = 6.0

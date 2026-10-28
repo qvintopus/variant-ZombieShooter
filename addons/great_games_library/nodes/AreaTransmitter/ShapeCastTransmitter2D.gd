@@ -27,6 +27,9 @@ func _ready()->void:
 
 ## Area2D version to check if receiver still overlaps.
 func _on_check_receiver(receiver:AreaReceiver2D, data_transmitter:DataChannelTransmitter)->void:
+	# retried next frame, transmitter (pooled projectile) may have left the tree already
+	if !is_inside_tree():
+		return
 	force_shapecast_update()
 	for i:int in get_collision_count():
 		if get_collider(i) == receiver:

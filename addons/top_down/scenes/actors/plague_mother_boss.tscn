@@ -1,15 +1,147 @@
 [gd_scene format=3]
 
-[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/shadow_big.png" id="11_8wnli"]
-[ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/color_flash.gdshader" id="12_ne4r3"]
-[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/characters/plague_mother_64x64.png" id="13_bxjpi"]
+[ext_resource type="PackedScene" uid="uid://botai66n8rwt3" path="res://addons/top_down/scenes/actors/actor.tscn" id="1_actor"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/ResourceNode/ResourceNodeItem.gd" id="2_item"]
+[ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/color_flash.gdshader" id="3_flash"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/characters/plague_mother_64x64.png" id="4_tex"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/shadow_big.png" id="5_shadow"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/ActorStatsResource.gd" id="6_stats"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/HealthResource.gd" id="7_health"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/PushResource.gd" id="8_push"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/input/InputResource.gd" id="9_input"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/BoolResource.gd" id="10_bool"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/DamageResource.gd" id="11_damage"]
+[ext_resource type="PackedScene" uid="uid://cenq1bawfywu8" path="res://addons/top_down/scenes/actors/ai/enemy_ai.tscn" id="12_ai"]
+[ext_resource type="PackedScene" uid="uid://baisjmcsnk3on" path="res://addons/top_down/scenes/weapons/zombie_attack.tscn" id="13_slash"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/PoolNode.gd" id="14_pool"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/bots/ActiveEnemy.gd" id="15_active"]
+[ext_resource type="Script" uid="uid://nd4w6e5zt0o5" path="res://addons/top_down/scripts/damage/DifficultyHealth.gd" id="16_diffh"]
+[ext_resource type="Resource" uid="uid://st0m3unxtv15" path="res://addons/top_down/resources/global_resources/difficulty_resource.tres" id="17_diff"]
+[ext_resource type="Resource" uid="uid://bmurrqosq7bec" path="res://addons/top_down/resources/sounds/kill_zombie.tres" id="18_killsnd"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/dead/slime_dead_instance_resource.tres" id="19_deadvfx"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/ItemDrop.gd" id="20_drop"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="21_instres"]
+[ext_resource type="Resource" uid="uid://bc5djwa8gc2df" path="res://addons/top_down/resources/InstanceResources/pickups/health_pickup_instance_resource.tres" id="22_healthdrop"]
+[ext_resource type="Resource" uid="uid://dedx0gi4fowby" path="res://addons/top_down/resources/global_resources/axis_multiplication_resource.tres" id="23_axis"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossAttackLoop.gd" id="24_loop"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossTelegraph.gd" id="25_telegraph"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/ShapeCastTransmitter2D.gd" id="26_shapecast"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="27_channel"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageDataResource.gd" id="28_dmgdata"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageTypeResource.gd" id="29_dmgtype"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageStatusResource.gd" id="30_dmgstatus"]
+[ext_resource type="Resource" uid="uid://c07axh6oa6x54" path="res://addons/top_down/resources/InstanceResources/vfx/big_jelly_landing_instance_resource.tres" id="31_landvfx"]
+[ext_resource type="Resource" uid="uid://2oxos6r5uams" path="res://addons/top_down/resources/sounds/big_jelly_land.tres" id="32_landsnd"]
+[ext_resource type="Resource" uid="uid://htqn5bygvbq5" path="res://addons/top_down/resources/sounds/slime_throw.tres" id="33_throwsnd"]
+[ext_resource type="Resource" uid="uid://pvw6k1ntsles" path="res://addons/top_down/resources/sounds/zombie_split.tres" id="34_splitsnd"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="35_shake"]
+[ext_resource type="Resource" uid="uid://way0xfgx53ix" path="res://addons/top_down/resources/InstanceResources/vfx/spawn_dust_instance.tres" id="36_dust"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossSlam.gd" id="37_slam"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossCharge.gd" id="38_charge"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossLob.gd" id="39_lob"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossSummon.gd" id="40_summon"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/bots/EnemyLob.gd" id="41_enemylob"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/bots/KeepDistance.gd" id="42_keep"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/projectiles/acid_spit_projectile_instance_resource.tres" id="50_acid"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/actors/acid_slime_instance_resource.tres" id="51_acidslime"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_j6ndo"]
-radius = 32.0
+[sub_resource type="Resource" id="Resource_stats"]
+script = ExtResource("6_stats")
+acceleration = 200.0
+max_speed = 22.0
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_e4rxt"]
+[sub_resource type="Resource" id="Resource_stats_item"]
+resource_name = "movement"
+script = ExtResource("2_item")
+resource = SubResource("Resource_stats")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_hp"]
+script = ExtResource("7_health")
+hp = 420.0
+max_hp = 420.0
+reset_hp = 420.0
+reset_max_hp = 420.0
+
+[sub_resource type="Resource" id="Resource_hp_item"]
+resource_name = "health"
+script = ExtResource("2_item")
+resource = SubResource("Resource_hp")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_push"]
+script = ExtResource("8_push")
+
+[sub_resource type="Resource" id="Resource_push_item"]
+resource_name = "push"
+script = ExtResource("2_item")
+resource = SubResource("Resource_push")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_dash"]
+script = ExtResource("10_bool")
+
+[sub_resource type="Resource" id="Resource_dash_item"]
+resource_name = "dash"
+script = ExtResource("2_item")
+resource = SubResource("Resource_dash")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_hole"]
+script = ExtResource("10_bool")
+
+[sub_resource type="Resource" id="Resource_hole_item"]
+resource_name = "hole"
+script = ExtResource("2_item")
+resource = SubResource("Resource_hole")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_input"]
+script = ExtResource("9_input")
+
+[sub_resource type="Resource" id="Resource_input_item"]
+resource_name = "input"
+script = ExtResource("2_item")
+resource = SubResource("Resource_input")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_damage"]
+script = ExtResource("11_damage")
+can_receive_damage = true
+
+[sub_resource type="Resource" id="Resource_damage_item"]
+resource_name = "damage"
+script = ExtResource("2_item")
+resource = SubResource("Resource_damage")
+make_unique = true
+
+[sub_resource type="Resource" id="Resource_slow"]
+script = ExtResource("10_bool")
+
+[sub_resource type="Resource" id="Resource_slow_item"]
+resource_name = "slow"
+script = ExtResource("2_item")
+resource = SubResource("Resource_slow")
+make_unique = true
+
+[sub_resource type="RectangleShape2D" id="Shape_body"]
+size = Vector2(28, 10)
+
+[sub_resource type="RectangleShape2D" id="Shape_hurt"]
+size = Vector2(36, 44)
+
+[sub_resource type="CircleShape2D" id="Shape_slam"]
+radius = 44.0
+
+[sub_resource type="CircleShape2D" id="Shape_push"]
+radius = 52.0
+
+[sub_resource type="CircleShape2D" id="Shape_contact"]
+radius = 18.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flash"]
 resource_local_to_scene = true
-shader = ExtResource("12_ne4r3")
+shader = ExtResource("3_flash")
 shader_parameter/overlay = Color(1, 1, 1, 1)
 shader_parameter/blend = 0.0
 
@@ -66,103 +198,143 @@ tracks/0/keys = {
 _data = {
 &"idle": SubResource("Animation_boss_idle"),
 &"summon": SubResource("Animation_boss_summon"),
-&"throw": SubResource("Animation_boss_throw")
+&"throw": SubResource("Animation_boss_throw"),
+&"walk": SubResource("Animation_boss_idle")
 }
 
-[sub_resource type="Animation" id="Animation_itq31"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:material:shader_parameter/blend")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [0.0]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("..:scale")
-tracks/1/interp = 1
-tracks/1/loop_wrap = true
-tracks/1/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 0,
-"values": [Vector2(1, 1)]
-}
+[node name="PlagueMother" instance=ExtResource("1_actor")]
+collision_layer = 4
+collision_mask = 5
 
-[sub_resource type="Animation" id="Animation_tledj"]
-resource_name = "flash"
-length = 0.5
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath(".:material:shader_parameter/blend")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.5),
-"transitions": PackedFloat32Array(0.500001, 1),
-"update": 0,
-"values": [1.0, 0.0]
-}
-tracks/1/type = "value"
-tracks/1/imported = false
-tracks/1/enabled = true
-tracks/1/path = NodePath("..:scale")
-tracks/1/interp = 1
-tracks/1/loop_wrap = true
-tracks/1/keys = {
-"times": PackedFloat32Array(0, 0.5),
-"transitions": PackedFloat32Array(0.5, 1),
-"update": 0,
-"values": [Vector2(0.8, 1.279), Vector2(1, 1)]
-}
+[node name="ResourceNode" parent="." index="0"]
+list = Array[ExtResource("2_item")]([SubResource("Resource_stats_item"), SubResource("Resource_hp_item"), SubResource("Resource_push_item"), SubResource("Resource_dash_item"), SubResource("Resource_hole_item"), SubResource("Resource_input_item"), SubResource("Resource_damage_item"), SubResource("Resource_slow_item")])
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_tbujk"]
-_data = {
-&"RESET": SubResource("Animation_itq31"),
-&"flash": SubResource("Animation_tledj")
-}
+[node name="DifficultyHealth" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("16_diffh")
+resource_node = NodePath("../ResourceNode")
+difficulty_resource = ExtResource("17_diff")
 
-[node name="PlagueMother" type="CharacterBody2D" unique_id=1862362263]
-collision_layer = 0
-floor_stop_on_slope = false
-floor_constant_speed = true
-floor_block_on_wall = false
-platform_on_leave = 2
-platform_floor_layers = 0
+[node name="CollisionShape2D" parent="." index="1"]
+position = Vector2(0, -3)
+shape = SubResource("Shape_body")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1843155194]
-position = Vector2(0, -11)
-scale = Vector2(1, 0.5)
-shape = SubResource("CircleShape2D_j6ndo")
+[node name="AreaReceiver2D" parent="." index="2"]
+position = Vector2(0, -22)
+collision_layer = 4
 
-[node name="Shadow" type="Sprite2D" parent="." unique_id=1395492585]
-modulate = Color(0.0196078, 0.0352941, 0.0784314, 0.454902)
-position = Vector2(0, -11)
-texture = ExtResource("11_8wnli")
+[node name="CollisionShape2D" parent="AreaReceiver2D" index="0"]
+shape = SubResource("Shape_hurt")
 
-[node name="Body" type="Node2D" parent="." unique_id=767114232]
-position = Vector2(0, -11)
+[node name="Shadow" parent="." index="3"]
+position = Vector2(0, -1)
+scale = Vector2(0.75, 0.6)
+texture = ExtResource("5_shadow")
 
-[node name="JellyStretch" type="Node2D" parent="Body" unique_id=1156653874]
-
-[node name="Stretch" type="Node2D" parent="Body/JellyStretch" unique_id=270629789]
-
-[node name="Sprite2D" type="Sprite2D" parent="Body/JellyStretch/Stretch" unique_id=303645545]
-material = SubResource("ShaderMaterial_e4rxt")
-position = Vector2(0, -16)
-texture = ExtResource("13_bxjpi")
+[node name="Sprite2D" parent="Body/Stretch" index="0"]
+material = SubResource("ShaderMaterial_flash")
+position = Vector2(0, -29)
+texture = ExtResource("4_tex")
 hframes = 8
 
-[node name="CharacterAnimator" type="AnimationPlayer" parent="Body/JellyStretch/Stretch/Sprite2D" unique_id=1277796301]
+[node name="CharacterAnimator" parent="Body/Stretch/Sprite2D" index="0"]
 libraries/ = SubResource("AnimationLibrary_boss_anim")
 
-[node name="ColorFlash" type="AnimationPlayer" parent="Body/JellyStretch/Stretch/Sprite2D" unique_id=2112323633]
-libraries/ = SubResource("AnimationLibrary_tbujk")
+[node name="HoleDeath" parent="." index="10"]
+enabled = false
+
+[node name="ActorDamage" parent="." index="11"]
+sound_resource_dead = ExtResource("18_killsnd")
+dead_vfx_instance_resource = ExtResource("19_deadvfx")
+
+[node name="ZombieInput" parent="." node_paths=PackedStringArray("resource_node") instance=ExtResource("12_ai")]
+attack_distance = 20.0
+resource_node = NodePath("../ResourceNode")
+
+[node name="SlashAttack" parent="." node_paths=PackedStringArray("resource_node") instance=ExtResource("13_slash")]
+collision_mask = 2
+resource_node = NodePath("../ResourceNode")
+
+[node name="ItemDrop" type="Node" parent="." node_paths=PackedStringArray("resource_node", "root_node")]
+script = ExtResource("20_drop")
+resource_node = NodePath("../ResourceNode")
+root_node = NodePath("..")
+drop_instance_resources = Array[ExtResource("21_instres")]([ExtResource("22_healthdrop")])
+drop_chance = 1.0
+
+[node name="PoolNode" type="Node" parent="." node_paths=PackedStringArray("ready_nodes", "animation_player_list", "listen_node")]
+script = ExtResource("14_pool")
+ready_nodes = [NodePath("../DifficultyHealth")]
+animation_player_list = [NodePath("../Body/Stretch/Sprite2D/CharacterAnimator"), NodePath("../Body/Stretch/Sprite2D/ColorFlash")]
+listen_node = NodePath("../ActorDamage")
+signal_name = &"actor_died"
+
+[node name="ActiveEnemy" type="Node" parent="." node_paths=PackedStringArray("listen_node", "resource_node")]
+script = ExtResource("15_active")
+listen_node = NodePath("../ActorDamage")
+signal_name = &"actor_died"
+resource_node = NodePath("../ResourceNode")
+destroy_children = true
+
+[node name="BossAttackLoop" type="Node" parent="." node_paths=PackedStringArray("bot_input", "target_finder", "resource_node", "character_states", "animation_player", "tint_node")]
+script = ExtResource("24_loop")
+bot_input = NodePath("../ZombieInput")
+target_finder = NodePath("../ZombieInput/TargetFinder")
+resource_node = NodePath("../ResourceNode")
+character_states = NodePath("../CharacterStates")
+animation_player = NodePath("../Body/Stretch/Sprite2D/CharacterAnimator")
+tint_node = NodePath("../Body/Stretch/Sprite2D")
+
+[node name="AcidVolley" type="Node" parent="BossAttackLoop" node_paths=PackedStringArray("lob")]
+script = ExtResource("39_lob")
+animation = &"throw"
+windup = 0.6
+recovery = 0.4
+cooldown = 3.5
+max_distance = 200.0
+weight = 2.0
+lob = NodePath("Lob")
+
+[node name="Lob" type="Node" parent="BossAttackLoop/AcidVolley" node_paths=PackedStringArray("origin_node")]
+script = ExtResource("41_enemylob")
+auto_fire = false
+origin_node = NodePath("../../..")
+projectile_instance = ExtResource("50_acid")
+angles = Array[float]([-18.0, 0.0, 18.0])
+axis_multiplication = ExtResource("23_axis")
+shoot_sound = ExtResource("33_throwsnd")
+
+[node name="SummonSlimes" type="Node" parent="BossAttackLoop" node_paths=PackedStringArray("active_enemy", "origin_node")]
+script = ExtResource("40_summon")
+animation = &"summon"
+windup = 0.8
+recovery = 0.6
+cooldown = 11.0
+weight = 1.5
+instance_resource = ExtResource("51_acidslime")
+active_enemy = NodePath("../../ActiveEnemy")
+origin_node = NodePath("../..")
+count = 2
+child_limit = 4
+axis_multiplication = ExtResource("23_axis")
+spawn_vfx = ExtResource("36_dust")
+sound = ExtResource("34_splitsnd")
+
+[node name="AcidRing" type="Node" parent="BossAttackLoop" node_paths=PackedStringArray("lob")]
+script = ExtResource("39_lob")
+animation = &"summon"
+windup = 0.9
+recovery = 1.0
+cooldown = 10.0
+max_health = 0.5
+weight = 1.5
+lob = NodePath("Lob")
+
+[node name="Lob" type="Node" parent="BossAttackLoop/AcidRing" node_paths=PackedStringArray("origin_node")]
+script = ExtResource("41_enemylob")
+auto_fire = false
+origin_node = NodePath("../../..")
+projectile_instance = ExtResource("50_acid")
+angles = Array[float]([0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
+axis_multiplication = ExtResource("23_axis")
+shoot_sound = ExtResource("33_throwsnd")
+fixed_distance = 48.0

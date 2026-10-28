@@ -9,6 +9,9 @@ extends Node2D
 
 @export var fade_time:float = 0.2
 
+## When above 0, removed after this time even if nothing got caught (thrown webs)
+@export var lifetime:float = 0.0
+
 ## "stuck" BoolResource of the caught actor
 var effect_resource:BoolResource
 var is_removed:bool
@@ -16,6 +19,8 @@ var is_removed:bool
 func _ready()->void:
 	data_transmitter.update_requested.connect(_on_update_requested)
 	damage_receiver.transmission_received.connect(_on_damaged)
+	if lifetime > 0.0:
+		create_tween().tween_callback(remove).set_delay(lifetime)
 
 func _on_update_requested(transmission_resource:TransmissionResource, _receiver:AreaReceiver2D)->void:
 	if !(transmission_resource is TrapTransmission):
