@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+# zs-vlan, guided, Linux (NetworkManager). Windows: vlan_auto.cmd. See README.md.
+#   vlan_auto.sh                     guided: host or join, then tells you each next step
+#   vlan_auto.sh <code>              paste whatever you got: an invite (zsi1.) joins, a reply (zsr1.) adds that guest
+#   vlan_auto.sh host                create the virtual LAN (or show it) + the invite for the next guest
+#   vlan_auto.sh host add <reply>    add a guest from the reply they sent back
+#   vlan_auto.sh host remove <N>     remove guest 10.77.0.N
+#   vlan_auto.sh join <invite>       join a host's virtual LAN; prints the reply to send back
+#   vlan_auto.sh start               start the last virtual LAN again (after a restart or going idle)
+#   vlan_auto.sh status              what this PC is, who is online, the code to send
+#   vlan_auto.sh stop                remove everything this made (host or guest)
+# --machine anywhere: no prompts, no clipboard, short waits, and a last line "ZSVLAN key=value ..."
+# (exit codes in lib.sh). The dedicated server console uses it; so will the game.
+# The tunnel never starts at boot, and goes off after VLAN_IDLE_MIN (5) minutes without game traffic.
+# Starting it again checks the public address: unchanged, the old codes still work; changed, it says
+# which new code to send.
+set -euo pipefail
+MACHINE=0
+ARGS=()
+for a in "$@"; do if [ "$a" = --machine ]; then MACHINE=1; else ARGS+=("$a"); fi; done
+set -- "${ARGS[@]+"${ARGS[@]}"}"
+. "$(dirname "$0")/lib.sh"
+SELF="tools/vlan/vlan_auto.sh"
+
+role() {
+	if [ -d "$STATE_HOST" ]; then echo host
+	elif [ -d "$STATE_GUEST" ]; then echo guest
+	else echo none; fi
+}
+
+# ---------------------------------------------------------------- host
+
+host_conf() {
+	local f pub ep
+	printf '[Interface]\nPrivateKey = %s\nAddress = %s.1/24\nListenPort = %s\n' "$(cat "$STATE/host.key")" "$NET" "$PORT"
+	for f in "$STATE"/peers/*; do
+		[ -e "$f" ] || continue
+		read -r pub ep <"$f"
+		printf '\n[Peer]\nPublicKey = %s\nAllowedIPs = %s.%s/32\nEndpoint = %s\nPersistentKeepalive = 25\n' "$pub" "$NET" "${f##*/}" "$ep"
+	done
+}
+
+next_slot() { local n; for n in 2 3 4 5 6 7 8; do [ -e "$STATE/peers/$n" ] || { echo "$n"; return; }; done; echo -; }
+
+host_up() {
+	[ "$(role)" = guest ] && fail 3 "this PC has joined someone else's virtual LAN; to host instead run: $SELF stop"
+	STATE=$STATE_HOST
+	if [ -f "$STATE/host.key" ] && conn_exists; then
+		pub_check
+		if tunnel_on; then watch_start; return; fi
+		tunnel_up
+		echo "started the virtual LAN again (same keys and guests) - this PC is $NET.1"; echo
+		return
+	fi
+	preflight
+	conn_exists && fail 3 "a connection named $NAME exists but $STATE is missing; run: $SELF stop   and try again"
+	mkdir -p "$STATE/peers"; chmod 700 "$STATE"
+	[ -f "$STATE/host.key" ] || (umask 077; genpriv >"$STATE/host.key")
+	pub_check
+	conf=$(host_conf); nm_apply <<<"$conf"
+	fw_open "$PORT/udp" "$GAME_RULE"
+	echo "created the virtual LAN - this PC is $NET.1"; echo
+}
+
+# Why the tunnel is off, for status.
+off_reason() { cat "$STATE/idle_down" 2>/dev/null || echo "not started since the PC restarted, or taken down"; }
+
+host_show() {
+	local v6 v4 f pub ep st n=0 list="" code slot hpub moved=no
+	STATE=$STATE_HOST
+	[ -n "${V6:-}" ] || pub_compare
+	v6=$V6; v4=$V4
+	echo "== zs-vlan: this PC hosts =="
+	echo "this PC   : $NET.1   (interface $NAME: $(dev_state))"
+	echo "public    : IPv6 $v6   IPv4 $v4"
+	addr_warn "$v6" "$v4"
+	echo "firewall  : $(cat "$STATE/firewall" 2>/dev/null || echo "not touched")"
+	if ! conn_exists; then
+		echo
+		echo "the tunnel is gone (removed outside vlan_auto). Recreate it: $SELF host   or clean up: $SELF stop"
+		result "role=host state=down ip=$NET.1"
+		return
+	fi
+	if ! tunnel_on; then
+		echo
+		echo "the virtual LAN is off ($(off_reason))."
+		echo "start it again: $SELF   (same keys and guests; each guest starts theirs too)"
+		result "role=host state=off ip=$NET.1"
+		return
+	fi
+	hpub=$(pubkey "$(cat "$STATE/host.key")")
+	echo "guests    :"
+	for f in "$STATE"/peers/*; do
+		[ -e "$f" ] || continue
+		read -r pub ep <"$f"; n=1
+		st=$(ping_st "$NET.${f##*/}")
+		echo "  $NET.${f##*/}  via $ep  ($st)"
+		list+="${list:+,}${f##*/}:${st// /-}"
+	done
+	[ $n = 1 ] || echo "  none yet"
+	echo
+	# the guests' tunnels point at the old public address: each needs an invite with the new one
+	if [ -n "${PUB_OLD:-}" ] && [ $n = 1 ]; then
+		moved=yes
+		echo "this PC's public address changed (was IPv6 ${PUB_OLD% *}  IPv4 ${PUB_OLD#* }), so guests can't reach it."
+		echo "send each guest their new invite; they paste it into vlan_auto (same slot, no new reply needed"
+		echo "unless their address changed too):"
+		for f in "$STATE"/peers/*; do
+			[ -e "$f" ] || continue
+			echo "  $NET.${f##*/}:  $(enc zsi1 "$hpub $PORT ${f##*/} $v6 $v4")"
+		done
+		echo
+	fi
+	slot=$(next_slot)
+	if [ "$slot" = - ]; then
+		code=-
+		echo "all 7 guest slots are used ($SELF host remove <N> frees one)"
+	else
+		code=$(enc zsi1 "$hpub $PORT $slot $v6 $v4")
+		echo "1. send this invite to your friend (it holds only public info):"
+		echo
+		echo "$code"
+		clip "$code"
+		echo
+		echo "2. they run vlan_auto with it and send you back a reply code"
+		echo "3. you paste the reply:  $SELF <reply>"
+	fi
+	echo
+	echo "game: host from the Comms Terminal, or run tools/server.sh - friends join  $NET.1"
+	result "role=host state=up ip=$NET.1 game=$NET.1:$GAME_PORT next=${slot} code=$code guests=${list:--} moved=$moved"
+}
+
+host_add() {
+	local slot gpub gport gv6 gv4 ep old wait=60 fields
+	[ "$(role)" = host ] || fail 3 "this PC doesn't host a virtual LAN; run: $SELF host   first"
+	STATE=$STATE_HOST
+	fields=$(dec zsr1 "$1") || fail 1
+	read -r slot gpub gport gv6 gv4 <<<"$fields"
+	[[ $slot =~ ^[2-8]$ && ${#gpub} = 44 && $gport =~ ^[0-9]+$ ]] || die "broken reply code (copy the whole line)"
+	if [ -e "$STATE/peers/$slot" ]; then
+		read -r old _ <"$STATE/peers/$slot"
+		[ "$old" = "$gpub" ] || fail 3 "slot $NET.$slot already belongs to another guest; send a fresh invite ($SELF host) and have them join with it"
+	fi
+	ep=$(pick_ep "$gv6" "$gv4" "$gport" "$(my_v6)") || fail 3 "the guest sent no address usable from here (no IPv6 on one side and no IPv4 from them)"
+	mkdir -p "$STATE/peers"
+	echo "$gpub $ep" >"$STATE/peers/$slot"
+	conf=$(host_conf); nm_apply <<<"$conf"
+	echo "guest $NET.$slot added (via $ep), waiting for it to answer"
+	[ "$MACHINE" = 1 ] && wait=20
+	if wait_online "$NET.$slot" "$wait"; then
+		echo "guest $NET.$slot is online - they join the game at $NET.1"
+		result "role=host state=added slot=$slot online=yes"
+	else
+		echo "guest $NET.$slot doesn't answer yet. It connects once their side is up too;"
+		echo "check later with: $SELF status   (both PCs need IPv6, or routers that keep UDP ports)"
+		result "role=host state=added slot=$slot online=no"
+	fi
+}
+
+host_remove() {
+	[[ ${1:-} =~ ^[2-8]$ ]] || die "usage: $SELF host remove <2..8>"
+	STATE=$STATE_HOST
+	[ -e "$STATE/peers/$1" ] || fail 3 "no guest $NET.$1"
+	rm "$STATE/peers/$1"; conf=$(host_conf); nm_apply <<<"$conf"
+	echo "guest $NET.$1 removed"
+	result "role=host state=removed slot=$1"
+}
+
+# Guided host: show, then take replies as they come in.
+host_loop() {
+	local line
+	host_show
+	[ -t 0 ] || return 0
+	while :; do
+		echo
+		read -r -p "paste a reply code here when it arrives (Enter = done): " line || break
+		line=$(tr -d '[:space:]' <<<"$line")
+		[ -n "$line" ] || break
+		( host_add "$line" ) || true
+		echo; host_show
+	done
+}
+
+# ---------------------------------------------------------------- guest
+
+guest_conf() {
+	local hpub hport slot hv6 hv4 ep
+	read -r hpub hport slot hv6 hv4 <<<"$(dec zsi1 "$(cat "$STATE/invite")")"
+	ep=$(pick_ep "$hv6" "$hv4" "$hport" "$(my_v6)") || fail 3 "the host has no address usable from here (no IPv6 on one side, and no IPv4 in the invite)"
+	printf '[Interface]\nPrivateKey = %s\nAddress = %s.%s/24\nListenPort = %s\n' "$(cat "$STATE/guest.key")" "$NET" "$slot" "$PORT"
+	printf '\n[Peer]\nPublicKey = %s\nAllowedIPs = %s.1/32\nEndpoint = %s\nPersistentKeepalive = 25\n' "$hpub" "$NET" "$ep"
+}
+
+guest_join() {
+	local hpub hport slot hv6 hv4 fields
+	[ "$(role)" = host ] && fail 3 "this PC hosts a virtual LAN; to join someone instead run: $SELF stop"
+	STATE=$STATE_GUEST
+	fields=$(dec zsi1 "$1") || fail 1
+	read -r hpub hport slot hv6 hv4 <<<"$fields"
+	[[ $slot =~ ^[2-8]$ && ${#hpub} = 44 && $hport =~ ^[0-9]+$ ]] || die "broken invite code (copy the whole line)"
+	pick_ep "$hv6" "$hv4" "$hport" "$(my_v6)" >/dev/null || fail 3 "the host has no address usable from here: they have no IPv4 in the invite and this PC has no IPv6"
+	preflight
+	mkdir -p "$STATE"; chmod 700 "$STATE"
+	[ -f "$STATE/guest.key" ] || (umask 077; genpriv >"$STATE/guest.key")   # same key on rejoin, so the host's entry stays valid
+	printf '%s\n' "$1" >"$STATE/invite"
+	pub_check
+	conf=$(guest_conf); nm_apply <<<"$conf"
+	[ -f "$STATE/firewall" ] || fw_open "$PORT/udp" "$GAME_RULE"   # this PC can host the game for the VLAN host too
+	echo "tunnel set up."; echo
+}
+
+# Start the joined tunnel again (after a restart or going idle).
+guest_up() {
+	STATE=$STATE_GUEST
+	[ -f "$STATE/invite" ] && conn_exists || return 0   # gone: guest_show says what to do
+	pub_check
+	if tunnel_on; then watch_start; return; fi
+	tunnel_up
+	echo "started the tunnel again (same slot and key)"; echo
+}
+
+guest_show() {
+	local hpub hport slot hv6 hv4 v6 v4 reply st fields
+	STATE=$STATE_GUEST
+	[ -f "$STATE/invite" ] || fail 3 "not joined yet; run: $SELF <invite code from the host>"
+	fields=$(dec zsi1 "$(cat "$STATE/invite")") || fail 1
+	read -r hpub hport slot hv6 hv4 <<<"$fields"
+	[ -n "${V6:-}" ] || pub_compare
+	v6=$V6; v4=$V4
+	st=$(ping_st "$NET.1")
+	echo "== zs-vlan: this PC joined =="
+	echo "this PC   : $NET.$slot   (interface $NAME: $(dev_state))"
+	echo "host      : $NET.1 via $(pick_ep "$hv6" "$hv4" "$hport" "$v6" || echo "?")  ($st)"
+	addr_warn "$v6" "$v4"
+	echo "firewall  : $(cat "$STATE/firewall" 2>/dev/null || echo "not touched")"
+	echo
+	if ! conn_exists; then
+		echo "the tunnel is gone (removed outside vlan_auto). Join again with the invite: $SELF <invite>"
+		echo "or clean up with: $SELF stop"
+		result "role=guest state=down ip=$NET.$slot"
+		return
+	fi
+	if ! tunnel_on; then
+		echo "the tunnel is off ($(off_reason))."
+		echo "start it again: $SELF   (once the host has started theirs)"
+		result "role=guest state=off ip=$NET.$slot"
+		return
+	fi
+	reply=$(enc zsr1 "$slot $(pubkey "$(cat "$STATE/guest.key")") $PORT $v6 $v4")
+	if [ "$st" = online ]; then
+		echo "connected. In the game: Comms Terminal -> Join ->  $NET.1"
+		clip "$NET.1"
+	else
+		[ -z "${PUB_OLD:-}" ] || echo "this PC's public address changed since your last reply, so the host needs the new one."
+		echo "1. send this reply back to the host:"
+		echo
+		echo "$reply"
+		clip "$reply"
+		echo
+		echo "2. the host pastes it into vlan_auto (or the dedicated server console)"
+		echo "3. once connected, join in the game at  $NET.1"
+	fi
+	result "role=guest state=up ip=$NET.$slot game=$NET.1:$GAME_PORT host=${st// /-} code=$reply"
+}
+
+guest_wait() {
+	[ "$MACHINE" = 1 ] && return 0
+	tunnel_on || return 0
+	[ "$(ping_st "$NET.1")" = online ] && return 0
+	echo
+	echo "waiting for the host to add your reply (up to 2 min; Ctrl+C stops waiting, the tunnel stays)"
+	if wait_online "$NET.1" 120; then
+		echo
+		echo "online! In the game: Comms Terminal -> Join ->  $NET.1"
+		clip "$NET.1"
+	else
+		echo "no answer from the host yet. Check that:"
+		echo "  - the host started their virtual LAN and pasted your reply (vlan_auto, or 'add <reply>' on the server console)"
+		echo "  - the host's public address didn't change: if it did, their vlan_auto shows a new invite for you"
+		echo "  - both PCs have IPv6 (https://test-ipv6.com); without it the IPv4 fallback fails behind CGNAT"
+		echo "rerun '$SELF status' any time - it shows when the host answers."
+		exit 4
+	fi
+}
+
+# ---------------------------------------------------------------- common
+
+status() {
+	case "$(role)" in
+	host) host_show ;;
+	guest) guest_show ;;
+	*)
+		echo "this PC isn't in a virtual LAN."
+		echo "  host:  $SELF host"
+		echo "  join:  $SELF <invite code from the host>"
+		result "role=none state=down" ;;
+	esac
+}
+
+# Start whichever role this PC has again, without prompts.
+start() {
+	case "$(role)" in
+	host) host_up; host_show ;;
+	guest) guest_up; guest_show ;;
+	*) fail 3 "nothing to start: this PC isn't in a virtual LAN (host: $SELF host   join: $SELF <invite>)" ;;
+	esac
+}
+
+# Idle watchdog, run detached by watch_start (one per PC, via the lock). Every 30 s it looks at the
+# tunnel's traffic; after <minutes> without a game on it (and no game hosted here) it takes the
+# tunnel down. Ends when the tunnel is down or removed.
+watch() {
+	local min=${1:-$IDLE_MIN} idle=0 off=0 last now
+	case "$(role)" in host) STATE=$STATE_HOST ;; guest) STATE=$STATE_GUEST ;; *) return 0 ;; esac
+	exec 9>"$STATE/watch.lock"
+	flock -n 9 || return 0
+	echo $$ >"$STATE/watch.pid"
+	last=$(traffic)
+	while sleep "$IDLE_CHECK"; do
+		{ [ -d "$STATE" ] && conn_exists; } || return 0
+		now=$(traffic)
+		if [ "$now" -lt 0 ]; then   # down: by hand, or for a moment while a guest is added
+			off=$((off + 1)); [ $off -lt 2 ] || return 0; continue
+		fi
+		off=0
+		if [ "$last" -lt 0 ] || [ $((now - last)) -lt 0 ] || [ $((now - last)) -ge "$IDLE_BYTES" ] || hosting_game; then idle=0
+		else idle=$((idle + IDLE_CHECK)); fi
+		last=$now
+		if [ $idle -ge $((min * 60)) ]; then
+			nmcli connection down "$NAME" >/dev/null 2>&1 || true
+			echo "idle for $min min, at $(date '+%H:%M')" >"$STATE/idle_down"
+			if command -v notify-send >/dev/null 2>&1; then
+				notify-send zs-vlan "The virtual LAN went off after $min idle minutes. Run vlan_auto to start it again." 2>/dev/null || true
+			fi
+			return 0
+		fi
+	done
+}
+
+stop() {
+	local r=0
+	if [ -d "$STATE_HOST" ]; then STATE=$STATE_HOST; teardown; r=1; fi
+	if [ -d "$STATE_GUEST" ]; then STATE=$STATE_GUEST; teardown; r=1; fi
+	if [ $r = 0 ] && conn_exists; then nmcli connection delete "$NAME" >/dev/null && echo "removed NM connection $NAME"; r=1; fi
+	[ $r = 1 ] || echo "nothing to remove."
+	echo "done."
+	result "role=none state=down"
+}
+
+# A pasted code: an invite joins, a reply adds a guest.
+code() {
+	case "$1" in
+	zsi1.*) guest_join "$1"; guest_show; guest_wait ;;
+	zsr1.*) host_add "$1" ;;
+	*) die "that isn't a zs-vlan code (invites start with zsi1., replies with zsr1.)" ;;
+	esac
+}
+
+guided() {
+	local pick line
+	case "$(role)" in
+	host) host_up; host_loop; return ;;
+	guest) guest_up; guest_show; guest_wait; return ;;
+	esac
+	[ -t 0 ] || { status; return; }
+	echo "zs-vlan: a private virtual LAN for co-op over the internet (no accounts, no port forwarding)."
+	echo
+	read -r -p "[h]ost a game for friends, or [j]oin a friend? " pick || exit 1
+	case "$pick" in
+	h*|H*) host_up; host_loop ;;
+	j*|J*)
+		read -r -p "paste the invite code from the host: " line || exit 1
+		code "$(tr -d '[:space:]' <<<"$line")" ;;
+	*) die "nothing done." ;;
+	esac
+}
+
+case "${1:-}" in
+"") guided ;;
+host)
+	case "${2:-}" in
+	"") host_up; if [ "$MACHINE" = 1 ]; then host_show; else host_loop; fi ;;
+	add) [ -n "${3:-}" ] || die "usage: $SELF host add <reply>"; host_add "$3" ;;
+	remove) host_remove "${3:-}" ;;
+	*) die "usage: $SELF host [add <reply> | remove <N>]" ;;
+	esac ;;
+join) [ -n "${2:-}" ] || die "usage: $SELF join <invite>"; guest_join "$2"; guest_show; guest_wait ;;
+start) start ;;
+status) status ;;
+stop) stop ;;
+watch) watch "${2:-}" ;;
+zsi1.*|zsr1.*) code "$1" ;;
+-h|--help|help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+*) die "unknown command '$1' (try: $SELF help)" ;;
+esac

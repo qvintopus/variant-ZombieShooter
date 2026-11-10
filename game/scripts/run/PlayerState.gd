@@ -47,6 +47,10 @@ var ghost_room:String
 var parked:bool
 ## Back from a ghost into a fight: standing at the door until the walls drop.
 var waiting:bool
+## Host (Net idle kick): seconds since this guest last did something; a ghost's
+## counts from when it left. last_aim tells a turned mouse from a still one.
+var idle_time:float
+var last_aim:Vector2
 ## The dedicated server's own player: invisible, never hurt, never counted.
 var hidden:bool
 ## Co-op guest tier (GuestTier): an electrician brings its loot home, a ghost

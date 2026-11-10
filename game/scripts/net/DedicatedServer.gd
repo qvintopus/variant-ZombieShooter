@@ -1,7 +1,8 @@
 ## Dedicated server: a headless host whose own player is hidden. Started with
 ##   Godot --headless --path . -- --server [--port N] [--max-players 2..8]
-##                                [--save-dir PATH] [--name "Server"]
-## (tools/run_server.sh). It skips the title, opens the session in its home base
+##                                [--save-dir PATH] [--name "Server"] [--vlan] [--idle-kick MIN]
+## (tools/server.sh, tools\server.cmd on Windows). Commands typed into its
+## window go to ServerConsole ("help"). It skips the title, opens the session in its home base
 ## and from then on goes where the players go: their copies walk through its
 ## doors and exit gate like a host's teammates do. Its own player is
 ## server_player.tscn (Net swaps it in): the player scene with everything seen
@@ -10,6 +11,11 @@
 ##
 ## Victory and game over return it to the home base by themselves; so does the
 ## last player leaving mid-run (the run is checkpointed first).
+##
+## --vlan: the launcher has brought up the zs-vlan virtual LAN on this PC (this PC is
+## 10.77.0.1); the server says so once it's hosting, and guests are added from its console.
+## --idle-kick MIN (IDLE_KICK_MIN): guests idle that long are dropped, ghosts after 3x that
+## (Net.idle_kick_min); 0 keeps everyone.
 class_name DedicatedServer
 extends Node
 
@@ -21,6 +27,7 @@ const GAME_OVER_SCENE:String = "res://addons/top_down/scenes/ui/screens/game_ove
 const VICTORY_WAIT:float = 20.0
 const GAME_OVER_WAIT:float = 8.0
 const MIN_PLAYERS:int = 2
+const IDLE_KICK_MIN:float = 5.0
 
 static var _options:Dictionary = {}
 static var _parsed:bool
@@ -33,6 +40,7 @@ var _going_home:bool
 ## --status N: a status line every N seconds (tests, operators).
 var _status_every:float
 var _status_left:float
+var console:ServerConsole
 
 ## The command line asks for a server.
 static func enabled()->bool:
@@ -47,9 +55,9 @@ static func options()->Dictionary:
 	var _i:int = 0
 	while _i < _args.size():
 		var _arg:String = _args[_i]
-		if _arg == "--server":
-			_options["server"] = true
-		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status"] && _i + 1 < _args.size():
+		if _arg in ["--server", "--vlan"]:
+			_options[_arg.trim_prefix("--")] = true
+		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status", "--idle-kick"] && _i + 1 < _args.size():
 			_options[_arg.trim_prefix("--")] = _args[_i + 1]
 			_i += 1
 		_i += 1
@@ -71,6 +79,7 @@ func _ready()->void:
 	server_name = Net._clean_name(str(_options_now.get("name", "Server")))
 	Net.max_players = clampi(int(_options_now.get("max-players", str(Net.MAX_PLAYERS))), MIN_PLAYERS, Net.MAX_PLAYERS)
 	_status_every = maxf(float(_options_now.get("status", "0")), 0.0)
+	Net.idle_kick_min = maxf(float(_options_now.get("idle-kick", str(IDLE_KICK_MIN))), 0.0)
 	Transition.instant = true
 	var _master:int = AudioServer.get_bus_index("Master")
 	if _master >= 0:
@@ -78,7 +87,12 @@ func _ready()->void:
 	var _local:PlayerState = RunSession.local_player()
 	_local.hidden = true
 	_local.display_name = server_name
-	print("DedicatedServer [INFO]: port %d, up to %d players, saves in %s" % [port, Net.max_players, SaveableResource.save_dir])
+	print("DedicatedServer [INFO]: port %d, up to %d players, saves in %s, %s" % [port, Net.max_players, SaveableResource.save_dir,
+		("idle guests dropped after %s min (ghosts %s min)" % [Net.idle_kick_min, Net.idle_kick_min * Net.IDLE_GHOST_FACTOR]) if Net.idle_kick_min > 0.0 else "no idle kick"])
+	console = ServerConsole.new()
+	console.name = "ServerConsole"
+	console.server = self
+	add_child(console)
 
 func current_path()->String:
 	return _scene.scene_file_path if _scene != null else ""
@@ -99,37 +113,56 @@ func _process(delta:float)->void:
 	match current_path():
 		VICTORY_SCENE:
 			if _scene_time >= VICTORY_WAIT || (_scene_time >= 3.0 && _following_guests() == 0):
-				_go_home()
+				go_home()
 		GAME_OVER_SCENE:
 			if _scene_time >= GAME_OVER_WAIT:
-				_go_home()
+				go_home()
 		HOME_SCENE, "":
 			pass
 		_:
 			# everyone left mid-run: keep the run and wait at home
-			if Net.is_host() && _players() == 0 && _scene_time > 1.0:
+			if Net.is_host() && players() == 0 && _scene_time > 1.0:
 				RunSession.checkpoint()
-				_go_home()
+				go_home()
 
 func _on_scene_changed()->void:
 	print("DedicatedServer [INFO]: scene ", current_path())
 	_status_left = 0.0
 	match current_path():
 		TITLE_SCENE:
-			_go_home()
+			go_home()
 		HOME_SCENE:
 			if Net.state == Net.State.OFFLINE:
 				var _err:Error = Net.host(port)
 				print("DedicatedServer [INFO]: hosting on port %d - %s" % [port, error_string(_err)])
+				if _err == OK:
+					_print_join_info()
 
-func _go_home()->void:
+## Where players connect from (what they type into Join), and the console hint.
+func _print_join_info()->void:
+	var _vlan:String = ENetTransport.vlan_address()
+	if !_vlan.is_empty():
+		print("DedicatedServer [INFO]: join over the virtual LAN at  " + _join(_vlan))
+	elif options().has("vlan"):
+		print("DedicatedServer [WARN]: --vlan, but this PC has no 10.77.0.x address; is the virtual LAN up? (tools/vlan/vlan_auto status)")
+	for _ip:String in ENetTransport.lan_addresses():
+		print("DedicatedServer [INFO]: join on the same network at  " + _join(_ip))
+	print("DedicatedServer [INFO]: join from this PC at  " + _join("127.0.0.1"))
+	if !_vlan.is_empty():
+		print("DedicatedServer [INFO]: paste a guest's reply code here to add them; 'invite' shows the next invite")
+	print("DedicatedServer [INFO]: type help for the console commands")
+
+func _join(ip:String)->String:
+	return ip if port == Net.DEFAULT_PORT else "%s:%d" % [ip, port]
+
+func go_home()->void:
 	if _going_home:
 		return
 	_going_home = true
 	Transition.change_scene(HOME_SCENE)
 
 ## Players connected (ghosts too: they'll be back), not counting our own.
-func _players()->int:
+func players()->int:
 	var _count:int = 0
 	for _state:PlayerState in RunSession.players.all():
 		if !_state.is_local:
@@ -158,7 +191,7 @@ func print_status()->void:
 	var _gap:float = _leader.global_position.distance_to(_at) if _leader != null && _body != null else -1.0
 	var _hp:float = RunSession.local_player().health.hp
 	print("SERVERSTATUS room=%s players=%d active=%d scaling=%d anchor_visible=%s anchor_layers=%d anchor_gap=%.1f anchor_hp=%.1f" % [
-		current_path(), _players(), RunSession.players.count_active(), CoopScaling.players(), _shown, _layers, _gap, _hp])
+		current_path(), players(), RunSession.players.count_active(), CoopScaling.players(), _shown, _layers, _gap, _hp])
 
 ## Everyone is down: the run ends here too (the hidden player dies for real).
 func on_party_wiped()->void:

@@ -8,8 +8,77 @@ PORT=${VLAN_PORT:-51820}     # WireGuard UDP port, same on every machine
 GAME_PORT=24565
 STATE_HOST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan
 STATE_GUEST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan-guest
+# Over the tunnel only the game is let in (ping is allowed by ufw's defaults).
+GAME_RULE="in on $NAME to any port $GAME_PORT proto udp"
+MACHINE=${MACHINE:-0}        # 1: no prompts, no clipboard, sudo never asks; a ZSVLAN line ends the output
+IDLE_MIN=${VLAN_IDLE_MIN:-5} # the tunnel goes down after this many minutes without game traffic (0 = never)
+IDLE_BYTES=2048              # less traffic than this in a 30 s check counts as idle (a game sends far more)
+IDLE_CHECK=${VLAN_IDLE_CHECK:-30}  # seconds between watchdog checks
+VLAN_AUTO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vlan_auto.sh"
 
-die() { echo "$*" >&2; exit 1; }
+# Exit codes (stable, the game and the dedicated server read them):
+#   0 ok, 1 usage or broken code, 2 something this PC needs is missing, 3 wrong state (not set up / other role), 4 timed out
+fail() {
+	local code=$1; shift
+	[ -z "$*" ] || echo "$*" >&2
+	[ "$MACHINE" = 1 ] && echo "ZSVLAN state=error exit=$code"
+	exit "$code"
+}
+die() { fail 1 "$*"; }
+
+# The one machine-readable line: "ZSVLAN key=value ..." (values never contain spaces).
+result() { [ "$MACHINE" = 1 ] && echo "ZSVLAN $*"; return 0; }
+
+# Copy to the clipboard if a tool for it is there (Wayland, then X11). Silent otherwise.
+clip() {
+	[ "$MACHINE" = 1 ] && return 0
+	if command -v wl-copy >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-}" ]; then printf '%s' "$1" | wl-copy 2>/dev/null
+	elif command -v xclip >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then printf '%s' "$1" | xclip -selection clipboard 2>/dev/null
+	elif command -v xsel >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then printf '%s' "$1" | xsel -b 2>/dev/null
+	else return 0; fi && echo "   (copied to the clipboard)"
+	return 0
+}
+
+# Install hint for a package, by distro family.  args: arch-name debian-name fedora-name
+pkg_hint() {
+	local os
+	os=$(. /etc/os-release 2>/dev/null; echo "${ID:-} ${ID_LIKE:-}")
+	case "$os" in
+	*arch*) echo "sudo pacman -S $1" ;;
+	*debian*|*ubuntu*) echo "sudo apt install $2" ;;
+	*fedora*|*rhel*) echo "sudo dnf install $3" ;;
+	*suse*) echo "sudo zypper install $3" ;;
+	*) echo "install '$1' with your package manager" ;;
+	esac
+}
+
+# Everything this PC needs; one line with the fix per problem. Fails with exit 2.
+preflight() {
+	local bad=0
+	command -v nmcli >/dev/null 2>&1 || { echo "problem: NetworkManager (nmcli) not found -> $(pkg_hint networkmanager network-manager NetworkManager)" >&2; bad=1; }
+	if [ $bad = 0 ] && ! nmcli -t general status >/dev/null 2>&1; then
+		echo "problem: NetworkManager isn't running -> sudo systemctl enable --now NetworkManager" >&2; bad=1
+	fi
+	if [ ! -d /sys/module/wireguard ] && ! modprobe -n -q wireguard 2>/dev/null; then
+		echo "problem: this kernel has no WireGuard (needs Linux 5.6 or newer) -> update the kernel and reboot" >&2; bad=1
+	fi
+	command -v openssl >/dev/null 2>&1 || { echo "problem: openssl not found -> $(pkg_hint openssl openssl openssl)" >&2; bad=1; }
+	command -v curl >/dev/null 2>&1 || { echo "problem: curl not found -> $(pkg_hint curl curl curl)" >&2; bad=1; }
+	command -v ip >/dev/null 2>&1 || { echo "problem: ip not found -> $(pkg_hint iproute2 iproute2 iproute)" >&2; bad=1; }
+	command -v ping >/dev/null 2>&1 || { echo "problem: ping not found -> $(pkg_hint iputils iputils-ping iputils)" >&2; bad=1; }
+	command -v flock >/dev/null 2>&1 || { echo "problem: flock not found -> $(pkg_hint util-linux util-linux util-linux)" >&2; bad=1; }
+	[ $bad = 0 ] || fail 2 "fix the problems above, then run this again."
+}
+
+# Warn when the public addresses make a direct tunnel unlikely.  args: v6 v4
+addr_warn() {
+	if [ "$1" = - ] && [ "$2" = - ]; then
+		echo "warning   : no public IPv6 and no public IPv4 found - check the internet connection"
+	elif [ "$1" = - ]; then
+		echo "note      : no public IPv6 here; the IPv4 fallback fails behind CGNAT or a port-changing router"
+		echo "            (check both PCs at https://test-ipv6.com - IPv6 on both sides almost always works)"
+	fi
+}
 
 # X25519 keys with openssl (no wireguard-tools needed): raw 32 bytes, base64.
 b64key() { tail -c 32 | base64; }
@@ -33,7 +102,11 @@ my_v4() {
 
 # Invite/reply lines: "<prefix>.<base64 of space-separated fields>" - only public keys and addresses, safe for chat.
 enc() { printf '%s.%s' "$1" "$(printf '%s' "$2" | base64 -w0)"; }
-dec() { [[ $2 == "$1".* ]] || die "not a $1 line: $2"; base64 -d <<<"${2#*.}" 2>/dev/null || die "broken $1 line"; }
+# dec reports a bad code on stderr and returns 1 (callers: fields=$(dec ...) || fail 1).
+dec() {
+	[[ $2 == "$1".* ]] || { echo "not a $1 code: $2" >&2; return 1; }
+	base64 -d <<<"${2#*.}" 2>/dev/null || { echo "broken $1 code (copy the whole line)" >&2; return 1; }
+}
 
 # Endpoint for a peer: IPv6 when both sides have it, else the peer's IPv4.  args: peer_v6 peer_v4 peer_port my_v6
 pick_ep() {
@@ -42,30 +115,87 @@ pick_ep() {
 	else return 1; fi
 }
 
-conn_exists() { nmcli -g NAME connection show | grep -qx "$NAME"; }
+conn_exists() { command -v nmcli >/dev/null 2>&1 && nmcli -g NAME connection show | grep -qx "$NAME"; }
+dev_state() { nmcli -g GENERAL.STATE device show "$NAME" 2>/dev/null || echo down; }
 
 # Replace the NM connection with the WireGuard config on stdin.
 nm_apply() {
 	local tmp="$STATE/$NAME.conf"   # NM names the connection after the file
 	(umask 077; cat >"$tmp")
 	if conn_exists; then nmcli connection delete "$NAME" >/dev/null; fi
-	nmcli connection import type wireguard file "$tmp" >/dev/null || { rm -f "$tmp"; die "nmcli import failed"; }
+	nmcli connection import type wireguard file "$tmp" >/dev/null || { rm -f "$tmp"; fail 2 "nmcli import failed (does this NetworkManager have WireGuard? needs 1.16+)"; }
 	rm -f "$tmp"   # private key now only in NM's root-only store (and $STATE/*.key)
-	nmcli connection modify "$NAME" ipv6.method disabled connection.autoconnect yes
+	nmcli connection modify "$NAME" ipv6.method disabled
+	tunnel_up
+}
+
+# Bring the tunnel up (never at boot: a restart leaves it off until vlan_auto runs again) and start
+# the idle watchdog. autoconnect is cleared here too, for connections made by older versions.
+tunnel_up() {
+	nmcli connection modify "$NAME" connection.autoconnect no
 	nmcli connection up "$NAME" >/dev/null
+	watch_start
+}
+tunnel_on() { [ -d "/sys/class/net/$NAME" ]; }
+
+# Public addresses now vs. the ones the codes were made with ($STATE/public: "v6 v4").
+# Sets V6 V4 (current) and PUB_OLD (the saved ones when they differ, else empty), then saves the current.
+# pub_compare only compares; pub_check also saves the current ones (when the tunnel is started).
+pub_compare() {
+	local saved
+	V6=$(my_v6); V4=$(my_v4); PUB_OLD=""
+	saved=$(cat "$STATE/public" 2>/dev/null || true)
+	if [ -n "$saved" ] && [ "$saved" != "$V6 $V4" ]; then PUB_OLD=$saved; fi
+}
+pub_check() { pub_compare; echo "$V6 $V4" >"$STATE/public"; }
+
+# ---- idle watchdog: "vlan_auto.sh watch" runs detached while the tunnel is up (see vlan_auto.sh)
+watch_running() { [ -e "$STATE/watch.lock" ] && ! flock -n "$STATE/watch.lock" true 2>/dev/null; }
+watch_start() {
+	[[ $IDLE_MIN =~ ^[0-9]+$ ]] && [ "$IDLE_MIN" -gt 0 ] || return 0
+	rm -f "$STATE/idle_down"
+	watch_running && return 0
+	# a user unit survives the terminal closing; plain setsid where there's no systemd user session
+	systemd-run --user --quiet --collect --unit zsvlan-idle ${XDG_STATE_HOME:+--setenv=XDG_STATE_HOME} bash "$VLAN_AUTO" watch "$IDLE_MIN" >/dev/null 2>&1 \
+		|| { setsid nohup bash "$VLAN_AUTO" watch "$IDLE_MIN" >/dev/null 2>&1 </dev/null & }
+	return 0
+}
+watch_stop() {
+	local p
+	p=$(cat "$STATE/watch.pid" 2>/dev/null || true)
+	[ -n "$p" ] && grep -qa vlan_auto "/proc/$p/cmdline" 2>/dev/null && kill "$p" 2>/dev/null
+	return 0
+}
+# Bytes through the tunnel so far (inner packets: keepalives don't count), -1 when it's down.
+traffic() {
+	local d=/sys/class/net/$NAME/statistics
+	[ -r "$d/rx_bytes" ] || { echo -1; return; }
+	echo $(( $(cat "$d/rx_bytes") + $(cat "$d/tx_bytes") ))
+}
+# A game or dedicated server listens on this PC: its friends can come any time, so that isn't idle.
+hosting_game() { ss -Hlun "sport = :$GAME_PORT" 2>/dev/null | grep -q .; }
+
+# A ufw rule is already there.  arg: rule as given to "ufw allow"
+fw_has() {
+	if [[ $1 == "in on "*" to any port "* ]]; then
+		local on=${1#in on }; on=${on%% *}
+		local p=${1#* port }; p=${p%% *}
+		grep -q "^$p/udp on $on " <<<"$2"
+	elif [[ $1 == "in on "* ]]; then grep -q "^Anywhere on ${1#in on } " <<<"$2"
+	else grep -q "^$1 " <<<"$2"; fi
 }
 
 # Open ufw rules (sudo) if ufw is active; remember which ones we added so teardown removes only those.
 fw_open() {
-	local r st
-	if ! systemctl is-active -q ufw; then echo "ufw inactive, nothing changed" >"$STATE/firewall"; return; fi
+	local r st sudo=sudo
+	if ! systemctl is-active -q ufw 2>/dev/null; then echo "ufw inactive, nothing changed" >"$STATE/firewall"; return; fi
+	[ "$MACHINE" = 1 ] && sudo="sudo -n"
 	echo "ufw is active: sudo needed to allow: $*"
-	st=$(sudo ufw status) || { echo "sudo failed, ufw untouched - peers may be blocked" | tee "$STATE/firewall"; return; }
+	st=$($sudo ufw status) || { echo "sudo failed, ufw untouched - peers may be blocked (rerun vlan_auto.sh in a terminal)" | tee "$STATE/firewall"; return; }
 	for r in "$@"; do
-		if [[ $r == "in on "* ]]; then grep -q " on ${r#in on }" <<<"$st" && continue
-		else grep -q "^$r " <<<"$st" && continue; fi
+		fw_has "$r" "$st" && continue
 		# shellcheck disable=SC2086
-		sudo ufw allow $r comment zs-vlan >/dev/null && echo "$r" >>"$STATE/ufw_rules"
+		$sudo ufw allow $r comment zs-vlan >/dev/null && echo "$r" >>"$STATE/ufw_rules"
 	done
 	if [ -s "$STATE/ufw_rules" ]; then echo "ufw rules added: $(paste -sd, "$STATE/ufw_rules")" >"$STATE/firewall"
 	else echo "ufw already allowed it, nothing changed" >"$STATE/firewall"; fi
@@ -73,6 +203,7 @@ fw_open() {
 
 # Undo everything for one role: NM connection, ufw rules we added, keys/state.
 teardown() {
+	watch_stop
 	if conn_exists; then nmcli connection delete "$NAME" >/dev/null && echo "removed NM connection $NAME"; else echo "no NM connection $NAME"; fi
 	if [ -s "$STATE/ufw_rules" ]; then
 		echo "removing ufw rules (sudo)"
@@ -82,7 +213,18 @@ teardown() {
 		done <"$STATE/ufw_rules"
 	fi
 	if [ -d "$STATE" ]; then rm -rf "$STATE" && echo "removed $STATE"; fi
-	echo "done."
 }
 
 ping_st() { ping -c1 -W1 "$1" >/dev/null 2>&1 && echo "online" || echo "no reply"; }
+
+# Wait until an address answers ping.  args: ip seconds   (prints dots; 0 = answered)
+wait_online() {
+	local left=$2
+	while [ "$left" -gt 0 ]; do
+		ping -c1 -W1 "$1" >/dev/null 2>&1 && { [ "$MACHINE" = 1 ] || echo; return 0; }
+		[ "$MACHINE" = 1 ] || printf '.'
+		sleep 1; left=$((left - 2))
+	done
+	[ "$MACHINE" = 1 ] || echo
+	return 1
+}

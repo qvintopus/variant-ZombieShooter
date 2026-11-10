@@ -1,123 +1,139 @@
 # zs-vlan: a virtual LAN for co-op over the internet
 
-A direct WireGuard tunnel between the host and each guest. It needs **no port forwarding, no accounts, and no servers**, and it is free.
-
-Both sides know each other's public address and send to each other at the same time (a keepalive every 25s). Each router sees outgoing traffic, so it lets the other side's packets back in. This is UDP hole punching.
-
-- **IPv6 is the default.** It is used whenever both sides have a public IPv6. There is no address translation, so it works almost always.
-- **IPv4 is the fallback.** It works only if both routers keep the UDP port number unchanged. It never works behind CGNAT. Finding your own public IPv4 needs one lookup at `api.ipify.org`. Set `VLAN_IPV4=<addr>` to give it yourself, or `VLAN_IPV4=none` to skip IPv4.
+A direct WireGuard tunnel between the host and each guest. It needs **no port forwarding, no accounts and no servers**, and it is free. One script per OS, `vlan_auto`, does both hosting and joining and says what to do at each step.
 
 | | address | game |
 |---|---|---|
 | host | `10.77.0.1` | hosts on port `24565` |
-| guests | `10.77.0.2` – `10.77.0.8` | join `10.77.0.1:24565` |
+| guests | `10.77.0.2` – `10.77.0.8` | join `10.77.0.1` |
 
 ## Quick start
 
-```sh
-# host PC (Linux)
-tools/vlan/vlan_up.sh                    # prints an invite: zsi1.…   -> send to the guest
-# guest PC
-tools/vlan/vlan_connect.sh zsi1.…        # Linux; prints a reply: zsr1.… -> send back
-#   Windows: powershell -ExecutionPolicy Bypass -File vlan_connect.ps1 zsi1.…
-# host PC
-tools/vlan/vlan_up.sh add zsr1.…         # guest added
-tools/vlan/vlan_up.sh                    # guest shows "online" = tunnel up
-```
+| | Linux | Windows |
+|---|---|---|
+| run | `tools/vlan/vlan_auto.sh` | double-click `tools\vlan\vlan_auto.cmd` |
 
-Then play, one of:
-- **Host plays and hosts:** host opens the home base **Comms Terminal → Host → Open to friends**; the guest uses **Comms Terminal → Join** with `10.77.0.1`.
-- **Dedicated server on the host PC:** `tools/run_server.sh` (see below); the guest joins `10.77.0.1`, and the host player joins it too, from its own game, at `127.0.0.1`.
+It asks **host or join**, then guides you:
 
-Done for good: `tools/vlan/vlan_down.sh` (host), `tools/vlan/vlan_disconnect.sh` / `vlan_disconnect.ps1` (guest).
+| step | host | guest |
+|---|---|---|
+| 1 | Pick **host**. It prints an **invite** (`zsi1.…`, copied to the clipboard). Send it to the friend. | |
+| 2 | | Pick **join** and paste the invite. It prints a **reply** (`zsr1.…`, copied). Send it back. |
+| 3 | Paste the reply when it asks (or run `vlan_auto <reply>` later). It waits until the guest is online. | It waits for the host, then says **online** and copies `10.77.0.1`. |
+| play | **Comms Terminal → Host → Open to friends** (its invite list shows the *Virtual LAN* address with Copy), or run the dedicated server. | **Comms Terminal → Join →** paste `10.77.0.1` (or press the *Virtual LAN host* button). |
 
-## Dedicated server over the VLAN
+Each further guest repeats steps 1–3. The host's `vlan_auto` prints the next invite every time.
 
-Run it on the **VLAN host** (guests only reach that PC, see Limits):
+Codes hold only public keys and addresses, so they are safe to send in chat. Linux and Windows PCs mix freely, either as host or as guest.
 
-```sh
-tools/run_server.sh                              # port 24565, up to 8 players
-tools/run_server.sh --max-players 4 --name "Friday co-op"
-GODOT=/path/to/Godot tools/run_server.sh         # when Godot isn't found by itself
-```
+**Nothing stays on by itself.** The tunnel doesn't start when the PC boots, and it switches off after 5 minutes without a game on it (see [Off after a restart or when idle](#off-after-a-restart-or-when-idle)). The next time, just run `vlan_auto` again on each PC. It starts the same tunnel, with the same codes and slots.
 
-- It prints `DedicatedServer [INFO]: hosting on port 24565 - OK` once it's ready. Stop it with Ctrl+C.
-- Players join with the Comms Terminal: `10.77.0.1` over the VLAN, `127.0.0.1` from the server's own PC, or the LAN address at home. `ip:port` for a port other than 24565.
-- Its saves (home base, meta, run) are its own, in `--save-dir`, by default `user://server` (`~/.local/share/godot/app_userdata/Variant - Zombie Shooter/server`). Players keep their own progress, including one playing on the server's PC.
-- The firewall rules `vlan_up.sh` adds already let the game in over `zsvlan`. For LAN players with ufw on: `sudo ufw allow 24565/udp`.
-- More options and how it behaves: `addons/top_down/design_document/multiplayer.md`, *Dedicated server*.
-
-## Setup
-
-1. **Host:** run `tools/vlan/vlan_up.sh`. It prints an **invite** line (`zsi1.…`). Send it to the guest. It contains only public keys and addresses.
-2. **Guest:** run the connect script with the invite (see the commands below). It prints a **reply** line (`zsr1.…`). Send it back to the host.
-3. **Host:** run `tools/vlan/vlan_up.sh add <reply>`.
-4. **Check:** rerun the scripts with no arguments. When the guest shows `online` on the host and the handshake shows on the guest, the tunnel is up.
-5. **Play:** the guest joins `10.77.0.1:24565` in-game.
-
-Each further guest gets a fresh invite: rerun `vlan_up.sh` and it prints one for the next free address.
-
-If a public address changes (home IPs change sometimes), the tunnel breaks:
-- **Host's address changed:** the host reruns `vlan_up.sh`, and the guest runs connect again with the new invite.
-- **Guest's address changed:** the guest reruns connect to get a new reply, and the host runs `add` with it again.
-
-Keys are kept until teardown, so a rejoin doesn't need a new slot.
+Done for good: `vlan_auto stop` on each PC removes everything it made.
 
 ## Commands
 
-### Host (Omarchy / Linux with NetworkManager)
+The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_auto.cmd …` on Windows.
 
 | command | does |
 |---|---|
-| `tools/vlan/vlan_up.sh` | Creates the tunnel. If it already exists, shows its info, the guests and their status, and the next invite. |
-| `tools/vlan/vlan_up.sh add <reply>` | Adds a guest, or updates one that has the same key. |
-| `tools/vlan/vlan_up.sh remove <N>` | Removes guest `10.77.0.N`. |
-| `tools/vlan/vlan_down.sh` | Removes everything `vlan_up.sh` made. |
+| *(none)* | Guided: host or join, then the next step. Rerun it any time to see the status. |
+| `<code>` | Paste whatever you got: an invite joins, a reply adds that guest. |
+| `host` | Creates the virtual LAN, or shows it: guests online and the next invite. |
+| `host add <reply>` | Adds a guest, or updates one with the same key. |
+| `host remove <N>` | Removes guest `10.77.0.N`. |
+| `join <invite>` | Joins and prints the reply to send back. |
+| `start` | Starts the last tunnel again, with no prompts (running `vlan_auto` alone does the same and keeps guiding). |
+| `status` | What this PC is, who is online, and the code to send. It never starts anything. |
+| `stop` | Removes everything zs-vlan made on this PC. |
+| `--machine` (with any command) | For programs: no prompts, no clipboard, short waits, and a last line `ZSVLAN key=value …`. |
 
-### Guest, Windows (PowerShell; asks for admin)
+Exit codes: 0 ok, 1 usage or broken code, 2 something this PC needs is missing (the message says how to fix it), 3 wrong state (not set up, or this PC already has the other role), 4 timed out waiting.
+
+The old script names still work as aliases: `vlan_up.sh` (= `host`), `vlan_connect.sh`/`.ps1` (= `join`), `vlan_down.sh`, `vlan_disconnect.sh`/`.ps1` (= `stop`).
+
+## Dedicated server
+
+| | Linux | Windows |
+|---|---|---|
+| start | `tools/server.sh [options]` | `tools\server.cmd [options]` (double-click works too) |
+| with the virtual LAN | `tools/server.sh --vlan` | `tools\server.cmd --vlan` (asks for admin) |
+
+- **Godot:** `$GODOT`, then `godot` on the PATH, then a Godot binary next to the project folder. On Linux that's `Godot_v*_linux.x86_64`. On Windows it's `Godot_v*_win64_console.exe`, the console build from the same zip, which the server needs for its console.
+- **`--vlan`:** the launcher runs `vlan_auto host` first and prints the first invite. Guests are then handled from the server's console.
+- **Console:** type into the server window. `help` lists the commands.
 
 | command | does |
 |---|---|
-| `powershell -ExecutionPolicy Bypass -File vlan_connect.ps1 <invite>` | Joins. It also installs WireGuard via winget if missing and adds firewall rules. |
-| `powershell -ExecutionPolicy Bypass -File vlan_connect.ps1` | Shows info, the handshake, and the reply line. |
-| `powershell -ExecutionPolicy Bypass -File vlan_disconnect.ps1` | Removes everything `vlan_connect.ps1` made, and uninstalls WireGuard if the connect script installed it. |
+| `status` | Room, players, hidden player. |
+| `players` | Everyone connected: slot, name, state, address. |
+| `kick <slot> [reason]` | Drops a player. |
+| `home` | Saves the run and goes back to the home base. |
+| `stop` | Saves, tells the players and quits. Ctrl+C quits at once instead; the run keeps its last checkpoint. |
+| `invite` | The invite for the next VLAN guest. |
+| `add <reply>` / paste a bare `zsr1.…` | Adds a VLAN guest. |
+| `guests` | VLAN guests and whether they are online. |
+| `revoke <N>` | Removes VLAN guest `10.77.0.N`. |
 
-### Guest, Linux (NetworkManager)
+- Once hosting, the server prints where to join: the virtual LAN address, the LAN addresses, and `127.0.0.1` for a player on the same PC.
+- **Options:** `--port N` (24565), `--max-players 2..8` (8), `--save-dir PATH` (`user://server`), `--name NAME`, `--status SECONDS`, `--idle-kick MIN` (5).
+- **Idle players:** a player who does nothing (no moving, no aiming) for 5 minutes is dropped with "Idle for 5 minutes". A ghost (someone who went to their own home base with "I will return") gets 15 minutes to come back. A dropped player's run waits for them, so rejoining picks it up again. `--idle-kick 0` keeps everyone. `players` shows how long each one has been idle.
+- **While the server runs, its virtual LAN stays on** (it's hosting, see below). Stop the server and the VLAN goes off 5 minutes later.
+- Its saves are its own, so a player on the server's PC keeps their own progress.
+- More detail: `addons/top_down/design_document/multiplayer.md`, *Dedicated server*.
 
-| command | does |
+## How it works
+
+Both sides know each other's public address (that's why there are two codes) and send to each other at the same time, with a keepalive every 25 s. Each router sees outgoing traffic, so it lets the other side's packets back in. This is UDP hole punching.
+
+- **IPv6 is the default.** It is used whenever both sides have a public IPv6. There is no address translation, so it works almost always.
+- **IPv4 is the fallback.** It works only if both routers keep the UDP port number unchanged. It never works behind CGNAT. Finding your own public IPv4 needs one lookup at `api.ipify.org`.
+
+If a public address changes (home IPs change sometimes, for example after a router restart), the tunnel can't connect any more. `vlan_auto` checks for this every time it starts the tunnel (see the next section) and says which code to send.
+
+## Off after a restart or when idle
+
+- **A restart turns it all off.** The tunnel isn't started at boot: on Linux the NM connection has autoconnect off, and on Windows the tunnel service is set to Manual. A dedicated server never starts on its own anyway.
+- **Idle for 5 minutes turns it off.** While the tunnel is up, a small watchdog checks its traffic every 30 s. Once 5 minutes pass with less than 2 KB per check, it takes the tunnel down. Keepalives and status pings stay well under that, while a game sends much more even standing in the lobby. A game or dedicated server listening on UDP `24565` on that PC counts as activity, so a server waiting for players keeps its VLAN.
+  - **Linux:** the watchdog is `vlan_auto.sh watch`, run as the user unit `zsvlan-idle`. Where there's no systemd user session it's a detached process instead. A desktop notification says when it turned the tunnel off.
+  - **Windows:** a hidden PowerShell process.
+  - **Either way:** it ends with the tunnel, and `stop` ends it too. `status` says why the tunnel is off.
+- **Starting again** is just running `vlan_auto` (or `vlan_auto start`, or `tools/server.sh --vlan`) on each PC. Before it starts, it compares this PC's public address with the one in the codes you sent:
+
+| | what happens |
 |---|---|
-| `tools/vlan/vlan_connect.sh <invite>` | Joins. |
-| `tools/vlan/vlan_connect.sh` | Shows info and the reply line. |
-| `tools/vlan/vlan_disconnect.sh` | Removes everything `vlan_connect.sh` made. |
+| unchanged | The same tunnel starts. Both sides start theirs, and they find each other with no new codes. |
+| **host's** changed | The host's `vlan_auto` prints a new invite for each guest, by slot. The guest pastes it (same slot and key). No new reply is needed unless the guest's address changed too. |
+| **guest's** changed | The guest's `vlan_auto` prints the new reply. The host pastes it (`vlan_auto <reply>`, or `add` in the server console). |
 
-One PC is either a host or a guest, never both.
+Keys are kept until `stop`, so a rejoin keeps its slot.
 
-## What gets changed, and what teardown removes
+## What gets changed, and what `stop` removes
 
-**Linux** (`vlan_up.sh` / `vlan_connect.sh`):
-- **Network:** an NM connection and interface named `zsvlan`, set to autoconnect, so it comes back after a reboot until teardown. No sudo is needed for this part, since polkit lets the desktop user change NetworkManager settings.
-- **Firewall:** only if ufw is active, and this step uses sudo. Host and guest both get `allow 51820/udp` and `allow in on zsvlan`, so either PC can host the game. The rules are tagged with the comment `zs-vlan`. Only rules the script actually added are recorded, and only those are removed.
-- **State:** keys and state live in `~/.local/state/zs-vlan` (host) or `~/.local/state/zs-vlan-guest` (guest), with mode 700. The host's private key is also kept in NetworkManager's root-only store.
-- **Packages:** no packages are installed. Keys are made with `openssl`, and NetworkManager has WireGuard built in.
+**Linux** (NetworkManager):
+- **Network:** an NM connection and interface named `zsvlan`. Autoconnect is off, so it stays down after a reboot until `vlan_auto` runs again. No sudo is needed for this part, since polkit lets the desktop user change NetworkManager settings.
+- **Firewall:** only if ufw is active, and this step uses sudo. The rules are `allow 51820/udp` and `allow in on zsvlan to any port 24565 proto udp` (the game only), tagged with the comment `zs-vlan`. Only rules the script actually added are recorded, and only those are removed.
+- **State:** `~/.local/state/zs-vlan` (host) or `~/.local/state/zs-vlan-guest` (guest), with mode 700. It holds the keys, the guests, the public address the codes were made with, and the watchdog's lock.
+- **Packages:** none are installed. Keys are made with `openssl`, and NetworkManager has WireGuard built in. Anything missing is named with the install command for your distro.
 
-**Windows** (`vlan_connect.ps1`):
-- **Software:** the official WireGuard client, but only if it is missing. Teardown uninstalls it only if this script installed it.
-- **Tunnel:** a service named `WireGuardTunnel$zsvlan`.
-- **Firewall:** rules in the group `zs-vlan`: inbound UDP 51820, and everything from `10.77.0.0/24` (ping, and hosting the game later).
-- **State:** keys and state live in `C:\ProgramData\zs-vlan`, readable only by admins and SYSTEM.
+**Windows** (the official WireGuard client):
+- **Software:** WireGuard via winget, but only if it is missing. `stop` uninstalls it only if zs-vlan installed it.
+- **Tunnel:** a service named `WireGuardTunnel$zsvlan`, with Manual start. Guests are added to a running host live, without a restart.
+- **Firewall:** rules in the group `zs-vlan`: inbound UDP 51820, plus game UDP 24565 and ping from `10.77.0.0/24`.
+- **State:** `C:\ProgramData\zs-vlan-host` (host) or `C:\ProgramData\zs-vlan` (guest), readable only by admins and SYSTEM.
 
-Teardown (`vlan_down.sh`, `vlan_disconnect.sh`, `vlan_disconnect.ps1`) removes all of the above, which puts the machine back the way it was.
-
-## Settings (environment variables, all scripts)
+## Settings (environment variables)
 
 | var | default | |
 |---|---|---|
 | `VLAN_PORT` | `51820` | WireGuard UDP port. Use the same value on every machine. |
 | `VLAN_IPV4` | auto (`api.ipify.org`) | Public IPv4 to advertise, or `none` to skip IPv4. |
+| `VLAN_IDLE_MIN` | `5` | Minutes without game traffic before the tunnel goes off. `0` keeps it on until a restart. |
 
 ## Limits
 
-- **Guests reach only the VLAN host, not each other.** Any PC can host the game for the VLAN host, so with 2 machines either one can host. With 3+ machines the game must run on the VLAN host, or IP forwarding needs adding.
-- **Some setups can't be reached without a relay server:** no IPv6 on one side plus a strict or CGNAT IPv4 router on either side. The fallback for those players is a relay, such as the Steam transport planned in `addons/top_down/design_document/multiplayer.md`.
-- **The in-game invite list hides VPN interfaces,** so take the `10.77.0.1` address from here.
+- **Guests reach only the VLAN host, not each other.** With 3+ PCs, the game (or the dedicated server) must run on the VLAN host.
+- **Some setups can't be reached without a relay server:** no IPv6 on one side, plus a strict or CGNAT IPv4 router on either side. The fallback for those players is a relay, such as the Steam transport planned in `addons/top_down/design_document/multiplayer.md`.
 - **To check whether a machine has IPv6,** open https://test-ipv6.com.
+- **Firewall rules stay** after a restart or idle-off, until `stop`. They only allow the WireGuard port and the game over the tunnel, and they do nothing while the tunnel is down. Keeping them avoids a sudo prompt on every start.
+- **IPv6 privacy addresses** change about once a day, and Windows and many Linux setups use them. The next start then counts as an address change and asks for new codes.
+- **Not yet:** running zs-vlan from inside the game. The plan is for the game to call `vlan_auto … --machine` itself (see `multiplayer.md`).

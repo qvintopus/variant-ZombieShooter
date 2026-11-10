@@ -33,7 +33,8 @@
     - **Join:** type an address (`ip` or `ip:port`) or pick from recent hosts (`NetSettings`, `user://NetSettings.tres`), then connect.
   - **In a session**, only the **Session** tab remains, and it opens on its own when you host, join, or reopen the dialog. It shows:
     - the players, with the host marked and a Kick button on each guest for the host
-    - Invite: what a friend types, with a Copy button per address (internet when UPnP mapped the port, the network-card LAN addresses with Docker/VM/VPN interfaces filtered out, and 127.0.0.1 for the same computer), plus a port-forwarding hint when there's no internet address
+    - Invite: what a friend types, with a Copy button per address (the zs-vlan virtual LAN address when this PC has one, internet when UPnP mapped the port, the network-card LAN addresses with Docker/VM/VPN interfaces filtered out, and 127.0.0.1 for the same computer), plus a port-forwarding hint when there's no internet address
+    - Join, inside someone's zs-vlan: a *Virtual LAN host 10.77.0.1* quick pick
     - Leave session
 - While the dialog is open, player input is frozen. Escape closes the dialog without opening the pause menu, and the room keeps running.
 - The terminal's screen is lit while a session is open.
@@ -243,7 +244,9 @@ It will become a meta upgrade later.
 
 ## Dedicated server (`DedicatedServer`, hidden player)
 
-- **Start:** `tools/run_server.sh [options]` from the project folder. It finds Godot through `$GODOT`, `godot` on the PATH, or a `Godot_v*_linux.x86_64` next to the project, imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
+- **Start:** `tools/server.sh [options]` on Linux, `tools\server.cmd [options]` on Windows (`server.ps1`), from the project folder. `run_server.sh` is kept as an alias.
+  - It finds Godot through `$GODOT`, then `godot` on the PATH, then a binary next to the project: `Godot_v*_linux.x86_64`, or on Windows `Godot_v*_win64_console.exe` (the console build is needed for the console).
+  - It imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
 
   | option | default | |
   |---|---|---|
@@ -252,9 +255,38 @@ It will become a meta upgrade later.
   | `--save-dir PATH` | `user://server` | its own home base, meta and run save |
   | `--name NAME` | `Server` | name shown in the session list |
   | `--status S` | off | a `SERVERSTATUS` line every S seconds |
+  | `--vlan` | off | also host the zs-vlan virtual LAN (below) |
+  | `--idle-kick MIN` | `5` | drop guests idle that long, and ghosts after 3× that; `0` = never |
 
-  - The server skips the title and hosts from its home base. Ready when it prints `DedicatedServer [INFO]: hosting on port … - OK`. Ctrl+C stops it.
+  - The server skips the title and hosts from its home base. It is ready when it prints `DedicatedServer [INFO]: hosting on port … - OK`, followed by the addresses to join at.
+  - **Idle kick (`Net.idle_kick_min`, host only, off for a normal host):**
+    - `Net._kick_idle` adds to each guest's `PlayerState.idle_time`.
+    - `NetPlayers._player_update` resets it while the guest moves, turns its aim, is down, or waits at a door.
+    - A ghost's time counts from `_going_ghost`, and `_ghost_return` resets it. Its limit is `IDLE_GHOST_FACTOR` (3×).
+    - Over the limit, the guest is kicked with "Idle for N minutes". During a run, the guest's run data goes into `RunSession.waiting_guests` first, the same as a guest of a continued run, so a rejoin restores it.
   - Players join from the Comms Terminal **Join** tab with the server's address (`ip` or `ip:port`). Over the internet use the VLAN (`tools/vlan/README.md`) and run the server on the VLAN host.
+- **Console (`ServerConsole`):** lines typed into the server window, or piped to its stdin.
+  - A reader thread waits on `OS.read_string_from_stdin`. A console blocks until Enter; a closed pipe reads as empty again and again, so the thread ends after `EOF_READS` of those.
+
+  | command | |
+  |---|---|
+  | `status`, `players` | room and players; slot, name, state, address |
+  | `kick <slot> [reason]` | `Net.kick` |
+  | `home` | checkpoint, then back to the home base |
+  | `stop` / `quit` / `exit` | checkpoint, kick everyone with "The server stopped", `Net.leave()`, quit |
+  | `invite`, `add <reply>` (or a bare `zsr1.…`), `guests`, `revoke <N>` | zs-vlan, through `vlan_auto … --machine` |
+
+  - Ctrl+C kills Godot at once: it runs no shutdown code on SIGINT. Checkpoints are written as the run goes, so only the current room is lost.
+- **zs-vlan from the server:** `--vlan` makes the launcher run `vlan_auto host` before Godot starts, so a sudo prompt (ufw) or the Windows admin prompt happens there.
+  - **What starts the tunnel:** only `vlan_auto` does. It is off after a restart, and its watchdog takes it down after `VLAN_IDLE_MIN` (5) minutes without traffic.
+  - **A listening server keeps it up:** a socket on UDP 24565 counts as activity. That holds as long as the server runs. Once the server stops, its VLAN goes off 5 minutes later.
+  - **`invite` (= `vlan_auto host`) starts it again:** first it checks the public address. If that changed, it prints a new invite for each existing guest, with `moved=yes` in the `ZSVLAN` line.
+  - The VLAN console commands run `tools/vlan/vlan_auto.sh` (Linux, through `bash`) or `vlan_auto.ps1` (Windows, through `powershell -File`) on a worker thread, with `--machine`.
+  - Their text is printed as is. The last `ZSVLAN key=value …` line is parsed into `ServerConsole.vlan_result`.
+  - `ServerConsole.vlan_dir()` looks in the project's `tools/vlan`, then in `tools/vlan` next to the executable (for an exported game).
+- **Next: zs-vlan inside the game.** The game will drive `vlan_auto` the same way the server console does: `ServerConsole.vlan_command`/`parse_result`, with the exit codes from `tools/vlan/README.md`.
+  - It picks the script by `OS.get_name()`. Windows needs admin, so it relaunches elevated.
+  - It shows the preflight problems (exit 2) as on-screen hints, and lets players paste invite and reply codes in the Comms Terminal instead of a terminal.
   - Its saves go to `--save-dir` (`SaveableResource.save_dir`). The same-computer check (`GuestSandbox.data_dir_id`) includes the save folder, so a player on the server's PC joins with its own progress, not as a blank guest copy.
 - **Hidden player:** `game/scenes/actors/server_player.tscn`, the player scene with everything seen or used switched off (no layers, invisible, input, weapons and camera disabled). `Net` swaps it into the player instance resource.
   - `ServerAnchor` keeps it on the party leader and never lets it die, except on a party wipe.

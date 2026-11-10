@@ -4,7 +4,9 @@
 ## row), counts only real players for scaling, and that the hidden player is
 ## invisible, untouchable, never hurt and kept on the player; that walking onto
 ## the exit gate takes the server (and so us) to the mission; and that the
-## server's saves land in its own folder.
+## server's saves land in its own folder. Then drives its console (stdin):
+## players, status, kick usage, an unknown command, and stop, which saves the run,
+## tells us and quits. Also the console's vlan_auto plumbing (paths, result line).
 ##   Godot --headless --path . res://game/tests/dedicated_server_check.tscn
 extends Node
 
@@ -80,7 +82,37 @@ func _run()->void:
 
 	check(FileAccess.file_exists(_save_dir.path_join("Profile.tres")), "server: saves in its own folder")
 	check(!FileAccess.file_exists("user://Profile_server.tres"), "server: nothing extra in the user folder")
+
+	# the console
+	_say("players")
+	check(await _wait(func ()->bool: return _read().contains("  slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), 5.0), "console: players lists us")
+	_say("status")
+	check(await _wait(func ()->bool: return _read().contains("room room_N00, 1 player(s)"), 5.0), "console: status shows the room and players")
+	_say("kick")
+	check(await _wait(func ()->bool: return _read().contains("usage: kick <slot>"), 5.0), "console: kick without a slot shows its usage")
+	_say("frobnicate")
+	check(await _wait(func ()->bool: return _read().contains("unknown command 'frobnicate'"), 5.0), "console: unknown commands are named")
+	var _ended:Array = []
+	Net.session_ended.connect(func (reason:String)->void: _ended.append(reason), CONNECT_ONE_SHOT)
+	_say("stop")
+	check(await _wait(func ()->bool: return !OS.is_process_running(_server.pid), 15.0), "console: stop quits the server")
+	check(_read().contains("ServerConsole [INFO]: stopping (run saved)"), "console: stop saved the run first")
+	check(FileAccess.file_exists(_save_dir.path_join(RunSave.file_name + ".tres")), "console: the run checkpoint is in the server's folder")
+	check(_ended.size() == 1 && _ended[0] == "The server stopped", "player: told the server stopped (%s)" % [_ended])
+
+	# vlan_auto plumbing (no tunnel is made)
+	var _result:Dictionary = ServerConsole.parse_result("text\nZSVLAN role=host state=up code=zsi1.QUJD= guests=2:online\n")
+	check(_result.get("role") == "host" && _result.get("code") == "zsi1.QUJD=" && _result.get("guests") == "2:online", "vlan: result line parsed (%s)" % _result)
+	check(ServerConsole.parse_result("no result here").is_empty(), "vlan: no result line, no result")
+	var _command:Array = ServerConsole.vlan_command(["host", "add", "zsr1.x"])
+	check(_command.size() == 2 && _command[0] == "bash" && str(_command[1][0]).ends_with("tools/vlan/vlan_auto.sh") && _command[1][-1] == "--machine", "vlan: runs tools/vlan/vlan_auto.sh --machine (%s)" % [_command])
 	_finish()
+
+## A line into the server's console.
+func _say(line:String)->void:
+	var _pipe:FileAccess = _server.get("stdio")
+	_pipe.store_string(line + "\n")
+	_pipe.flush()
 
 func _finish()->void:
 	Net.players.leaving_by_choice = true
@@ -112,7 +144,8 @@ func _spawn_server()->Dictionary:
 	var _log:String = ProjectSettings.globalize_path("user://dedicated_server_%d.log" % Time.get_ticks_msec())
 	var _cmd:String = "exec '%s' --headless --path '%s' -- --server --port %d --save-dir '%s' --status 0.5 > '%s' 2>&1" % [
 		OS.get_executable_path(), ProjectSettings.globalize_path("res://"), PORT, _save_dir, _log]
-	return {"pid": OS.create_process("/bin/sh", ["-c", _cmd]), "log": _log}
+	var _process:Dictionary = OS.execute_with_pipe("/bin/sh", ["-c", _cmd], false)
+	return {"pid": _process.get("pid", -1), "stdio": _process.get("stdio"), "log": _log}
 
 func _read()->String:
 	return FileAccess.get_file_as_string(_server.log) if FileAccess.file_exists(_server.get("log", "")) else ""

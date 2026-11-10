@@ -45,6 +45,12 @@ var accepting:bool = true
 var share_addresses:Array = []
 ## Seats in the session, this machine's included (--max-players on a server).
 var max_players:int = MAX_PLAYERS
+## Host: a guest that does nothing for this many minutes is dropped (0 = never;
+## the dedicated server sets it, --idle-kick). A ghost gets IDLE_GHOST_FACTOR
+## times as long to come back from its own home base. Its run waits for it, as
+## for a guest of a continued run.
+var idle_kick_min:float = 0.0
+const IDLE_GHOST_FACTOR:float = 3.0
 ## Set when started with --server (DedicatedServer).
 var server:DedicatedServer
 ## Guest: the session runs on a dedicated server (its hidden player is slot 0).
@@ -474,12 +480,27 @@ func _process(delta:float)->void:
 		if _connect_time_left <= 0.0:
 			_close("")
 			connection_failed.emit("Timed out connecting")
+	if is_host() && idle_kick_min > 0.0:
+		_kick_idle(delta)
 	if is_host() && !_pending_hello.is_empty():
 		for _peer:int in _pending_hello.keys():
 			_pending_hello[_peer] -= delta
 			if _pending_hello[_peer] <= 0.0:
 				_pending_hello.erase(_peer)
 				_drop_peer(_peer)
+
+func _kick_idle(delta:float)->void:
+	for _state:PlayerState in RunSession.players.all():
+		if _state.is_local:
+			continue
+		_state.idle_time += delta
+		var _minutes:float = idle_kick_min * (IDLE_GHOST_FACTOR if _state.ghost else 1.0)
+		if _state.idle_time < _minutes * 60.0:
+			continue
+		_state.idle_time = -60.0   # once: the kick takes REJECT_GRACE
+		if RunSession.active && (!_state.ghost || _state.parked) && _state.guest_run_data != null:
+			RunSession.waiting_guests[_state.profile_id] = _state.capture()
+		kick(_state.slot, ("Idle for %d minutes" % roundi(_minutes)) if _minutes >= 1.0 else ("Idle for %d seconds" % roundi(_minutes * 60.0)))
 
 func _set_state(value:State)->void:
 	if state == value:

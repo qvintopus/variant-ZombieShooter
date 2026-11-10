@@ -208,6 +208,10 @@ func _refresh()->void:
 	for _child:Node in _recent.get_children():
 		_child.queue_free()
 	if Net.state == Net.State.OFFLINE:
+		# in someone's zs-vlan virtual LAN: its host is always the same address
+		var _vlan:String = ENetTransport.vlan_address()
+		if !_vlan.is_empty() && _vlan != ENetTransport.VLAN_HOST && !_settings.recent_hosts.has(ENetTransport.VLAN_HOST):
+			_recent.add_child(_button("Virtual LAN host  " + ENetTransport.VLAN_HOST, func ()->void: _address_edit.text = ENetTransport.VLAN_HOST))
 		for _address:String in _settings.recent_hosts:
 			var _pick:String = _address
 			_recent.add_child(_button(_address, func ()->void: _address_edit.text = _pick))
