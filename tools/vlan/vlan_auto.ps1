@@ -1,13 +1,16 @@
 # zs-vlan, guided, Windows (official WireGuard client). Linux: vlan_auto.sh. See README.md.
 #   vlan_auto.cmd                     guided: host or join, then tells you each next step
-#   vlan_auto.cmd <code>              paste whatever you got: an invite (zsi1.) joins, a reply (zsr1.) adds that guest
+#   vlan_auto.cmd <code>              paste whatever you got: an invite (zsi2.) joins, a reply (zsr2.) adds that guest
 #   vlan_auto.cmd host                create the virtual LAN (or show it) + the invite for the next guest
 #   vlan_auto.cmd host add <reply>    add a guest from the reply they sent back
 #   vlan_auto.cmd host remove <N>     remove guest 10.77.0.N
 #   vlan_auto.cmd join <invite>       join a host's virtual LAN; prints the reply to send back
 #   vlan_auto.cmd start               start the last virtual LAN again (after a restart or going idle)
+#   vlan_auto.cmd name [NEW]          this PC's name on the virtual LAN (default: the computer name)
 #   vlan_auto.cmd status              what this PC is, who is online, the code to send
 #   vlan_auto.cmd stop                remove everything this made (host or guest)
+# --name NAME anywhere: use that name without asking (host and join ask for one).
+# The same name twice on one virtual LAN becomes Name#2, Name#3, ...
 # --machine anywhere: no prompts, no clipboard, short waits, and a last line "ZSVLAN key=value ..."
 # The tunnel never starts at boot, and goes off after VLAN_IDLE_MIN (5) minutes without game traffic.
 # Starting it again checks the public address: unchanged, the old codes still work; changed, it says
@@ -18,8 +21,15 @@
 # The invite/reply codes are the same as vlan_auto.sh's, so Linux and Windows PCs mix freely.
 $ErrorActionPreference = "Stop"
 $Machine = $false
+$SetName = ""
 $Argv = @()
-foreach ($a in $args) { if ("$a" -eq "--machine") { $Machine = $true } else { $Argv += "$a" } }
+for ($i = 0; $i -lt $args.Count; $i++) {
+    $a = "$($args[$i])"
+    if ($a -eq "--machine") { $Machine = $true }
+    elseif ($a -eq "--name") { if ($i + 1 -lt $args.Count) { $i++; $SetName = "$($args[$i])" } }
+    elseif ($a.StartsWith("--name=")) { $SetName = $a.Substring(7) }
+    else { $Argv += $a }
+}
 $Cmd = if ($Argv.Count -gt 0) { $Argv[0] } else { "" }
 
 $Name = "zsvlan"; $Net = "10.77.0"; $GamePort = 24565
@@ -30,12 +40,14 @@ $WgExe = Join-Path $env:ProgramFiles "WireGuard\wireguard.exe"
 $Wg = Join-Path $env:ProgramFiles "WireGuard\wg.exe"
 $Svc = 'WireGuardTunnel$' + $Name
 $Self = "vlan_auto.cmd"
+$NameFile = Join-Path $env:ProgramData "zs-vlan-name"   # this PC's name on the VLAN (outside the admin-only folders: the game reads it)
+$NameMax = 24   # = Net.MAX_NAME_LENGTH in the game
 $IdleMin = if ($env:VLAN_IDLE_MIN -match '^\d+$') { [int]$env:VLAN_IDLE_MIN } else { 5 }   # 0 = never
 $IdleBytes = 2048   # less traffic than this per check counts as idle (a game sends far more)
 $IdleCheck = if ($env:VLAN_IDLE_CHECK -match '^\d+$') { [int]$env:VLAN_IDLE_CHECK } else { 30 }   # seconds
 
 if ($Cmd -in @("help", "-h", "--help")) {
-    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 16 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 19 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 0
 }
 
@@ -55,18 +67,65 @@ if (-not $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     if ($Machine) { Fail 2 "zs-vlan needs admin rights: run it (or the dedicated server) as administrator" }
     $a = @("-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
     foreach ($x in $Argv) { $a += "`"$x`"" }
+    if ($SetName) { $a += "--name"; $a += "`"$SetName`"" }
     Start-Process powershell -Verb RunAs -ArgumentList $a
     exit 10   # vlan_auto.cmd: the admin window took over, don't pause here
 }
 
 # ---------------------------------------------------------------- shared
 
-function Enc([string]$prefix, [string]$text) { "$prefix." + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($text)) }
-function Dec([string]$prefix, [string]$line) {
-    if (-not $line.StartsWith("$prefix.")) { Fail 1 "not a $prefix code: $line" }
-    try { return [Text.Encoding]::ASCII.GetString([Convert]::FromBase64String($line.Substring($prefix.Length + 1))).Split(" ") }
-    catch { Fail 1 "broken $prefix code (copy the whole line)" }
+# Codes: "<prefix>.<base64 of space-separated fields>". Version 2 (zsi2/zsr2) adds the sender's name as
+# the last field (it may hold spaces); version 1 codes (no name) are still read. UTF-8, like vlan_auto.sh.
+function Enc([string]$prefix, [string]$text) { "$prefix." + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($text)) }
+function Dec([string]$prefix, [string]$line) {   # prefix: zsi or zsr
+    if ($line -notmatch "^$prefix[12]\.") { Fail 1 "not a ${prefix}2 code: $line" }
+    try { return [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($line.Substring($prefix.Length + 2))).Split(" ") }
+    catch { Fail 1 "broken ${prefix}2 code (copy the whole line)" }
 }
+function Rest($fields, [int]$skip) { (@($fields) | Select-Object -Skip $skip) -join " " }
+
+# ---- names: optional, default the computer name; the same name twice becomes Name#2, Name#3, ...
+function CleanName([string]$text) {
+    $n = (($text -replace '[\p{Cc}]', '') -replace ' +', ' ').Trim()
+    if ($n.Length -gt $NameMax) { $n = $n.Substring(0, $NameMax).TrimEnd() }
+    $n
+}
+function DefaultName { $n = CleanName $env:COMPUTERNAME; if ($n) { $n } else { "Player" } }
+function MyName {
+    $n = if (Test-Path $NameFile) { CleanName (Get-Content $NameFile -Raw -Encoding UTF8) } else { "" }
+    if ($n) { $n } else { DefaultName }
+}
+function SaveName([string]$text) {
+    $n = CleanName $text
+    if (-not $n) { $n = DefaultName }
+    [IO.File]::WriteAllText($NameFile, "$n`n", (New-Object Text.UTF8Encoding $false))
+}
+# Ask for this PC's name, showing the current one (or the computer name) as the suggestion.
+# --name sets it without asking; --machine keeps the current one.
+function AskName([string]$who) {
+    if ($SetName) { SaveName $SetName; return }
+    $cur = MyName
+    if ($Machine) { SaveName $cur; return }
+    Write-Host "your name on the virtual LAN - $who."
+    Write-Host "suggested: $cur   (type another name to change it)"
+    $line = Read-Host "name [Enter keeps `"$cur`"]"
+    SaveName $(if ("$line".Trim()) { $line } else { $cur })
+    Write-Host "you are `"$(MyName)`""
+    Write-Host ""
+}
+# name, unless one of the taken names already is it (any case): then Name#2, Name#3, ...
+# A name ending in #N counts from its base (Player#2 taken -> Player#3).
+function UniqueName([string]$n, [string[]]$taken) {
+    if ($taken -notcontains $n) { return $n }   # -notcontains ignores case
+    $base = if ($n -match '^(.+)#\d+$') { $Matches[1] } else { $n }
+    for ($i = 2; ; $i++) {
+        $keep = [Math]::Min($base.Length, $NameMax - "$i".Length - 1)
+        $c = $base.Substring(0, $keep).TrimEnd() + "#$i"
+        if ($taken -notcontains $c) { return $c }
+    }
+}
+# A name as a ZSVLAN value (values never hold spaces).
+function Pct([string]$text) { ($text -replace '%', '%25') -replace ' ', '%20' }
 # Public IPv6 = the source address Windows uses toward the internet (no external lookup). "-" if none.
 function MyV6 {
     try {
@@ -224,13 +283,18 @@ function FwOpen {
 
 # ---------------------------------------------------------------- host
 
+# A guest's name from its peer file ("pub endpoint name..."; older files have no name).
+function PeerName($f) {
+    $n = Rest ((Get-Content $f.FullName -Raw -Encoding UTF8).Trim().Split(" ")) 2
+    if ($n) { $n } else { "guest $($f.Name)" }
+}
 function Peers { if (Test-Path "$StateHost\peers") { @(Get-ChildItem "$StateHost\peers" | Sort-Object Name) } else { @() } }
 function NextSlot { foreach ($n in 2..8) { if (-not (Test-Path "$StateHost\peers\$n")) { return "$n" } }; "-" }
 function HostConf {
     $priv = (Get-Content "$StateHost\host.key" -Raw).Trim()
     $c = "[Interface]`r`nPrivateKey = $priv`r`nAddress = $Net.1/24`r`nListenPort = $Port`r`n"
     foreach ($f in (Peers)) {
-        $pub, $ep = (Get-Content $f.FullName -Raw).Trim().Split(" ")
+        $pub, $ep, $null = (Get-Content $f.FullName -Raw).Trim().Split(" ")
         $c += "`r`n[Peer]`r`nPublicKey = $pub`r`nAllowedIPs = $Net.$($f.Name)/32`r`nEndpoint = $ep`r`nPersistentKeepalive = 25`r`n"
     }
     [IO.File]::WriteAllText("$StateHost\$Name.conf", $c)
@@ -246,6 +310,7 @@ function HostUp {
         return
     }
     Preflight
+    AskName "guests see it next to $Net.1"
     NewStateDir $StateHost
     EnsureWireGuard $StateHost
     New-Item -ItemType Directory "$StateHost\peers" -Force | Out-Null
@@ -261,8 +326,9 @@ function HostUp {
 function HostShow {
     if ($null -eq $script:V6) { PubCompare $StateHost }
     $v6 = $script:V6; $v4 = $script:V4
+    $mine = MyName
     Write-Host "== zs-vlan: this PC hosts =="
-    Write-Host "this PC   : $Net.1   (tunnel $Name`: $(TunnelState))"
+    Write-Host "this PC   : $Net.1  `"$mine`"   (tunnel $Name`: $(TunnelState))"
     Write-Host "public    : IPv6 $v6   IPv4 $v4"
     AddrWarn $v6 $v4
     if (-not (TunnelUp)) {
@@ -282,10 +348,12 @@ function HostShow {
     Write-Host "guests    :"
     $list = @()
     foreach ($f in (Peers)) {
-        $pub, $ep = (Get-Content $f.FullName -Raw).Trim().Split(" ")
+        $pf = (Get-Content $f.FullName -Raw -Encoding UTF8).Trim().Split(" ")
+        $ep = $pf[1]
+        $gname = PeerName $f
         $st = PingSt "$Net.$($f.Name)"
-        Write-Host "  $Net.$($f.Name)  via $ep  ($st)"
-        $list += "$($f.Name):$($st -replace ' ', '-')"
+        Write-Host "  $Net.$($f.Name)  `"$gname`"  via $ep  ($st)"
+        $list += "$($f.Name):$($st -replace ' ', '-'):$(Pct $gname)"
     }
     if ($list.Count -eq 0) { Write-Host "  none yet" }
     Write-Host ""
@@ -297,7 +365,7 @@ function HostShow {
         Write-Host "this PC's public address changed (was IPv6 $o6  IPv4 $o4), so guests can't reach it."
         Write-Host "send each guest their new invite; they paste it into vlan_auto (same slot, no new reply needed"
         Write-Host "unless their address changed too):"
-        foreach ($f in (Peers)) { Write-Host "  $Net.$($f.Name):  $(Enc "zsi1" "$hpub $Port $($f.Name) $v6 $v4")" }
+        foreach ($f in (Peers)) { Write-Host "  $Net.$($f.Name) ($(PeerName $f)):  $(Enc "zsi2" "$hpub $Port $($f.Name) $v6 $v4 $mine")" }
         Write-Host ""
     }
     $slot = NextSlot
@@ -305,7 +373,7 @@ function HostShow {
     if ($slot -eq "-") {
         Write-Host "all 7 guest slots are used ($Self host remove <N> frees one)"
     } else {
-        $code = Enc "zsi1" "$hpub $Port $slot $v6 $v4"
+        $code = Enc "zsi2" "$hpub $Port $slot $v6 $v4 $mine"
         Write-Host "1. send this invite to your friend (it holds only public info):"
         Write-Host ""
         Write-Host $code
@@ -317,12 +385,15 @@ function HostShow {
     Write-Host ""
     Write-Host "game: host from the Comms Terminal, or run tools\server.cmd - friends join  $Net.1"
     $g = if ($list.Count -gt 0) { $list -join "," } else { "-" }
-    Result "role=host state=up ip=$Net.1 game=$Net.1`:$GamePort next=$slot code=$code guests=$g moved=$moved"
+    Result "role=host state=up ip=$Net.1 name=$(Pct $mine) game=$Net.1`:$GamePort next=$slot code=$code guests=$g moved=$moved"
 }
 
 function HostAdd([string]$reply) {
     if ((Role) -ne "host") { Fail 3 "this PC doesn't host a virtual LAN; run: $Self host   first" }
-    $slot, $gpub, $gport, $gv6, $gv4 = Dec "zsr1" $reply
+    $fields = Dec "zsr" $reply
+    $slot, $gpub, $gport, $gv6, $gv4 = $fields[0..4]
+    $asked = CleanName (Rest $fields 5)
+    if (-not $asked) { $asked = "guest $slot" }
     if (-not ("$slot" -match '^[2-8]$' -and "$gpub".Length -eq 44 -and "$gport" -match '^\d+$')) { Fail 1 "broken reply code (copy the whole line)" }
     $file = "$StateHost\peers\$slot"
     if (Test-Path $file) {
@@ -331,19 +402,24 @@ function HostAdd([string]$reply) {
     }
     $ep = PickEp $gv6 $gv4 $gport (MyV6)
     if (-not $ep) { Fail 3 "the guest sent no address usable from here (no IPv6 on one side and no IPv4 from them)" }
-    Set-Content $file "$gpub $ep"
+    # their name, made unique among this PC and the other guests (an update of the same slot doesn't count)
+    $taken = @(MyName)
+    foreach ($f in (Peers)) { if ($f.Name -ne "$slot") { $taken += PeerName $f } }
+    $gname = UniqueName $asked $taken
+    [IO.File]::WriteAllText($file, "$gpub $ep $gname`n", (New-Object Text.UTF8Encoding $false))
     HostConf
     Native { & $Wg set $Name peer $gpub allowed-ips "$Net.$slot/32" endpoint $ep persistent-keepalive 25 }
     if ($LASTEXITCODE -ne 0) { InstallTunnel $StateHost }   # tunnel wasn't running: start it with the new config
-    Write-Host "guest $Net.$slot added (via $ep), waiting for it to answer"
+    if ($gname -ceq $asked) { Write-Host "guest $Net.$slot `"$gname`" added (via $ep), waiting for it to answer" }
+    else { Write-Host "guest $Net.$slot `"$gname`" added (they called themselves `"$asked`", which is taken) (via $ep), waiting for it to answer" }
     $wait = if ($Machine) { 20 } else { 60 }
     if (WaitOnline "$Net.$slot" $wait) {
         Write-Host "guest $Net.$slot is online - they join the game at $Net.1"
-        Result "role=host state=added slot=$slot online=yes"
+        Result "role=host state=added slot=$slot name=$(Pct $gname) online=yes"
     } else {
         Write-Host "guest $Net.$slot doesn't answer yet. It connects once their side is up too;"
         Write-Host "check later with: $Self status   (both PCs need IPv6, or routers that keep UDP ports)"
-        Result "role=host state=added slot=$slot online=no"
+        Result "role=host state=added slot=$slot name=$(Pct $gname) online=no"
     }
 }
 
@@ -376,11 +452,16 @@ function HostLoop {
 
 function GuestJoin([string]$invite) {
     if ((Role) -eq "host") { Fail 3 "this PC hosts a virtual LAN; to join someone instead run: $Self stop" }
-    $hpub, $hport, $slot, $hv6, $hv4 = Dec "zsi1" $invite
+    $fields = Dec "zsi" $invite
+    $hpub, $hport, $slot, $hv6, $hv4 = $fields[0..4]
+    $hname = CleanName (Rest $fields 5)
     if (-not ("$slot" -match '^[2-8]$' -and "$hpub".Length -eq 44 -and "$hport" -match '^\d+$')) { Fail 1 "broken invite code (copy the whole line)" }
     $ep = PickEp $hv6 $hv4 $hport (MyV6)
     if (-not $ep) { Fail 3 "the host has no address usable from here: they have no IPv4 in the invite and this PC has no IPv6" }
     Preflight
+    Write-Host "invite from `"$(if ($hname) { $hname } else { "the host" })`" - you'll be $Net.$slot on their virtual LAN"
+    Write-Host ""
+    AskName "the host sees it in their guest list"
     NewStateDir $StateGuest
     EnsureWireGuard $StateGuest
     if (-not (Test-Path "$StateGuest\guest.key")) { Set-Content "$StateGuest\guest.key" (& $Wg genkey).Trim() }   # same key on rejoin
@@ -407,7 +488,11 @@ function GuestUp {
 
 function GuestShow {
     if (-not (Test-Path "$StateGuest\invite")) { Fail 3 "not joined yet; run: $Self <invite code from the host>" }
-    $hpub, $hport, $slot, $hv6, $hv4 = Dec "zsi1" (Get-Content "$StateGuest\invite" -Raw).Trim()
+    $fields = Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim()
+    $hpub, $hport, $slot, $hv6, $hv4 = $fields[0..4]
+    $hname = CleanName (Rest $fields 5)
+    if (-not $hname) { $hname = "host" }
+    $mine = MyName
     if ($null -eq $script:V6) { PubCompare $StateGuest }
     $v6 = $script:V6; $v4 = $script:V4
     $st = PingSt "$Net.1"
@@ -420,8 +505,8 @@ function GuestShow {
     $ep = PickEp $hv6 $hv4 $hport $v6
     if (-not $ep) { $ep = "?" }
     Write-Host "== zs-vlan: this PC joined =="
-    Write-Host "this PC   : $Net.$slot   (tunnel $Name`: $(TunnelState))"
-    Write-Host "host      : $Net.1 via $ep  ($st)"
+    Write-Host "this PC   : $Net.$slot  `"$mine`"   (tunnel $Name`: $(TunnelState))"
+    Write-Host "host      : $Net.1  `"$hname`"  via $ep  ($st)"
     Write-Host "handshake : $hs"
     AddrWarn $v6 $v4
     Write-Host ""
@@ -437,7 +522,7 @@ function GuestShow {
         Result "role=guest state=off ip=$Net.$slot"
         return
     }
-    $reply = Enc "zsr1" "$slot $(Pub "$StateGuest\guest.key") $Port $v6 $v4"
+    $reply = Enc "zsr2" "$slot $(Pub "$StateGuest\guest.key") $Port $v6 $v4 $mine"
     if ($st -eq "online") {
         Write-Host "connected. In the game: Comms Terminal -> Join ->  $Net.1"
         Clip "$Net.1"
@@ -451,7 +536,7 @@ function GuestShow {
         Write-Host "2. the host pastes it into vlan_auto (or the dedicated server console)"
         Write-Host "3. once connected, join in the game at  $Net.1"
     }
-    Result "role=guest state=up ip=$Net.$slot game=$Net.1`:$GamePort host=$($st -replace ' ', '-') code=$reply"
+    Result "role=guest state=up ip=$Net.$slot name=$(Pct $mine) host_name=$(Pct $hname) game=$Net.1`:$GamePort host=$($st -replace ' ', '-') code=$reply"
 }
 
 function GuestWait {
@@ -501,9 +586,33 @@ function Teardown([string]$dir) {
     Write-Host "removed $dir"
 }
 
+# Show or change this PC's name. Guests send a fresh reply so the host sees it; hosts' new invites carry it.
+function NameCmd([string]$new) {
+    $r = Role
+    $asked = $false
+    if ($new) { SaveName $new; $asked = $true }
+    elseif ($SetName) { SaveName $SetName; $asked = $true }
+    elseif (-not $Machine) { AskName $(if ($r -eq "guest") { "the host sees it in their guest list" } else { "guests see it next to $Net.1" }); $asked = $true }
+    Write-Host "name: `"$(MyName)`""
+    if ($r -eq "host") { Write-Host "the next invites carry it; guests who already joined still see the old one until they get a new invite." }
+    if ($r -eq "guest" -and $asked) {
+        $slot = (Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim())[2]
+        $pubs = if (Test-Path "$StateGuest\public") { (Get-Content "$StateGuest\public" -Raw).Trim() } else { "- -" }
+        $reply = Enc "zsr2" "$slot $(Pub "$StateGuest\guest.key") $Port $pubs $(MyName)"
+        Write-Host "the host only sees it from a new reply:"
+        Write-Host ""
+        Write-Host $reply
+        Clip $reply
+        Write-Host ""
+        Write-Host "the host pastes it into vlan_auto (or the dedicated server console)"
+    }
+    Result "role=$r state=name name=$(Pct (MyName))"
+}
+
 function Stop {
     $did = $false
     foreach ($dir in @($StateHost, $StateGuest)) { if (Test-Path $dir) { Teardown $dir; $did = $true } }
+    if (Test-Path $NameFile) { Remove-Item $NameFile -Force; Write-Host "removed the name ($NameFile)" }
     if (-not $did) {
         if (TunnelUp) { & $WgExe /uninstalltunnelservice $Name; Write-Host "removed tunnel $Name" }
         if (Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Group "zs-vlan"; Write-Host "removed firewall rules (group zs-vlan)" }
@@ -523,9 +632,9 @@ function Start-Role {
 }
 
 function Code([string]$c) {
-    if ($c.StartsWith("zsi1.")) { GuestJoin $c; GuestShow; GuestWait }
-    elseif ($c.StartsWith("zsr1.")) { HostAdd $c }
-    else { Fail 1 "that isn't a zs-vlan code (invites start with zsi1., replies with zsr1.)" }
+    if ($c -match '^zsi[12]\.') { GuestJoin $c; GuestShow; GuestWait }
+    elseif ($c -match '^zsr[12]\.') { HostAdd $c }
+    else { Fail 1 "that isn't a zs-vlan code (invites start with zsi2., replies with zsr2.)" }
 }
 
 function Guided {
@@ -559,8 +668,9 @@ switch -regex ($Cmd) {
     '^start$' { Start-Role; break }
     '^watch$' { Watch $(if ($Arg1 -match '^\d+$') { [int]$Arg1 } else { $IdleMin }); break }
     '^status$' { Status; break }
+    '^name$' { NameCmd $Arg1; break }
     '^stop$' { Stop; break }
-    '^zs[ir]1\.' { Code $Cmd; break }
+    '^zs[ir][12]\.' { Code $Cmd; break }
     default { Fail 1 "unknown command '$Cmd' (try: $Self help)" }
 }
 exit 0

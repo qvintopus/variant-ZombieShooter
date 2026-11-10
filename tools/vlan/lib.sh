@@ -14,6 +14,8 @@ MACHINE=${MACHINE:-0}        # 1: no prompts, no clipboard, sudo never asks; a Z
 IDLE_MIN=${VLAN_IDLE_MIN:-5} # the tunnel goes down after this many minutes without game traffic (0 = never)
 IDLE_BYTES=2048              # less traffic than this in a 30 s check counts as idle (a game sends far more)
 IDLE_CHECK=${VLAN_IDLE_CHECK:-30}  # seconds between watchdog checks
+NAME_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan-name   # this PC's name on the VLAN (the game reads it too)
+NAME_MAX=24                  # = Net.MAX_NAME_LENGTH in the game
 VLAN_AUTO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vlan_auto.sh"
 
 # Exit codes (stable, the game and the dedicated server read them):
@@ -100,13 +102,74 @@ my_v4() {
 	[[ $a =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$a" || echo -
 }
 
-# Invite/reply lines: "<prefix>.<base64 of space-separated fields>" - only public keys and addresses, safe for chat.
+# Invite/reply lines: "<prefix>.<base64 of space-separated fields>" - only public keys, addresses and a
+# name, safe for chat. Version 2 (zsi2/zsr2) adds the sender's name as the last field (it may hold
+# spaces); version 1 codes (no name) are still read. Made with: enc zsi2 "fields".
 enc() { printf '%s.%s' "$1" "$(printf '%s' "$2" | base64 -w0)"; }
-# dec reports a bad code on stderr and returns 1 (callers: fields=$(dec ...) || fail 1).
+# dec reports a bad code on stderr and returns 1 (callers: fields=$(dec ...) || fail 1).  args: zsi|zsr code
 dec() {
-	[[ $2 == "$1".* ]] || { echo "not a $1 code: $2" >&2; return 1; }
-	base64 -d <<<"${2#*.}" 2>/dev/null || { echo "broken $1 code (copy the whole line)" >&2; return 1; }
+	[[ $2 =~ ^$1[12]\. ]] || { echo "not a ${1}2 code: $2" >&2; return 1; }
+	base64 -d <<<"${2#*.}" 2>/dev/null || { echo "broken ${1}2 code (copy the whole line)" >&2; return 1; }
 }
+
+# ---- names: optional, default the computer name; the same name twice becomes Name#2, Name#3, ...
+# Printable, single spaces, at most NAME_MAX characters ("" when nothing is left).
+clean_name() {
+	local LC_ALL=C.UTF-8 s
+	s=$(printf '%s' "$1" | tr -d '[:cntrl:]' | tr -s ' ')
+	s=${s#"${s%%[! ]*}"}; s=${s:0:$NAME_MAX}; s=${s%"${s##*[! ]}"}
+	printf '%s' "$s"
+}
+# The computer name; a distro's stock one (archlinux, ubuntu, ...) gets the login name in front.
+default_name() {
+	local LC_ALL=C.UTF-8 h
+	h=$(hostnamectl hostname 2>/dev/null || true)
+	[ -n "$h" ] || h=$(cat /etc/hostname 2>/dev/null || uname -n 2>/dev/null || true)
+	h=$(clean_name "$h")
+	case "${h,,}" in
+	""|localhost*|arch|archlinux|ubuntu|debian|fedora|linux|raspberrypi|manjaro|mint|linuxmint|pop-os|kali|nixos|endeavouros|garuda|cachyos|omarchy|opensuse|steamdeck)
+		h=$(clean_name "${USER:-player}-${h:-pc}") ;;
+	esac
+	printf '%s' "$h"
+}
+my_name() {
+	local n
+	n=$(clean_name "$(cat "$NAME_FILE" 2>/dev/null || true)")
+	[ -n "$n" ] || n=$(default_name)
+	printf '%s' "$n"
+}
+save_name() {
+	local n
+	n=$(clean_name "$1"); [ -n "$n" ] || n=$(default_name)
+	mkdir -p "${NAME_FILE%/*}"; printf '%s\n' "$n" >"$NAME_FILE"
+}
+# Ask for this PC's name, showing the current one (or the computer name) as the suggestion.
+# --name NAME sets it without asking; with no terminal (or --machine) the current one is kept.  arg: who sees it
+ask_name() {
+	local cur line
+	if [ -n "${SET_NAME:-}" ]; then save_name "$SET_NAME"; return 0; fi
+	cur=$(my_name)
+	if [ "$MACHINE" = 1 ] || [ ! -t 0 ]; then save_name "$cur"; return 0; fi
+	echo "your name on the virtual LAN - $1."
+	echo "suggested: $cur   (type another name to change it)"
+	read -r -p "name [Enter keeps \"$cur\"]: " line || line=""
+	save_name "${line:-$cur}"
+	echo "you are \"$(my_name)\""; echo
+}
+# name, unless one of the taken names already is it (any case): then Name#2, Name#3, ...
+# A name ending in #N counts from its base (Player#2 taken -> Player#3).  args: name taken...
+unique_name() {
+	local LC_ALL=C.UTF-8 name=$1 base c n; shift
+	name_taken "$name" "$@" || { printf '%s' "$name"; return; }
+	base=$name; [[ $base =~ ^(.+)#[0-9]+$ ]] && base=${BASH_REMATCH[1]}
+	for ((n = 2; ; n++)); do
+		c=${base:0:$((NAME_MAX - ${#n} - 1))}; c="${c%"${c##*[! ]}"}#$n"
+		name_taken "$c" "$@" || { printf '%s' "$c"; return; }
+	done
+}
+name_taken() { local LC_ALL=C.UTF-8 want=${1,,} x; shift; for x in "$@"; do [ "${x,,}" = "$want" ] && return 0; done; return 1; }
+# A name as a ZSVLAN value (values never hold spaces): % and space escaped.
+pct() { local s=${1//%/%25}; printf '%s' "${s// /%20}"; }
 
 # Endpoint for a peer: IPv6 when both sides have it, else the peer's IPv4.  args: peer_v6 peer_v4 peer_port my_v6
 pick_ep() {

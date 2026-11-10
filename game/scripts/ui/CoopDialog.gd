@@ -24,6 +24,8 @@ var _shown_state:int = -1
 var _session_scroll:ScrollContainer
 var _address_edit:LineEdit
 var _name_edit:LineEdit
+## "Use VLAN name: X": shown when this PC's zs-vlan name differs from a name the player picked.
+var _vlan_name_button:Button
 var _connect_button:Button
 var _recent:VBoxContainer
 var _leave_button:Button
@@ -70,10 +72,19 @@ func _build()->void:
 	var _name_row:HBoxContainer = HBoxContainer.new()
 	_box.add_child(_name_row)
 	_name_row.add_child(_label("Name"))
-	_name_edit = _line_edit(RunSession.profile.display_name, "Your name")
+	# a name the player never picked follows this PC's zs-vlan name (it may be new)
+	if RunSession.profile.refresh_default() && Net.state == Net.State.OFFLINE:
+		RunSession.local_player().display_name = RunSession.profile.display_name
+	_name_edit = _line_edit(RunSession.profile.display_name, PlayerProfile.default_name())
 	_name_edit.max_length = Net.MAX_NAME_LENGTH
 	_name_edit.text_changed.connect(_on_name_changed)
 	_name_row.add_child(_name_edit)
+	_vlan_name_button = _button("", func ()->void:
+		_name_edit.text = ENetTransport.vlan_name()
+		_on_name_changed(_name_edit.text))
+	_vlan_name_button.name = "UseVlanName"
+	_name_row.add_child(_vlan_name_button)
+	_update_vlan_name_button()
 
 	_tabs = TabContainer.new()
 	_tabs.custom_minimum_size = Vector2(0, 90)
@@ -290,10 +301,22 @@ func _refresh_roster()->void:
 func _on_name_changed(text:String)->void:
 	var _clean:String = text.strip_edges()
 	if _clean.is_empty():
-		return
-	RunSession.profile.display_name = _clean
+		# cleared: back to the default (the zs-vlan name, else "Player")
+		RunSession.profile.name_set = false
+		RunSession.profile.refresh_default()
+		_clean = RunSession.profile.display_name
+	else:
+		RunSession.profile.name_set = true
+		RunSession.profile.display_name = _clean
 	RunSession.profile.save_resource()
 	RunSession.local_player().display_name = _clean
+	_update_vlan_name_button()
+
+## Suggest this PC's zs-vlan name when the player picked another one (never applied by itself).
+func _update_vlan_name_button()->void:
+	var _vlan:String = ENetTransport.vlan_name()
+	_vlan_name_button.visible = !_vlan.is_empty() && RunSession.profile.name_set && _vlan != RunSession.profile.display_name
+	_vlan_name_button.text = "Use VLAN name: " + _vlan
 
 func _on_host_pressed()->void:
 	var _port:int = int(_port_edit.text) if _port_edit.text.is_valid_int() else Net.DEFAULT_PORT

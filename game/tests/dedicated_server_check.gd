@@ -103,6 +103,8 @@ func _run()->void:
 	# vlan_auto plumbing (no tunnel is made)
 	var _result:Dictionary = ServerConsole.parse_result("text\nZSVLAN role=host state=up code=zsi1.QUJD= guests=2:online\n")
 	check(_result.get("role") == "host" && _result.get("code") == "zsi1.QUJD=" && _result.get("guests") == "2:online", "vlan: result line parsed (%s)" % _result)
+	_result = ServerConsole.parse_result("ZSVLAN role=host state=added slot=3 name=Big%20Bob%2520 online=yes\n")
+	check(_result.get("name") == "Big Bob%20" && _result.get("slot") == "3", "vlan: names in a result line unescaped (%s)" % _result)
 	check(ServerConsole.parse_result("no result here").is_empty(), "vlan: no result line, no result")
 	var _command:Array = ServerConsole.vlan_command(["host", "add", "zsr1.x"])
 	check(_command.size() == 2 && _command[0] == "bash" && str(_command[1][0]).ends_with("tools/vlan/vlan_auto.sh") && _command[1][-1] == "--machine", "vlan: runs tools/vlan/vlan_auto.sh --machine (%s)" % [_command])
