@@ -28,6 +28,9 @@ func create_client(address:String, port:int)->MultiplayerPeer:
 ## Blocking (UPnP discovery takes seconds): run it on a thread.
 func share_addresses(port:int)->Array:
 	var _list:Array = []
+	var _vlan:String = vlan_address()
+	if !_vlan.is_empty():
+		_list.append({"label": "Virtual LAN (zs-vlan)", "address": "%s:%d" % [_vlan, port]})
 	var _public:String = _open_port(port)
 	if !_public.is_empty():
 		_list.append({"label": "Over the internet", "address": "%s:%d" % [_public, port]})
@@ -45,11 +48,23 @@ static func lan_addresses()->PackedStringArray:
 		if _is_virtual(_name):
 			continue
 		for _ip:String in _interface.get("addresses", []):
-			if _ip.contains(":") || _ip.begins_with("127.") || _ip.begins_with("169.254."):
+			if _ip.contains(":") || _ip.begins_with("127.") || _ip.begins_with("169.254.") || _ip.begins_with(VLAN_PREFIX):
 				continue
 			if !_list.has(_ip):
 				_list.append(_ip)
 	return _list
+
+## The zs-vlan virtual LAN (tools/vlan): its host is .1, guests .2-.8.
+const VLAN_PREFIX:String = "10.77.0."
+const VLAN_HOST:String = "10.77.0.1"
+
+## This PC's address on the zs-vlan virtual LAN, "" when it isn't in one. Found by
+## address, not interface name (Windows names the adapter its own way).
+static func vlan_address()->String:
+	for _ip:String in IP.get_local_addresses():
+		if _ip.begins_with(VLAN_PREFIX):
+			return _ip
+	return ""
 
 const VIRTUAL_PREFIXES:PackedStringArray = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "tun", "tap", "wg", "tailscale", "zt", "cni", "flannel", "podman", "lxc", "lxd", "vethernet"]
 

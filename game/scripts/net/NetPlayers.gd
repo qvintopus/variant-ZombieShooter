@@ -377,6 +377,10 @@ func _player_update(data:Array)->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || _state.ghost || !_valid_update(data):
 		return
+	# moving, aiming, down or waiting at a door: not idle (Net idle kick)
+	if (data[2] as Vector2) != Vector2.ZERO || (data[3] as Vector2) != _state.last_aim || data[7] || data[9]:
+		_state.idle_time = 0.0
+	_state.last_aim = data[3]
 	apply_update(_state, data)
 
 func _sender_state()->PlayerState:
@@ -620,6 +624,7 @@ func _going_ghost(parked:bool, data:Dictionary)->void:
 		return
 	reclaim_weapons(_state)
 	var _parsed:PlayerRunData = PlayerRunData.from_dict(data) if parked else null
+	_state.idle_time = 0.0   # a ghost's idle time is how long it's away
 	_state.ghost = true
 	_state.waiting = false
 	_state.ghost_room = ""
@@ -683,6 +688,7 @@ func _ghost_return()->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || !_state.ghost:
 		return
+	_state.idle_time = 0.0
 	_state.ghost = false
 	_state.ghost_room = ""
 	_remove_puppet(_state.slot)

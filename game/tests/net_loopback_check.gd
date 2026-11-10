@@ -103,10 +103,26 @@ func _ready()->void:
 	await _wait(func ()->bool: return _read(_ok).contains("NETCLIENT ended"), 5.0)
 	check(_read(_ok).contains("NETCLIENT ended Kicked by host"), "guest told it was kicked")
 
+	# Idle kick (the dedicated server's --idle-kick): a guest doing nothing is dropped after the limit
+	var _idle:Dictionary = _spawn_client("ok")
+	await _wait(func ()->bool: return RunSession.players.count() == 2, 10.0)
+	var _idle_state:PlayerState = RunSession.players.get_state(1)
+	Net.idle_kick_min = 0.05   # 3 s
+	var _idle_from:int = Time.get_ticks_msec()
+	if _idle_state != null:
+		_idle_state.idle_time = 0.0
+	var _dropped:bool = await _wait(func ()->bool: return RunSession.players.count() == 1, 10.0)
+	var _idle_after:float = (Time.get_ticks_msec() - _idle_from) / 1000.0
+	Net.idle_kick_min = 0.0
+	check(_dropped, "idle guest dropped")
+	check(_idle_after >= 2.9, "idle guest kept until the limit (dropped after %.1f s)" % _idle_after)
+	await _wait(func ()->bool: return _read(_idle).contains("NETCLIENT ended"), 5.0)
+	check(_read(_idle).contains("NETCLIENT ended Idle for"), "idle guest told why (%s)" % _read(_idle).get_slice("NETCLIENT ended", 1).get_slice("\n", 0))
+
 	Net.leave()
 	check(Net.state == Net.State.OFFLINE && Net.is_authority(), "back offline after leaving")
 	check(RunSession.players.count() == 1 && RunSession.players.local_slot == 0, "back to one local player in slot 0")
-	for _client:Dictionary in [_ok, _twin, _bad, _late]:
+	for _client:Dictionary in [_ok, _twin, _bad, _late, _idle]:
 		if OS.is_process_running(_client.pid):
 			OS.kill(_client.pid)
 		DirAccess.remove_absolute(_client.log)
