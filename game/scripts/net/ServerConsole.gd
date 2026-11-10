@@ -19,7 +19,7 @@ const HELP:String = """commands:
   stop                   save, tell the players, quit (also: quit, exit)
 virtual LAN (zs-vlan, this PC hosts it - tools/server.sh --vlan):
   invite                 the invite code for the next guest
-  add <reply>            add a guest from their reply code (pasting the bare zsr1. code works too)
+  add <reply>            add a guest from their reply code (pasting the bare zsr2. code works too)
   guests                 guests and whether they're online
   revoke <N>             remove guest 10.77.0.N"""
 
@@ -73,7 +73,7 @@ func run(line:String)->void:
 		return
 	var _cmd:String = _words[0].to_lower()
 	print("> ", line)
-	if _words[0].begins_with("zsr1."):
+	if _words[0].begins_with("zsr1.") || _words[0].begins_with("zsr2."):
 		_vlan(["host", "add", _words[0]])
 		return
 	match _cmd:
@@ -200,7 +200,12 @@ static func parse_result(output:String)->Dictionary:
 			continue
 		_result = {}
 		for _pair:String in _line.trim_prefix("ZSVLAN ").split(" ", false):
-			_result[_pair.get_slice("=", 0)] = _pair.substr(_pair.find("=") + 1)
+			var _key:String = _pair.get_slice("=", 0)
+			var _value:String = _pair.substr(_pair.find("=") + 1)
+			# names are the only values with escapes (space, %)
+			if _key.ends_with("name"):
+				_value = _value.replace("%20", " ").replace("%25", "%")
+			_result[_key] = _value
 	return _result
 
 func _vlan(args:PackedStringArray)->void:

@@ -64,6 +64,9 @@ var host_ng_plus:bool
 const CAMPAIGN_PATH:String = "res://game/resources/campaign_resource.tres"
 ## Guest: our tier hasn't been applied yet this session.
 var _tier_unset:bool = true
+## Guest: set while joined (the name we came with); the host's roster may rename us (Name#2),
+## and leaving puts the profile's name back.
+var _name_before:String = ""
 ## Player sync and room following (/root/Net/Players on every peer).
 var players:NetPlayers
 ## Enemies, loot, shots and fights (/root/Net/Entities).
@@ -243,7 +246,11 @@ func _hello(info:Dictionary)->void:
 		_name = "Guest %d" % (_slot + 1)
 	elif RunSession.players.find_profile(_profile) != null:
 		_profile = "%s#%d" % [_profile, _slot]
-		_name = "%s %d" % [_name, _slot + 1]
+	# a name already in the session (any case) becomes Name#2, Name#3, ...
+	var _taken:Array = []
+	for _state:PlayerState in RunSession.players.all():
+		_taken.append(_state.display_name)
+	_name = unique_name(_name, _taken)
 	var _guest:PlayerState = PlayerState.create_remote(_profile, _name, _slot)
 	_guest.peer_id = _peer
 	# a blank copy of our own install has no shell of its own
@@ -344,6 +351,7 @@ func _welcome(slot:int, roster:Array, fresh:bool, session:String)->void:
 		return
 	session_id = session.left(16)
 	var _local:PlayerState = RunSession.local_player()
+	_name_before = _local.display_name
 	if fresh:
 		for _entry:Variant in roster:
 			if _entry is Dictionary && int(_entry.get("slot", -1)) == slot:
@@ -378,6 +386,10 @@ func _roster_update(roster:Array)->void:
 		_seen[_slot] = true
 		var _electrician:bool = bool(_entry.get("electrician", false))
 		if _slot == RunSession.players.local_slot:
+			# the host may have renamed us (the name was taken): show what everyone else sees
+			var _given:String = _clean_name(str(_entry.get("name", "")))
+			if !_name_before.is_empty() && !_given.is_empty():
+				RunSession.local_player().display_name = _given
 			if RunSession.local_player().electrician != _electrician || _tier_unset:
 				_tier_unset = false
 				GuestTier.enter(_electrician)
@@ -471,6 +483,10 @@ func _close(_reason:String)->void:
 	_local.peer_id = 1
 	RunSession.players.local_slot = 0
 	RunSession.players.states[0] = _local
+	if !_name_before.is_empty():
+		# our own name again (it may have been changed in the dialog meanwhile)
+		_local.display_name = RunSession.profile.display_name
+		_name_before = ""
 	_set_state(State.OFFLINE)
 	roster_changed.emit()
 
@@ -510,6 +526,28 @@ func _set_state(value:State)->void:
 
 func _game_version()->String:
 	return str(ProjectSettings.get_setting("application/config/version", "dev"))
+
+## name, unless one of taken already is it (any case): then Name#2, Name#3, ... within
+## MAX_NAME_LENGTH. A name ending in #N counts from its base (Player#2 taken -> Player#3).
+## The same rule as tools/vlan (unique_name in lib.sh).
+static func unique_name(name:String, taken:Array)->String:
+	var _lower:Dictionary = {}
+	for _taken:Variant in taken:
+		_lower[str(_taken).to_lower()] = true
+	if !_lower.has(name.to_lower()):
+		return name
+	var _base:String = name
+	var _hash:int = name.rfind("#")
+	if _hash > 0 && name.substr(_hash + 1).is_valid_int():
+		_base = name.left(_hash)
+	var _n:int = 2
+	while true:
+		var _suffix:String = "#%d" % _n
+		var _candidate:String = _base.left(MAX_NAME_LENGTH - _suffix.length()).strip_edges() + _suffix
+		if !_lower.has(_candidate.to_lower()):
+			return _candidate
+		_n += 1
+	return name
 
 static func _clean_name(text:String)->String:
 	var _name:String = text.strip_edges().replace("\n", " ").left(MAX_NAME_LENGTH)

@@ -53,6 +53,7 @@ func _ready()->void:
 	profile = PlayerProfile.new()
 	profile.load_resource()
 	profile.ensure_id()
+	profile.refresh_default()
 	players.add(PlayerState.create_local(profile.profile_id, profile.display_name))
 	var _room_state:RoomStateResource = load(ROOM_STATE_PATH)
 	_room_state.updated.connect(queue_checkpoint)

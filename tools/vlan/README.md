@@ -17,14 +17,14 @@ It asks **host or join**, then guides you:
 
 | step | host | guest |
 |---|---|---|
-| 1 | Pick **host**. It prints an **invite** (`zsi1.…`, copied to the clipboard). Send it to the friend. | |
-| 2 | | Pick **join** and paste the invite. It prints a **reply** (`zsr1.…`, copied). Send it back. |
+| 1 | Pick **host** and pick your name (Enter keeps the suggested one). It prints an **invite** (`zsi2.…`, copied to the clipboard). Send it to the friend. | |
+| 2 | | Pick **join** and paste the invite. It shows a suggested name. Type your own, or press Enter to keep it. The host sees this name. It prints a **reply** (`zsr2.…`, copied). Send it back. |
 | 3 | Paste the reply when it asks (or run `vlan_auto <reply>` later). It waits until the guest is online. | It waits for the host, then says **online** and copies `10.77.0.1`. |
 | play | **Comms Terminal → Host → Open to friends** (its invite list shows the *Virtual LAN* address with Copy), or run the dedicated server. | **Comms Terminal → Join →** paste `10.77.0.1` (or press the *Virtual LAN host* button). |
 
 Each further guest repeats steps 1–3. The host's `vlan_auto` prints the next invite every time.
 
-Codes hold only public keys and addresses, so they are safe to send in chat. Linux and Windows PCs mix freely, either as host or as guest.
+Codes hold only public keys, addresses and a name, so they are safe to send in chat. Linux and Windows PCs mix freely, either as host or as guest.
 
 **Nothing stays on by itself.** The tunnel doesn't start when the PC boots, and it switches off after 5 minutes without a game on it (see [Off after a restart or when idle](#off-after-a-restart-or-when-idle)). The next time, just run `vlan_auto` again on each PC. It starts the same tunnel, with the same codes and slots.
 
@@ -42,9 +42,11 @@ The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_
 | `host add <reply>` | Adds a guest, or updates one with the same key. |
 | `host remove <N>` | Removes guest `10.77.0.N`. |
 | `join <invite>` | Joins and prints the reply to send back. |
+| `name [NEW]` | Shows or changes this PC's name (see [Names](#names)). A guest then gets a new reply to send, so the host sees the change. |
 | `start` | Starts the last tunnel again, with no prompts (running `vlan_auto` alone does the same and keeps guiding). |
 | `status` | What this PC is, who is online, and the code to send. It never starts anything. |
 | `stop` | Removes everything zs-vlan made on this PC. |
+| `--name NAME` (with any command) | Uses that name without asking. |
 | `--machine` (with any command) | For programs: no prompts, no clipboard, short waits, and a last line `ZSVLAN key=value …`. |
 
 Exit codes: 0 ok, 1 usage or broken code, 2 something this PC needs is missing (the message says how to fix it), 3 wrong state (not set up, or this PC already has the other role), 4 timed out waiting.
@@ -70,8 +72,8 @@ The old script names still work as aliases: `vlan_up.sh` (= `host`), `vlan_conne
 | `home` | Saves the run and goes back to the home base. |
 | `stop` | Saves, tells the players and quits. Ctrl+C quits at once instead; the run keeps its last checkpoint. |
 | `invite` | The invite for the next VLAN guest. |
-| `add <reply>` / paste a bare `zsr1.…` | Adds a VLAN guest. |
-| `guests` | VLAN guests and whether they are online. |
+| `add <reply>` / paste a bare `zsr2.…` | Adds a VLAN guest (a taken name becomes `Name#2`). |
+| `guests` | VLAN guests, their names, and whether they are online. |
 | `revoke <N>` | Removes VLAN guest `10.77.0.N`. |
 
 - Once hosting, the server prints where to join: the virtual LAN address, the LAN addresses, and `127.0.0.1` for a player on the same PC.
@@ -80,6 +82,18 @@ The old script names still work as aliases: `vlan_up.sh` (= `host`), `vlan_conne
 - **While the server runs, its virtual LAN stays on** (it's hosting, see below). Stop the server and the VLAN goes off 5 minutes later.
 - Its saves are its own, so a player on the server's PC keeps their own progress.
 - More detail: `addons/top_down/design_document/multiplayer.md`, *Dedicated server*.
+
+## Names
+
+- **Optional, with a default.** The default is the computer name. A distro's stock host name (`archlinux`, `ubuntu`, …) gets the login name in front, such as `qvin-archlinux`, so it's more likely to be unique. The name can be up to 24 characters, and spaces and accents are fine.
+- **Asked once.**
+  - The host is asked when the virtual LAN is made, before the first invite.
+  - A guest is asked on every new invite, before the reply. The suggestion is shown first.
+  - `vlan_auto name` changes it later.
+- **Taken names get a number.** The host keeps every name on its virtual LAN unique, ignoring case. If `Player` is there and another `Player` joins, the newcomer shows as `Player#2`, then `Player#3`. `status` and the server console's `guests` list the names.
+- **Separate from the in-game name.** While you haven't typed an in-game name (Comms Terminal → name field), the game uses this name as its default. Once you have, the dialog only offers a **Use VLAN name** button. Taken in-game names get numbered the same way when someone joins a session.
+- **The game reads the name** from `~/.local/state/zs-vlan-name` (Linux) or `C:\ProgramData\zs-vlan-name` (Windows).
+- **Code versions.** Codes carrying a name start with `zsi2.`/`zsr2.`. Older `zsi1.`/`zsr1.` codes still work (no name: `guest N`). An older `vlan_auto` rejects the new codes, so update the scripts on both PCs.
 
 ## How it works
 
@@ -112,14 +126,14 @@ Keys are kept until `stop`, so a rejoin keeps its slot.
 **Linux** (NetworkManager):
 - **Network:** an NM connection and interface named `zsvlan`. Autoconnect is off, so it stays down after a reboot until `vlan_auto` runs again. No sudo is needed for this part, since polkit lets the desktop user change NetworkManager settings.
 - **Firewall:** only if ufw is active, and this step uses sudo. The rules are `allow 51820/udp` and `allow in on zsvlan to any port 24565 proto udp` (the game only), tagged with the comment `zs-vlan`. Only rules the script actually added are recorded, and only those are removed.
-- **State:** `~/.local/state/zs-vlan` (host) or `~/.local/state/zs-vlan-guest` (guest), with mode 700. It holds the keys, the guests, the public address the codes were made with, and the watchdog's lock.
+- **State:** `~/.local/state/zs-vlan` (host) or `~/.local/state/zs-vlan-guest` (guest), with mode 700. It holds the keys, the guests and their names, the public address the codes were made with, and the watchdog's lock. The name is in `~/.local/state/zs-vlan-name`.
 - **Packages:** none are installed. Keys are made with `openssl`, and NetworkManager has WireGuard built in. Anything missing is named with the install command for your distro.
 
 **Windows** (the official WireGuard client):
 - **Software:** WireGuard via winget, but only if it is missing. `stop` uninstalls it only if zs-vlan installed it.
 - **Tunnel:** a service named `WireGuardTunnel$zsvlan`, with Manual start. Guests are added to a running host live, without a restart.
 - **Firewall:** rules in the group `zs-vlan`: inbound UDP 51820, plus game UDP 24565 and ping from `10.77.0.0/24`.
-- **State:** `C:\ProgramData\zs-vlan-host` (host) or `C:\ProgramData\zs-vlan` (guest), readable only by admins and SYSTEM.
+- **State:** `C:\ProgramData\zs-vlan-host` (host) or `C:\ProgramData\zs-vlan` (guest), readable only by admins and SYSTEM. The name is in `C:\ProgramData\zs-vlan-name`, readable by everyone so the game can read it.
 
 ## Settings (environment variables)
 

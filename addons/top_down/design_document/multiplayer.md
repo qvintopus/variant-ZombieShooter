@@ -25,6 +25,11 @@
   - The local player's state uses the shared global resources (HUD, player scene).
   - Every guest has its own HP, inventory, weapon upgrades and wallet (`PlayerState.create_remote`).
 - `PlayerProfile` (`user://Profile.tres`) gives each install a random `profile_id` and a display name.
+  - Until the player types a name (`name_set`), the name follows `PlayerProfile.default_name()`: this PC's zs-vlan name (`ENetTransport.vlan_name()`, from the file `vlan_auto` writes), else `Player`. It's saved as `Player`, so it keeps following.
+  - A picked name is never replaced. CoopDialog only offers a *Use VLAN name* button.
+  - **Unique names:** the host's `_hello` runs every joining name through `Net.unique_name`. A name already in the session (any case, the hidden server player too) becomes `Name#2`, `#3`… within 24 characters. This is the same rule as `vlan_auto`'s guest list.
+    - The guest takes the name it was given from the roster, so it sees itself as everyone else does.
+    - Leaving restores the profile's name.
 
 ### Comms Terminal (home base, map character `N`)
 - `CommsTerminal.gd` opens `CoopDialog.gd`.
@@ -274,7 +279,7 @@ It will become a meta upgrade later.
   | `kick <slot> [reason]` | `Net.kick` |
   | `home` | checkpoint, then back to the home base |
   | `stop` / `quit` / `exit` | checkpoint, kick everyone with "The server stopped", `Net.leave()`, quit |
-  | `invite`, `add <reply>` (or a bare `zsr1.…`), `guests`, `revoke <N>` | zs-vlan, through `vlan_auto … --machine` |
+  | `invite`, `add <reply>` (or a bare `zsr2.…`), `guests`, `revoke <N>` | zs-vlan, through `vlan_auto … --machine` |
 
   - Ctrl+C kills Godot at once: it runs no shutdown code on SIGINT. Checkpoints are written as the run goes, so only the current room is lost.
 - **zs-vlan from the server:** `--vlan` makes the launcher run `vlan_auto host` before Godot starts, so a sudo prompt (ufw) or the Windows admin prompt happens there.

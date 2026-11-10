@@ -62,7 +62,8 @@ func _ready()->void:
 	Net.session_ended.connect(func (reason:String)->void: _report("ended", reason); _quit())
 	Net.roster_changed.connect(func ()->void:
 		if Net.is_guest():
-			_report("roster", str(RunSession.players.count())))
+			_report("roster", str(RunSession.players.count()))
+			_report("name", RunSession.local_player().display_name))
 	Net.state_changed.connect(func ()->void:
 		if Net.is_guest():
 			_report("joined", str(RunSession.players.local_slot))

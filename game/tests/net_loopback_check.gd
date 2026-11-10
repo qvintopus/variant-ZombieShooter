@@ -52,6 +52,11 @@ func _ready()->void:
 	check(_twin_in, "a guest sharing the host's profile can join")
 	var _twin_state:PlayerState = RunSession.players.get_state(2)
 	check(_twin_state != null && _twin_state.profile_id != RunSession.local_player().profile_id, "shared profile keyed apart")
+	# same name as ours: numbered (Name#2), and the twin sees itself under that name too
+	var _twin_name:String = Net.unique_name(RunSession.local_player().display_name, [RunSession.local_player().display_name])
+	check(_twin_state != null && _twin_state.display_name == _twin_name, "taken name numbered: %s" % (_twin_state.display_name if _twin_state != null else "-"))
+	await _wait(func ()->bool: return _read(_twin).contains("NETCLIENT name " + _twin_name), 5.0)
+	check(_read(_twin).contains("NETCLIENT name " + _twin_name), "renamed guest sees its own new name")
 	if _twin_state != null:
 		Net.kick(_twin_state.slot)
 	await _wait(func ()->bool: return RunSession.players.count() == 2, 10.0)
@@ -137,6 +142,41 @@ func _check_parse()->void:
 	check(Net.parse_address("1.2.3.4:99999").is_empty(), "port out of range rejected")
 	check(Net.parse_address("1.2.3.4:abc").is_empty(), "non-numeric port rejected")
 	check(Net.parse_address("a b").is_empty(), "spaces rejected")
+	_check_names()
+
+## Name#2 numbering and the zs-vlan name as the in-game default.
+func _check_names()->void:
+	check(Net.unique_name("Player", ["Bob"]) == "Player", "free name kept")
+	check(Net.unique_name("Player", ["Bob", "player"]) == "Player#2", "taken name (any case) -> #2")
+	check(Net.unique_name("Player", ["Player", "PLAYER#2"]) == "Player#3", "next free number")
+	check(Net.unique_name("Player#2", ["Player", "Player#2"]) == "Player#3", "a numbered name counts from its base")
+	var _long:String = "abcdefghijklmnopqrstuvwx"
+	check(Net.unique_name(_long, [_long]) == "abcdefghijklmnopqrstuv#2", "numbered name stays within the length")
+	check(Net.unique_name("Mārtiņš", ["MĀRTIŅŠ"]) == "Mārtiņš#2", "case ignored beyond ASCII")
+	var _file:String = ProjectSettings.globalize_path("user://zs-vlan-name-test")
+	ENetTransport.vlan_name_file = _file
+	DirAccess.remove_absolute(_file)
+	var _profile:PlayerProfile = PlayerProfile.new()
+	check(PlayerProfile.default_name() == "Player" && !_profile.refresh_default(), "no zs-vlan name: default Player")
+	var _out:FileAccess = FileAccess.open(_file, FileAccess.WRITE)
+	_out.store_string("  Vlan Pal \n")
+	_out.close()
+	check(ENetTransport.vlan_name() == "Vlan Pal", "zs-vlan name read")
+	check(_profile.refresh_default() && _profile.display_name == "Vlan Pal", "unpicked name follows the zs-vlan name")
+	check((_profile.prepare_save() as PlayerProfile).display_name == "Player", "unpicked name saved as the stock one")
+	_profile.name_set = true
+	_profile.display_name = "Own"
+	check(!_profile.refresh_default() && _profile.display_name == "Own", "a picked name is kept")
+	var _old:PlayerProfile = PlayerProfile.new()
+	_old.display_name = "Typed"
+	var _loaded:PlayerProfile = PlayerProfile.new()
+	_loaded.prepare_load(_old)
+	check(_loaded.name_set, "older save with a typed name counts as picked")
+	_old.display_name = "Player"
+	_loaded.prepare_load(_old)
+	check(!_loaded.name_set, "older save with the stock name follows the default")
+	DirAccess.remove_absolute(_file)
+	ENetTransport.vlan_name_file = ""
 
 ## Launches net_client.tscn; its stdout goes to a file we poll.
 ## user:// save file -> modified time
