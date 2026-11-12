@@ -249,7 +249,13 @@ It will become a meta upgrade later.
 
 ## Dedicated server (`DedicatedServer`, hidden player)
 
-- **Start:** `tools/server.sh [options]` on Linux, `tools\server.cmd [options]` on Windows (`server.ps1`), from the project folder. `run_server.sh` is kept as an alias.
+- **Start:** a control menu, `tools/server.sh` on Linux and `tools\server.cmd` on Windows (`server.ps1`). It has start/stop/restart, status, players, follow the log, a console and settings. Each item also works as a subcommand (`server.sh start`, `stop`, `status`, `send <command>`, …).
+  - **Background:** the menu runs the server in the background (Windows: a hidden window). The log goes to `~/.local/state/zs-server/server.log` (`%LOCALAPPDATA%\zs-server`).
+  - **Control channel:** the server is started with `--control FILE`. `ServerConsole` then listens on `127.0.0.1` on a free port, and writes `pid`, `control_port` and a random `token` to the file.
+    - A request is `TOKEN <token>\n<command>\n`. The reply is that command's output (what `_say` printed, a VLAN command's once it's done), then the connection closes.
+    - `info` gives the menu's one-line summary.
+    - The file is removed on a clean stop. The launcher cleans up after a killed server by checking the pid.
+  - **In the window:** `server.sh run [options]`, or any `--option` first, still runs it in the window with the console on stdin, as before. `run_server.sh` is kept as an alias.
   - It finds Godot through `$GODOT`, then `godot` on the PATH, then a binary next to the project: `Godot_v*_linux.x86_64`, or on Windows `Godot_v*_win64_console.exe` (the console build is needed for the console).
   - It imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
 
@@ -260,6 +266,7 @@ It will become a meta upgrade later.
   | `--save-dir PATH` | `user://server` | its own home base, meta and run save |
   | `--name NAME` | `Server` | name shown in the session list |
   | `--status S` | off | a `SERVERSTATUS` line every S seconds |
+  | `--control FILE` | off | the launcher menu's control channel (see above) |
   | `--vlan` | off | also host the zs-vlan virtual LAN (below) |
   | `--idle-kick MIN` | `5` | drop guests idle that long, and ghosts after 3× that; `0` = never |
 
