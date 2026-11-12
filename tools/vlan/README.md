@@ -102,7 +102,9 @@ The menu shows whether the server is running, its room, players and uptime, and 
 - **Virtual LAN on** (settings, or `--vlan`): `start` runs `vlan_auto host` first and prints the first invite. Guests are then handled with `8 VLAN guests + invite` or from the console. On Windows this needs admin, and the menu reopens itself as administrator.
 - **Main player:** the dedicated server has no player of its own, so one of the players wears the host's **plumber**; everyone else is an electrician.
   - **Who:** by default, the first player to join. The setting `main player` (`--main local`) gives it instead to the first player who joins from the server's own PC.
-  - **Away:** if the main player leaves, nothing changes for the others. The seat stays theirs, and they rejoin like any guest (mid-fight they wait behind the gate until the wave is over). A player who drops mid-run gets their run back on rejoining.
+  - **Away:** if the main player leaves while others play on, nothing changes for the others. The seat stays theirs, and they rejoin like any guest (mid-fight they wait behind the gate until the wave is over). Once **everyone** has left, the seat is free again and goes to the next player to join. A player who drops mid-run gets their run back on rejoining.
+  - The server log has a line for each join (`NAME joined (slot N, address), main player (plumber)`).
+  - This is only for the dedicated server. A game hosted from the game's **Host** button always gives the plumber to the host.
   - **Change it:** the console's `main <slot>`, or `main free` (the next player to join gets it).
   - The hidden server player follows the main player's room (else the lowest slot's).
 - **Windows firewall:** after a start, and in `status`, the menu warns if Windows Firewall blocks Godot for other PCs, and names the fix (`tools\vlan\vlan_auto.cmd firewall`).

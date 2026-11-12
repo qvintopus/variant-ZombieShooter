@@ -226,7 +226,7 @@ main_who() {
 	local mode=${1%%:*} who=${1#*:}
 	case "$who" in
 	-) echo "nobody yet (the $(main_desc "$mode") wears the plumber)" ;;
-	away) echo "away, their seat is kept ($(main_desc "$mode"))" ;;
+	away) echo "away, their seat is kept until everyone has left ($(main_desc "$mode"))" ;;
 	*) echo "slot $who ($(main_desc "$mode")); change it in the console: main <slot>" ;;
 	esac
 }

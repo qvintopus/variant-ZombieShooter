@@ -172,7 +172,7 @@ static func main_line()->String:
 	if _main != null:
 		return "main player (plumber): %s, slot %d   (mode %s: %s)" % [_main.display_name, _main.slot, Net.main_mode, _how]
 	if !Net.main_key.is_empty():
-		return "main player: away, their seat is kept for them   (mode %s; 'main free' gives it to the next to join)" % Net.main_mode
+		return "main player: away, their seat is kept for them until everyone has left   (mode %s; 'main free' gives it to the next to join)" % Net.main_mode
 	return "main player: nobody yet, it goes to %s   (mode %s)" % [_how, Net.main_mode]
 
 func _main(words:PackedStringArray)->void:

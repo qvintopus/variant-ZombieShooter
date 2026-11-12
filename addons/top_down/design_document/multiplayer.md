@@ -308,7 +308,7 @@ It will become a meta upgrade later.
   - It is `hidden` in the roster, so guests show no copy or panel row.
 - **Main player** (`Net.main_mode`, `Net.main_key`, `PlayerState.main`):
   - Set in `_hello` (`_claim_main`). With `first`, the first guest to join gets it. With `local`, the first one whose `_hello.machine` equals the server's own `GuestSandbox.machine_id()` gets it, whether it joins over 127.0.0.1, the LAN or the VLAN.
-  - The seat is kept by key (`profile_id|machine`), so it waits while that player is away. Others don't take it over. The console can hand it over or free it.
+  - The seat is kept by key (`profile_id|machine`), so it waits while that player is away and others play on. Others don't take it over. When the last real player disconnects (`_on_peer_disconnected`), `main_key` is cleared, so the next player to join is the first again. The console can hand it over or free it.
   - It travels in the roster as `main`, which drives the skin, the co-op dialog's "main" tag, and `ServerAnchor.leader()`. The hidden player follows the main player when it's active in a room, and otherwise the lowest active slot.
   - Tiers are unchanged: the main player is a guest like the others (ghost or electrician tier, `GuestTier`).
 - **A guest dropping mid-run** (leaving, a crash, a lost link): `_on_peer_disconnected` parks its run data in `RunSession.waiting_guests` first, as the idle kick does, so a rejoin gets it back (`_return_saved_guests`). Mid-fight, a rejoin waits at the door (`WaitingAtDoor`). This applies to every host, not only the dedicated server.

@@ -226,9 +226,21 @@ func _on_peer_disconnected(peer_id:int)->void:
 			if is_host() && RunSession.active && (!_state.ghost || _state.parked) && _state.guest_run_data != null && !RunSession.waiting_guests.has(_state.profile_id):
 				RunSession.waiting_guests[_state.profile_id] = _state.capture()
 			RunSession.players.remove(_state.slot)
+	if is_server() && !main_key.is_empty() && _real_players() == 0:
+		# everyone has left: the next player to join is the first one again
+		main_key = ""
+		PlaytestLog.event("net", {"main": "free (everyone left)"})
+		print("DedicatedServer [INFO]: everyone has left; the main player is the next to join")
 	if is_host():
 		_broadcast_roster()
 	roster_changed.emit()
+
+func _real_players()->int:
+	var _count:int = 0
+	for _state:PlayerState in RunSession.players.all():
+		if !_state.is_local:
+			_count += 1
+	return _count
 
 ## Guest -> host, once, right after connecting.
 @rpc("any_peer", "call_remote", "reliable")
@@ -271,7 +283,9 @@ func _hello(info:Dictionary)->void:
 		_guest.main_key = "%s|%s" % [str(info.profile_id), str(info.get("machine", ""))]
 		_guest.main = _claim_main(_guest, str(info.get("machine", "")))
 	RunSession.players.add(_guest)
-	PlaytestLog.event("net", {"welcome": _name, "slot": _slot, "peer": _peer, "address": peer_address(_peer), "fresh": _fresh})
+	PlaytestLog.event("net", {"welcome": _name, "slot": _slot, "peer": _peer, "address": peer_address(_peer), "fresh": _fresh, "main": _guest.main})
+	if is_server():
+		print("DedicatedServer [INFO]: %s joined (slot %d, %s)%s" % [_name, _slot, peer_address(_peer), ", main player (plumber)" if _guest.main else ""])
 	_welcome.rpc_id(_peer, _slot, _roster(), _fresh, session_id)
 	_broadcast_roster()
 	roster_changed.emit()
