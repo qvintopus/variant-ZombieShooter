@@ -3,7 +3,7 @@
 # and send at the same time (keepalive), so each router/firewall lets the other's packets back in.
 
 NAME=zsvlan                  # NM connection + interface name (and the tunnel name on Windows)
-NET=10.77.0                  # host is .1, guests .2-.8
+NET=10.77.0                  # host is .1, guests pick .2-.254 (at most 7)
 PORT=${VLAN_PORT:-51820}     # WireGuard UDP port, same on every machine
 GAME_PORT=24565
 STATE_HOST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan

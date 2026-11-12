@@ -295,7 +295,7 @@ It will become a meta upgrade later.
 - **zs-vlan from the server:** `--vlan` makes the launcher run `vlan_auto host` before Godot starts, so a sudo prompt (ufw) or the Windows admin prompt happens there.
   - **What starts the tunnel:** only `vlan_auto` does. It is off after a restart, and its watchdog takes it down after `VLAN_IDLE_MIN` (5) minutes without traffic.
   - **A listening server keeps it up:** a socket on UDP 24565 counts as activity. That holds as long as the server runs. Once the server stops, its VLAN goes off 5 minutes later.
-  - **`invite` (= `vlan_auto host`) starts it again:** first it checks the public address. If that changed, it prints a new invite for each existing guest, with `moved=yes` in the `ZSVLAN` line.
+  - **`invite` (= `vlan_auto host`) starts it again:** first it checks the public address. If that changed, it prints the new invite (one for all guests), with `moved=yes` in the `ZSVLAN` line.
   - The VLAN console commands run `tools/vlan/vlan_auto.sh` (Linux, through `bash`) or `vlan_auto.ps1` (Windows, through `powershell -File`) on a worker thread, with `--machine`.
   - Their text is printed as is. The last `ZSVLAN key=value …` line is parsed into `ServerConsole.vlan_result`.
   - `ServerConsole.vlan_dir()` looks in the project's `tools/vlan`, then in `tools/vlan` next to the executable (for an exported game).

@@ -54,7 +54,7 @@ static func lan_addresses()->PackedStringArray:
 				_list.append(_ip)
 	return _list
 
-## The zs-vlan virtual LAN (tools/vlan): its host is .1, guests .2-.8.
+## The zs-vlan virtual LAN (tools/vlan): its host is .1, guests pick .2-.254.
 const VLAN_PREFIX:String = "10.77.0."
 const VLAN_HOST:String = "10.77.0.1"
 
