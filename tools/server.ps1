@@ -14,8 +14,9 @@
 # The server runs in a hidden window until stopped (closing the menu leaves it running); its log is in
 # %LOCALAPPDATA%\zs-server\server.log. The menu talks to it over 127.0.0.1 with a token only this user
 # can read. The virtual LAN setting needs admin (the menu reopens itself as admin for it).
-# Godot: $env:GODOT, else godot on the PATH, else a Godot_v*_win64_console.exe next to the project folder
-# (the console build: the plain .exe has no console to print to).
+# Godot: $env:GODOT, else godot_console/godot on the PATH, else Godot_v*_win64_console.exe or godot_console.exe
+# in the project folder, the folder above it, tools\ or a Godot* folder in those. The console exe is needed
+# (it starts the plain exe next to it and shows its output); without it the plain exe is tried.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 $Dir = Join-Path $env:LOCALAPPDATA "zs-server"
@@ -23,6 +24,10 @@ $Control = Join-Path $Dir "control"
 $Log = Join-Path $Dir "server.log"
 $SettingsFile = Join-Path $Dir "settings"
 $Self = "server.cmd"
+# The Godot version the project is made with (project.godot: config/features).
+$GodotVersion = "4.7"
+$pg = Join-Path $Root "project.godot"
+if (Test-Path $pg) { $m = Select-String -Path $pg -Pattern 'config/features=PackedStringArray\("(\d+\.\d+)"' | Select-Object -First 1; if ($m) { $GodotVersion = $m.Matches[0].Groups[1].Value } }
 New-Item -ItemType Directory $Dir -Force | Out-Null
 $Argv = @($args | ForEach-Object { "$_" })
 $Cmd = if ($Argv.Count -gt 0) { $Argv[0] } else { "" }
@@ -40,26 +45,79 @@ function Elevate([string[]]$with) {
     exit 10
 }
 
+# Where a Godot exe may be: the project folder, the folder above it, tools\, and any Godot* folder in
+# those (Windows "Extract all" puts the zip's two exes in a folder of their own).
+function GodotDirs {
+    $base = @($Root, (Split-Path $Root -Parent), $PSScriptRoot) | Select-Object -Unique
+    $dirs = @()
+    foreach ($d in $base) {
+        $dirs += $d
+        $dirs += @(Get-ChildItem $d -Directory -Filter "Godot*" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+    }
+    $dirs | Select-Object -Unique
+}
+# The first match of these names (wildcards ok; the highest version wins) in GodotDirs.
+function FindExe([string[]]$names) {
+    foreach ($n in $names) {
+        foreach ($d in (GodotDirs)) {
+            $f = Get-ChildItem $d -File -Filter $n -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
+            if ($f) { return $f.FullName }
+        }
+    }
+    ""
+}
+$GodotConsoleNames = @("Godot_v*_win64_console.exe", "godot_console.exe", "Godot*_console.exe")
+$GodotGuiNames = @("Godot_v*_win64.exe", "godot.exe")
+
 function FindGodot {
     if ($script:Godot) { return $true }
-    $g = $env:GODOT
-    if (-not $g) { $c = Get-Command godot -ErrorAction SilentlyContinue; if ($c) { $g = $c.Source } }
-    if (-not $g) {
-        $f = Get-ChildItem (Split-Path $Root -Parent) -Filter "Godot_v*_win64_console.exe" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
-        if ($f) { $g = $f.FullName }
+    $g = ""
+    if ($env:GODOT) {
+        if (Test-Path $env:GODOT -PathType Leaf) { $g = $env:GODOT }
+        else { Write-Host "GODOT is set to '$env:GODOT', but there's no file there; looking in the usual places instead." }
     }
+    if (-not $g) { $c = Get-Command godot_console, godot -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1; if ($c) { $g = $c.Source } }
+    if (-not $g) { $g = FindExe $GodotConsoleNames }
     if (-not $g) {
-        $gui = Get-ChildItem (Split-Path $Root -Parent) -Filter "Godot_v*_win64.exe" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
-        if ($gui) {
-            Write-Host "only the GUI Godot ($($gui.Name)) was found; the server needs the _console.exe next to it (it comes in the same Godot zip)."
-            $g = $gui.FullName
+        $g = FindExe $GodotGuiNames
+        if ($g) {
+            Write-Host "found only the plain Godot exe: $g"
+            Write-Host "  the server also needs the console exe from the same Godot zip, in the same folder:"
+            $leaf = Split-Path $g -Leaf
+            Write-Host "  $($leaf -replace '\.exe$', '_console.exe')   (it starts $leaf and shows its output)"
+            Write-Host "  trying the plain one anyway; if the log stays empty, add the console exe."
         }
     }
     if (-not $g) {
-        Write-Host "no Godot found. Put Godot_v*_win64_console.exe next to the project folder, or set GODOT=C:\path\to\Godot_console.exe"
+        Write-Host "no Godot found. Put both exes from the Godot $GodotVersion zip for Windows in one of these folders:"
+        foreach ($d in @($Root, (Split-Path $Root -Parent))) { Write-Host "  $d" }
+        Write-Host "  names: Godot_v$GodotVersion.x-stable_win64.exe + Godot_v$GodotVersion.x-stable_win64_console.exe (as they come in the zip),"
+        Write-Host "     or: godot.exe + godot_console.exe (renamed: keep both, with the same start)"
+        Write-Host "  or set GODOT=C:\path\to\the_console.exe"
+        # likely near-misses: a Godot-ish file that isn't named right (Explorer hides ".exe", so "godot.exe" can really be "godot.exe.exe")
+        $near = foreach ($d in (GodotDirs)) { Get-ChildItem $d -File -Filter "*godot*" -ErrorAction SilentlyContinue | Where-Object { $_.Extension -ne ".godot" } }
+        if ($near) {
+            Write-Host "found these, but their names don't match (the exact names are shown):"
+            $near | Select-Object -Unique FullName | ForEach-Object { Write-Host "  $($_.FullName)" }
+        }
         return $false
     }
+    if ($g -match '_console\.exe$') {
+        $main = $g -replace '_console\.exe$', '.exe'
+        if (-not (Test-Path $main)) {
+            Write-Host "found $g, but the console exe only starts the plain exe next to it, and that one is missing:"
+            Write-Host "  expected: $main"
+            Write-Host "  put the plain Godot exe from the same zip there, under exactly that name"
+            Write-Host "  (renamed pairs must match: godot.exe + godot_console.exe)."
+            return $false
+        }
+    }
     $script:Godot = $g
+    $v = ""
+    try { $v = "$(& $g --version 2>$null | Select-Object -First 1)".Trim() } catch {}
+    if ($v -and -not $v.StartsWith("$GodotVersion.")) {
+        Write-Host "note: $g is Godot $v; the project is made with Godot $GodotVersion. Use that version if the server misbehaves."
+    }
     if (-not (Test-Path (Join-Path $Root ".godot\imported"))) {
         Write-Host "first start, importing the project..."
         Push-Location $Root; & $g --headless --path . --import | Out-Null; Pop-Location

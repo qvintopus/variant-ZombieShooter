@@ -86,7 +86,9 @@ The menu shows whether the server is running, its room, players and uptime, and 
   - The server is started with `--control FILE` and listens on `127.0.0.1` only, on a free port.
   - It writes its pid, that port and a random token to the file, in a folder only this user can read. Each request must carry the token.
   - The file is removed on a clean stop. A file left by a killed server is spotted (the pid is gone) and cleaned up.
-- **Godot:** `$GODOT`, then `godot` on the PATH, then a Godot binary next to the project folder. On Linux that's `Godot_v*_linux.x86_64`. On Windows it's `Godot_v*_win64_console.exe`, the console build from the same zip.
+- **Godot:** `$GODOT`, then `godot` on the PATH, then a Godot binary in the project folder, the folder above it, `tools`, or a `Godot*` folder in those (where "Extract all" puts the zip's files). If none is found, it lists where it looked, the exact names it wants, and any Godot-like files whose names don't match.
+  - **Windows:** keep **both** exes from the Godot zip side by side: `Godot_v4.7.x-stable_win64.exe` and `Godot_v4.7.x-stable_win64_console.exe`, or renamed to `godot.exe` and `godot_console.exe`. The server runs the console one, which starts the plain exe of the same name and shows its output. With Explorer hiding extensions, a file renamed to "godot.exe" is really `godot.exe.exe`.
+  - **Linux:** `Godot_v4.7.x-stable_linux.x86_64`, `godot` or `godot.x86_64`.
 - **Virtual LAN on** (settings, or `--vlan`): `start` runs `vlan_auto host` first and prints the first invite. Guests are then handled with `8 VLAN guests + invite` or from the console. On Windows this needs admin, and the menu reopens itself as administrator.
 - **Console commands** (the menu's console, `send`, or typed into the window with `run`). `help` lists them.
 

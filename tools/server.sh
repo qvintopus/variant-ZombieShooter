@@ -14,7 +14,7 @@
 # Options: --vlan --port N --max-players 2..8 --save-dir PATH --name NAME --status SECONDS --idle-kick MIN
 # The server runs in the background until stopped (closing the menu leaves it running); its log is in
 # ~/.local/state/zs-server/server.log. The menu talks to it over 127.0.0.1 with a token only this user
-# can read. Godot: $GODOT, else `godot` on the PATH, else a Godot_v*_linux.x86_64 next to the project folder.
+# can read. Godot: $GODOT, else `godot` on the PATH, else a Godot binary near the project (see find_godot).
 set -u
 cd "$(dirname "$0")/.." || exit 1
 DIR=${XDG_STATE_HOME:-$HOME/.local/state}/zs-server
@@ -24,11 +24,39 @@ SETTINGS=$DIR/settings
 SELF=tools/server.sh
 mkdir -p "$DIR" && chmod 700 "$DIR"
 
+# Godot: $GODOT, `godot` on the PATH, else a binary in the project folder, the folder above it, tools/, or a
+# Godot* folder in those. Names: Godot_v*_linux.x86_64 (as it comes in the zip), godot, godot.x86_64.
 find_godot() {
-	[ -n "${GODOT:-}" ] && return 0
-	if command -v godot >/dev/null 2>&1; then GODOT=godot
-	else GODOT=$(ls ../Godot_v*_linux.x86_64 2>/dev/null | tail -n 1); fi
-	[ -n "$GODOT" ] || { echo "no Godot binary found; set GODOT=/path/to/Godot" >&2; return 1; }
+	local d n f want near=()
+	want=$(sed -n 's/^config\/features=PackedStringArray("\([0-9]*\.[0-9]*\)".*/\1/p' project.godot 2>/dev/null)
+	if [ -n "${GODOT:-}" ]; then
+		if [ -f "$GODOT" ] || command -v "$GODOT" >/dev/null 2>&1; then return 0; fi
+		echo "GODOT is set to '$GODOT', but there's no such file; looking in the usual places instead." >&2
+		GODOT=
+	fi
+	if command -v godot >/dev/null 2>&1; then GODOT=godot; return 0; fi
+	local dirs=(. .. tools)
+	for d in . .. tools; do for f in "$d"/Godot*/; do [ -d "$f" ] && dirs+=("${f%/}"); done; done
+	for n in 'Godot_v*_linux.x86_64' godot godot.x86_64; do
+		for d in "${dirs[@]}"; do
+			# shellcheck disable=SC2086
+			f=$(ls -d "$d"/$n 2>/dev/null | sort -V | tail -n 1)
+			[ -n "$f" ] && [ -f "$f" ] && { [ -x "$f" ] || chmod +x "$f"; GODOT=$f; return 0; }
+		done
+	done
+	{
+		echo "no Godot found. Put the Godot ${want:-4} binary for Linux in the project folder or the folder above it:"
+		echo "  $(pwd)"
+		echo "  $(cd .. && pwd)"
+		echo "  name: Godot_v${want:-4}.x-stable_linux.x86_64 (as it comes in the zip), or godot / godot.x86_64"
+		echo "  or set GODOT=/path/to/godot"
+		for d in "${dirs[@]}"; do for f in "$d"/*[gG]odot*; do [ -f "$f" ] && [[ $f != *.godot ]] && near+=("$(realpath "$f")"); done; done
+		if [ ${#near[@]} -gt 0 ]; then
+			echo "found these, but their names don't match:"
+			printf '  %s\n' "${near[@]}"
+		fi
+	} >&2
+	return 1
 }
 
 # ---------------------------------------------------------------- settings
