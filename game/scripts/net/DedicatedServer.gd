@@ -157,7 +157,7 @@ func _print_join_info()->void:
 		print("DedicatedServer [INFO]: join on the same network at  " + _join(_ip))
 	print("DedicatedServer [INFO]: join from this PC at  " + _join("127.0.0.1"))
 	if !_vlan.is_empty():
-		print("DedicatedServer [INFO]: paste a guest's reply code here to add them; 'invite' shows the next invite")
+		print("DedicatedServer [INFO]: paste a guest's reply code here to add them; 'invite' shows the invite (the same for every guest)")
 	print("DedicatedServer [INFO]: type help for the console commands")
 
 func _join(ip:String)->String:

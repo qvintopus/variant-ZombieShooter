@@ -1,10 +1,11 @@
 # zs-vlan, guided, Windows (official WireGuard client). Linux: vlan_auto.sh. See README.md.
 #   vlan_auto.cmd                     guided: host or join (or continue / switch / stop what this PC has), then each next step
 #   vlan_auto.cmd <code>              paste whatever you got: an invite (zsi2.) joins, a reply (zsr2.) adds that guest
-#   vlan_auto.cmd host                create the virtual LAN (or show it) + the invite for the next guest
+#   vlan_auto.cmd host                create the virtual LAN (or show it) + the invite (one for all guests)
 #   vlan_auto.cmd host add <reply>    add a guest from the reply they sent back
 #   vlan_auto.cmd host remove <N>     remove guest 10.77.0.N
 #   vlan_auto.cmd join <invite>       join a host's virtual LAN; prints the reply to send back
+#   vlan_auto.cmd newaddress          guest: pick another address (when the host says yours is taken)
 #   vlan_auto.cmd start               start the last virtual LAN again (after a restart or going idle)
 #   vlan_auto.cmd name [NEW]          this PC's name on the virtual LAN (default: the computer name)
 #   vlan_auto.cmd firewall [EXE...]   let friends on the virtual LAN reach the game through Windows Firewall
@@ -54,7 +55,7 @@ $IdleBytes = 2048   # less traffic than this per check counts as idle (a game se
 $IdleCheck = if ($env:VLAN_IDLE_CHECK -match '^\d+$') { [int]$env:VLAN_IDLE_CHECK } else { 30 }   # seconds
 
 if ($Cmd -in @("help", "-h", "--help")) {
-    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 21 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 22 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 0
 }
 
@@ -381,7 +382,9 @@ function PeerName($f) {
     if ($n) { $n } else { "guest $($f.Name)" }
 }
 function Peers { if (Test-Path "$StateHost\peers") { @(Get-ChildItem "$StateHost\peers" | Sort-Object Name) } else { @() } }
-function NextSlot { foreach ($n in 2..8) { if (-not (Test-Path "$StateHost\peers\$n")) { return "$n" } }; "-" }
+# Guests pick their own address (10.77.0.2-254) from the one shared invite; at most $MaxGuests of them.
+$MaxGuests = 7
+function SlotOk([string]$n) { ($n -match '^\d{1,3}$') -and [int]$n -ge 2 -and [int]$n -le 254 }
 function HostConf {
     $priv = (Get-Content "$StateHost\host.key" -Raw).Trim()
     $c = "[Interface]`r`nPrivateKey = $priv`r`nAddress = $Net.1/24`r`nListenPort = $Port`r`n"
@@ -458,24 +461,24 @@ function HostShow {
         $moved = "yes"
         $o6, $o4 = $script:PubOld.Split(" ")
         Write-Host "this PC's public address changed (was IPv6 $o6  IPv4 $o4), so guests can't reach it."
-        Write-Host "send each guest their new invite; they paste it into vlan_auto (same slot, no new reply needed"
-        Write-Host "unless their address changed too):"
-        foreach ($f in (Peers)) { Write-Host "  $Net.$($f.Name) ($(PeerName $f)):  $(Enc "zsi2" "$hpub $Port $($f.Name) $v6 $v4 $mine")" }
+        Write-Host "send your guests the invite below again; they paste it into vlan_auto (same address, no new"
+        Write-Host "reply needed unless their public address changed too)."
         Write-Host ""
     }
-    $slot = NextSlot
+    $slot = "-"
     $code = "-"
-    if ($slot -eq "-") {
-        Write-Host "all 7 guest slots are used ($Self host remove <N> frees one)"
+    if (@(Peers).Count -ge $MaxGuests) {
+        Write-Host "all $MaxGuests guest places are used ($Self host remove <N> frees one)"
     } else {
-        $code = Enc "zsi2" "$hpub $Port $slot $v6 $v4 $mine"
-        Write-Host "1. send this invite to your friend (it holds only public info):"
+        $slot = "open"
+        $code = Enc "zsi2" "$hpub $Port 0 $v6 $v4 $mine"
+        Write-Host "1. send this invite to your friends - the same one to everyone (it holds only public info):"
         Write-Host ""
         Write-Host $code
         Clip $code
         Write-Host ""
-        Write-Host "2. they run vlan_auto with it and send you back a reply code"
-        Write-Host "3. you paste the reply:  $Self <reply>"
+        Write-Host "2. each runs vlan_auto with it and sends you back their own reply code"
+        Write-Host "3. you paste each reply as it comes:  $Self <reply>"
     }
     Write-Host ""
     Write-Host "game: host from the Comms Terminal, or run tools\server.cmd - friends join  $Net.1"
@@ -493,14 +496,21 @@ function HostAdd([string]$reply) {
     $slot, $gpub, $gport, $gv6, $gv4 = $fields[0..4]
     $asked = CleanName (Rest $fields 5)
     if (-not $asked) { $asked = "guest $slot" }
-    if (-not ("$slot" -match '^[2-8]$' -and "$gpub".Length -eq 44 -and "$gport" -match '^\d+$')) { Fail 1 "broken reply code (copy the whole line)" }
+    if (-not ((SlotOk $slot) -and "$gpub".Length -eq 44 -and "$gport" -match '^\d+$')) { Fail 1 "broken reply code (copy the whole line)" }
+    $slot = "$([int]$slot)"
     $file = "$StateHost\peers\$slot"
+    $moved = $null
     if (Test-Path $file) {
         $old = (Get-Content $file -Raw).Trim().Split(" ")[0]
-        if ($old -ne $gpub) { Fail 3 "slot $Net.$slot already belongs to another guest; send a fresh invite ($Self host) and have them join with it" }
+        if ($old -ne $gpub) { Fail 3 "$Net.$slot is already taken by `"$(PeerName (Get-Item $file))`". Ask the new guest to run:  vlan_auto newaddress   and send you the reply it prints" }
+    } else {
+        # the same guest under a new address (it picked another one): it moves
+        foreach ($f in (Peers)) { if ((Get-Content $f.FullName -Raw).Trim().Split(" ")[0] -eq $gpub) { $moved = $f } }
+        if (-not $moved -and @(Peers).Count -ge $MaxGuests) { Fail 3 "all $MaxGuests guest places are used ($Self host remove <N> frees one)" }
     }
     $ep = PickEp $gv6 $gv4 $gport (MyV6)
     if (-not $ep) { Fail 3 "the guest sent no address usable from here (no IPv6 on one side and no IPv4 from them)" }
+    if ($moved) { Remove-Item $moved.FullName; Write-Host "(this guest was $Net.$($moved.Name) before)" }
     # their name, made unique among this PC and the other guests (an update of the same slot doesn't count)
     $taken = @(MyName)
     foreach ($f in (Peers)) { if ($f.Name -ne "$slot") { $taken += PeerName $f } }
@@ -523,7 +533,8 @@ function HostAdd([string]$reply) {
 }
 
 function HostRemove([string]$n) {
-    if (-not ($n -match '^[2-8]$')) { Fail 1 "usage: $Self host remove <2..8>" }
+    if (-not (SlotOk $n)) { Fail 1 "usage: $Self host remove <N>   (guest 10.77.0.N, see: $Self status)" }
+    $n = "$([int]$n)"
     $file = "$StateHost\peers\$n"
     if (-not (Test-Path $file)) { Fail 3 "no guest $Net.$n" }
     $pub = (Get-Content $file -Raw).Trim().Split(" ")[0]
@@ -554,26 +565,56 @@ function GuestJoin([string]$invite) {
     $fields = Dec "zsi" $invite
     $hpub, $hport, $slot, $hv6, $hv4 = $fields[0..4]
     $hname = CleanName (Rest $fields 5)
-    if (-not ("$slot" -match '^[2-8]$' -and "$hpub".Length -eq 44 -and "$hport" -match '^\d+$')) { Fail 1 "broken invite code (copy the whole line)" }
+    if (-not (("$slot" -eq "0" -or (SlotOk $slot)) -and "$hpub".Length -eq 44 -and "$hport" -match '^\d+$')) { Fail 1 "broken invite code (copy the whole line)" }
     $ep = PickEp $hv6 $hv4 $hport (MyV6)
     if (-not $ep) { Fail 3 "the host has no address usable from here: they have no IPv4 in the invite and this PC has no IPv6" }
     Preflight
-    Write-Host "invite from `"$(if ($hname) { $hname } else { "the host" })`" - you'll be $Net.$slot on their virtual LAN"
+    NewStateDir $StateGuest
+    Set-Content "$StateGuest\invite" $invite
+    # an open invite (slot 0): this PC picks its own address, kept with the key for rejoins and new invites
+    if ("$slot" -eq "0" -and -not (Test-Path "$StateGuest\slot")) { Set-Content "$StateGuest\slot" "$(Get-Random -Minimum 2 -Maximum 255)" }
+    Write-Host "invite from `"$(if ($hname) { $hname } else { "the host" })`" - you'll be $Net.$(MySlot) on their virtual LAN"
     Write-Host ""
     AskName "the host sees it in their guest list"
-    NewStateDir $StateGuest
     EnsureWireGuard $StateGuest
     if (-not (Test-Path "$StateGuest\guest.key")) { Set-Content "$StateGuest\guest.key" (& $Wg genkey).Trim() }   # same key on rejoin
-    Set-Content "$StateGuest\invite" $invite
     PubCheck $StateGuest
-    $priv = (Get-Content "$StateGuest\guest.key" -Raw).Trim()
-    $conf = "[Interface]`r`nPrivateKey = $priv`r`nAddress = $Net.$slot/24`r`nListenPort = $Port`r`n`r`n" +
-            "[Peer]`r`nPublicKey = $hpub`r`nAllowedIPs = $Net.1/32`r`nEndpoint = $ep`r`nPersistentKeepalive = 25`r`n"
-    [IO.File]::WriteAllText("$StateGuest\$Name.conf", $conf)
+    GuestConf
     InstallTunnel $StateGuest
     FwOpen   # this PC can host the game for the VLAN host too
     Write-Host "tunnel set up."
     Write-Host ""
+}
+
+# This guest's address: the slot a per-guest invite gave, else the one it picked for an open invite.
+function MySlot {
+    $s = (Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim())[2]
+    if ("$s" -ne "0") { return "$s" }
+    if (Test-Path "$StateGuest\slot") { (Get-Content "$StateGuest\slot" -Raw).Trim() } else { "0" }
+}
+function GuestConf {
+    $hpub, $hport, $null, $hv6, $hv4 = (Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim())[0..4]
+    $ep = PickEp $hv6 $hv4 $hport (MyV6)
+    if (-not $ep) { Fail 3 "the host has no address usable from here (no IPv6 on one side, and no IPv4 in the invite)" }
+    $priv = (Get-Content "$StateGuest\guest.key" -Raw).Trim()
+    $conf = "[Interface]`r`nPrivateKey = $priv`r`nAddress = $Net.$(MySlot)/24`r`nListenPort = $Port`r`n`r`n" +
+            "[Peer]`r`nPublicKey = $hpub`r`nAllowedIPs = $Net.1/32`r`nEndpoint = $ep`r`nPersistentKeepalive = 25`r`n"
+    [IO.File]::WriteAllText("$StateGuest\$Name.conf", $conf)
+}
+
+# The host said this address is taken: pick another one and show the new reply.
+function NewAddress {
+    if ((Role) -ne "guest") { Fail 3 "only a guest picks its address; this PC hasn't joined a virtual LAN" }
+    $old = MySlot
+    if ((Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim())[2] -ne "0") { Fail 3 "the host's invite gave this PC $Net.$old; ask the host for a new invite" }
+    $s = $old
+    while ("$s" -eq "$old") { $s = "$(Get-Random -Minimum 2 -Maximum 255)" }
+    Set-Content "$StateGuest\slot" $s
+    GuestConf
+    InstallTunnel $StateGuest
+    Write-Host "this PC is now $Net.$s (was $Net.$old). Send the host the new reply."
+    Write-Host ""
+    GuestShow; GuestWait
 }
 
 # Start the joined tunnel again (after a restart or going idle).
@@ -588,7 +629,8 @@ function GuestUp {
 function GuestShow {
     if (-not (Test-Path "$StateGuest\invite")) { Fail 3 "not joined yet; run: $Self <invite code from the host>" }
     $fields = Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim()
-    $hpub, $hport, $slot, $hv6, $hv4 = $fields[0..4]
+    $hpub, $hport, $null, $hv6, $hv4 = $fields[0..4]
+    $slot = MySlot
     $hname = CleanName (Rest $fields 5)
     if (-not $hname) { $hname = "host" }
     $mine = MyName
@@ -702,7 +744,7 @@ function NameCmd([string]$new) {
     Write-Host "name: `"$(MyName)`""
     if ($r -eq "host") { Write-Host "the next invites carry it; guests who already joined still see the old one until they get a new invite." }
     if ($r -eq "guest" -and $asked) {
-        $slot = (Dec "zsi" (Get-Content "$StateGuest\invite" -Raw).Trim())[2]
+        $slot = MySlot
         $pubs = if (Test-Path "$StateGuest\public") { (Get-Content "$StateGuest\public" -Raw).Trim() } else { "- -" }
         $reply = Enc "zsr2" "$slot $(Pub "$StateGuest\guest.key") $Port $pubs $(MyName)"
         Write-Host "the host only sees it from a new reply:"
@@ -755,7 +797,8 @@ function SavedDesc {
             catch { return "this PC joined a virtual LAN" }   # Dec would end the script on a broken file
             $hn = CleanName (Rest $f 5)
             if (-not $hn) { $hn = "the host" }
-            return "this PC joined the virtual LAN of `"$hn`" as $Net.$($f[2])"
+            $sl = if ("$($f[2])" -ne "0") { $f[2] } elseif (Test-Path "$StateGuest\slot") { (Get-Content "$StateGuest\slot" -Raw).Trim() } else { "?" }
+            return "this PC joined the virtual LAN of `"$hn`" as $Net.$sl"
         }
     }
     ""
@@ -844,6 +887,7 @@ switch -regex ($Cmd) {
     }
     '^join$' { if (-not $Arg1) { Fail 1 "usage: $Self join <invite>" }; GuestJoin $Arg1; GuestShow; GuestWait; break }
     '^start$' { Start-Role; break }
+    '^newaddress$' { NewAddress; break }
     '^watch$' { Watch $(if ($Arg1 -match '^\d+$') { [int]$Arg1 } else { $IdleMin }); break }
     '^status$' { Status; break }
     '^name$' { NameCmd $Arg1; break }

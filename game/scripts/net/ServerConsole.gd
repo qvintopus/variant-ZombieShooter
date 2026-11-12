@@ -29,7 +29,7 @@ const HELP:String = """commands:
   home                   save the run and go back to the home base
   stop                   save, tell the players, quit (also: quit, exit)
 virtual LAN (zs-vlan, this PC hosts it - tools/server.sh --vlan):
-  invite                 the invite code for the next guest
+  invite                 the invite code (the same one for every guest)
   add <reply>            add a guest from their reply code (pasting the bare zsr2. code works too)
   guests                 guests and whether they're online
   revoke <N>             remove guest 10.77.0.N"""

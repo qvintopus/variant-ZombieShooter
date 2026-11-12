@@ -2,10 +2,11 @@
 # zs-vlan, guided, Linux (NetworkManager). Windows: vlan_auto.cmd. See README.md.
 #   vlan_auto.sh                     guided: host or join (or continue / switch / stop what this PC has), then each next step
 #   vlan_auto.sh <code>              paste whatever you got: an invite (zsi2.) joins, a reply (zsr2.) adds that guest
-#   vlan_auto.sh host                create the virtual LAN (or show it) + the invite for the next guest
+#   vlan_auto.sh host                create the virtual LAN (or show it) + the invite (one for all guests)
 #   vlan_auto.sh host add <reply>    add a guest from the reply they sent back
 #   vlan_auto.sh host remove <N>     remove guest 10.77.0.N
 #   vlan_auto.sh join <invite>       join a host's virtual LAN; prints the reply to send back
+#   vlan_auto.sh newaddress          guest: pick another address (when the host says yours is taken)
 #   vlan_auto.sh start               start the last virtual LAN again (after a restart or going idle)
 #   vlan_auto.sh name [NEW]          this PC's name on the virtual LAN (default: the computer name)
 #   vlan_auto.sh status              what this PC is, who is online, the code to send
@@ -52,7 +53,9 @@ host_conf() {
 	done
 }
 
-next_slot() { local n; for n in 2 3 4 5 6 7 8; do [ -e "$STATE/peers/$n" ] || { echo "$n"; return; }; done; echo -; }
+# Guests pick their own address (10.77.0.2-254) from the one shared invite; at most MAX_GUESTS of them.
+MAX_GUESTS=7
+guest_count() { local f n=0; for f in "$STATE"/peers/*; do [ -e "$f" ] && n=$((n + 1)); done; echo $n; }
 
 host_up() {
 	[ "$(role)" = guest ] && fail 3 "this PC has joined someone else's virtual LAN; to host instead run: $SELF stop"
@@ -118,28 +121,23 @@ host_show() {
 	if [ -n "${PUB_OLD:-}" ] && [ $n = 1 ]; then
 		moved=yes
 		echo "this PC's public address changed (was IPv6 ${PUB_OLD% *}  IPv4 ${PUB_OLD#* }), so guests can't reach it."
-		echo "send each guest their new invite; they paste it into vlan_auto (same slot, no new reply needed"
-		echo "unless their address changed too):"
-		for f in "$STATE"/peers/*; do
-			[ -e "$f" ] || continue
-			read -r pub ep gname <"$f"
-			echo "  $NET.${f##*/} (${gname:-guest ${f##*/}}):  $(enc zsi2 "$hpub $PORT ${f##*/} $v6 $v4 $me")"
-		done
+		echo "send your guests the invite below again; they paste it into vlan_auto (same address, no new"
+		echo "reply needed unless their public address changed too)."
 		echo
 	fi
-	slot=$(next_slot)
-	if [ "$slot" = - ]; then
-		code=-
-		echo "all 7 guest slots are used ($SELF host remove <N> frees one)"
+	if [ "$(guest_count)" -ge $MAX_GUESTS ]; then
+		slot=- code=-
+		echo "all $MAX_GUESTS guest places are used ($SELF host remove <N> frees one)"
 	else
-		code=$(enc zsi2 "$hpub $PORT $slot $v6 $v4 $me")
-		echo "1. send this invite to your friend (it holds only public info):"
+		slot=open
+		code=$(enc zsi2 "$hpub $PORT 0 $v6 $v4 $me")
+		echo "1. send this invite to your friends - the same one to everyone (it holds only public info):"
 		echo
 		echo "$code"
 		clip "$code"
 		echo
-		echo "2. they run vlan_auto with it and send you back a reply code"
-		echo "3. you paste the reply:  $SELF <reply>"
+		echo "2. each runs vlan_auto with it and sends you back their own reply code"
+		echo "3. you paste each reply as it comes:  $SELF <reply>"
 	fi
 	echo
 	echo "game: host from the Comms Terminal, or run tools/server.sh - friends join  $NET.1"
@@ -147,15 +145,23 @@ host_show() {
 }
 
 host_add() {
-	local slot gpub gport gv6 gv4 gname ep old wait=60 fields f taken=() asked name
+	local slot gpub gport gv6 gv4 gname ep old other wait=60 fields f taken=() asked name
 	[ "$(role)" = host ] || fail 3 "this PC doesn't host a virtual LAN; run: $SELF host   first"
 	STATE=$STATE_HOST
 	fields=$(dec zsr "$1") || fail 1
 	read -r slot gpub gport gv6 gv4 gname <<<"$fields"
-	[[ $slot =~ ^[2-8]$ && ${#gpub} = 44 && $gport =~ ^[0-9]+$ ]] || die "broken reply code (copy the whole line)"
+	slot_ok "$slot" && [[ ${#gpub} = 44 && $gport =~ ^[0-9]+$ ]] || die "broken reply code (copy the whole line)"
 	if [ -e "$STATE/peers/$slot" ]; then
-		read -r old _ <"$STATE/peers/$slot"
-		[ "$old" = "$gpub" ] || fail 3 "slot $NET.$slot already belongs to another guest; send a fresh invite ($SELF host) and have them join with it"
+		read -r old _ other <"$STATE/peers/$slot"
+		[ "$old" = "$gpub" ] || fail 3 "$NET.$slot is already taken by \"${other:-guest $slot}\". Ask the new guest to run:  vlan_auto newaddress   and send you the reply it prints"
+	else
+		# the same guest under a new address (it picked another one): it moves
+		for f in "$STATE"/peers/*; do
+			[ -e "$f" ] || continue
+			read -r old _ <"$f"
+			if [ "$old" = "$gpub" ]; then rm "$f"; echo "(this guest was $NET.${f##*/} before)"; fi
+		done
+		[ "$(guest_count)" -lt $MAX_GUESTS ] || fail 3 "all $MAX_GUESTS guest places are used ($SELF host remove <N> frees one)"
 	fi
 	ep=$(pick_ep "$gv6" "$gv4" "$gport" "$(my_v6)") || fail 3 "the guest sent no address usable from here (no IPv6 on one side and no IPv4 from them)"
 	# their name, made unique among this PC and the other guests (an update of the same slot doesn't count)
@@ -183,7 +189,7 @@ host_add() {
 }
 
 host_remove() {
-	[[ ${1:-} =~ ^[2-8]$ ]] || die "usage: $SELF host remove <2..8>"
+	slot_ok "${1:-}" || die "usage: $SELF host remove <N>   (guest 10.77.0.N, see: $SELF status)"
 	STATE=$STATE_HOST
 	[ -e "$STATE/peers/$1" ] || fail 3 "no guest $NET.$1"
 	rm "$STATE/peers/$1"; conf=$(host_conf); nm_apply <<<"$conf"
@@ -210,7 +216,8 @@ host_loop() {
 
 guest_conf() {
 	local hpub hport slot hv6 hv4 ep
-	read -r hpub hport slot hv6 hv4 _ <<<"$(dec zsi "$(cat "$STATE/invite")")"
+	read -r hpub hport _ hv6 hv4 _ <<<"$(dec zsi "$(cat "$STATE/invite")")"
+	slot=$(my_slot)
 	ep=$(pick_ep "$hv6" "$hv4" "$hport" "$(my_v6)") || fail 3 "the host has no address usable from here (no IPv6 on one side, and no IPv4 in the invite)"
 	printf '[Interface]\nPrivateKey = %s\nAddress = %s.%s/24\nListenPort = %s\n' "$(cat "$STATE/guest.key")" "$NET" "$slot" "$PORT"
 	printf '\n[Peer]\nPublicKey = %s\nAllowedIPs = %s.1/32\nEndpoint = %s\nPersistentKeepalive = 25\n' "$hpub" "$NET" "$ep"
@@ -222,14 +229,16 @@ guest_join() {
 	STATE=$STATE_GUEST
 	fields=$(dec zsi "$1") || fail 1
 	read -r hpub hport slot hv6 hv4 hname <<<"$fields"
-	[[ $slot =~ ^[2-8]$ && ${#hpub} = 44 && $hport =~ ^[0-9]+$ ]] || die "broken invite code (copy the whole line)"
+	{ [ "$slot" = 0 ] || slot_ok "$slot"; } && [[ ${#hpub} = 44 && $hport =~ ^[0-9]+$ ]] || die "broken invite code (copy the whole line)"
 	pick_ep "$hv6" "$hv4" "$hport" "$(my_v6)" >/dev/null || fail 3 "the host has no address usable from here: they have no IPv4 in the invite and this PC has no IPv6"
 	preflight
-	echo "invite from \"$(clean_name "${hname:-the host}")\" - you'll be $NET.$slot on their virtual LAN"; echo
-	ask_name "the host sees it in their guest list"
 	mkdir -p "$STATE"; chmod 700 "$STATE"
-	[ -f "$STATE/guest.key" ] || (umask 077; genpriv >"$STATE/guest.key")   # same key on rejoin, so the host's entry stays valid
 	printf '%s\n' "$1" >"$STATE/invite"
+	# an open invite (slot 0): this PC picks its own address, kept with the key for rejoins and new invites
+	[ "$slot" != 0 ] || [ -f "$STATE/slot" ] || echo $((RANDOM % 253 + 2)) >"$STATE/slot"
+	echo "invite from \"$(clean_name "${hname:-the host}")\" - you'll be $NET.$(my_slot) on their virtual LAN"; echo
+	ask_name "the host sees it in their guest list"
+	[ -f "$STATE/guest.key" ] || (umask 077; genpriv >"$STATE/guest.key")   # same key on rejoin, so the host's entry stays valid
 	pub_check
 	conf=$(guest_conf); nm_apply <<<"$conf"
 	[ -f "$STATE/firewall" ] || fw_open "$PORT/udp" "$GAME_RULE"   # this PC can host the game for the VLAN host too
@@ -251,7 +260,8 @@ guest_show() {
 	STATE=$STATE_GUEST
 	[ -f "$STATE/invite" ] || fail 3 "not joined yet; run: $SELF <invite code from the host>"
 	fields=$(dec zsi "$(cat "$STATE/invite")") || fail 1
-	read -r hpub hport slot hv6 hv4 hname <<<"$fields"
+	read -r hpub hport _ hv6 hv4 hname <<<"$fields"
+	slot=$(my_slot)
 	hname=$(clean_name "${hname:-host}"); me=$(my_name)
 	[ -n "${V6:-}" ] || pub_compare
 	v6=$V6; v4=$V4
@@ -316,6 +326,29 @@ guest_wait() {
 }
 
 # ---------------------------------------------------------------- common
+
+slot_ok() { [[ ${1:-} =~ ^[0-9]+$ ]] && [ "$1" -ge 2 ] && [ "$1" -le 254 ]; }
+
+# This guest's address: the slot a per-guest invite gave, else the one it picked for an open invite.
+my_slot() {
+	local s
+	s=$(dec zsi "$(cat "$STATE/invite")" | cut -d' ' -f3)
+	if [ "$s" = 0 ]; then cat "$STATE/slot" 2>/dev/null || echo 0; else echo "$s"; fi
+}
+
+# The host said this address is taken: pick another one and show the new reply.
+newaddress() {
+	local old s
+	[ "$(role)" = guest ] || fail 3 "only a guest picks its address; this PC hasn't joined a virtual LAN"
+	STATE=$STATE_GUEST
+	old=$(my_slot)
+	[ "$(dec zsi "$(cat "$STATE/invite")" | cut -d' ' -f3)" = 0 ] || fail 3 "the host's invite gave this PC $NET.$old; ask the host for a new invite"
+	s=$old; while [ "$s" = "$old" ]; do s=$((RANDOM % 253 + 2)); done
+	echo "$s" >"$STATE/slot"
+	conf=$(guest_conf); nm_apply <<<"$conf"
+	echo "this PC is now $NET.$s (was $NET.$old). Send the host the new reply."; echo
+	guest_show; guest_wait
+}
 
 status() {
 	case "$(role)" in
@@ -384,7 +417,7 @@ name_cmd() {
 		if [ -n "${1:-}${SET_NAME}" ] || { [ "$MACHINE" = 0 ] && [ -t 0 ]; }; then
 			echo "the host only sees it from a new reply:"; echo
 			STATE=$STATE_GUEST
-			reply=$(enc zsr2 "$(dec zsi "$(cat "$STATE/invite")" | cut -d' ' -f3) $(pubkey "$(cat "$STATE/guest.key")") $PORT $(cat "$STATE/public" 2>/dev/null || echo "- -") $(my_name)")
+			reply=$(enc zsr2 "$(my_slot) $(pubkey "$(cat "$STATE/guest.key")") $PORT $(cat "$STATE/public" 2>/dev/null || echo "- -") $(my_name)")
 			echo "$reply"; clip "$reply"
 			echo; echo "the host pastes it into vlan_auto (or the dedicated server console)"
 		fi ;;
@@ -421,8 +454,8 @@ saved_desc() {
 		echo "this PC hosts a virtual LAN as $NET.1, with $n guest(s)" ;;
 	guest)
 		[ -f "$STATE_GUEST/invite" ] || return 0
-		read -r _ _ f _ _ hname <<<"$(dec zsi "$(cat "$STATE_GUEST/invite")" 2>/dev/null)"
-		echo "this PC joined the virtual LAN of \"$(clean_name "${hname:-the host}")\" as $NET.$f" ;;
+		read -r _ _ _ _ _ hname <<<"$(dec zsi "$(cat "$STATE_GUEST/invite")" 2>/dev/null)"
+		echo "this PC joined the virtual LAN of \"$(clean_name "${hname:-the host}")\" as $NET.$(STATE=$STATE_GUEST my_slot)" ;;
 	esac
 }
 
@@ -510,11 +543,12 @@ host)
 	esac ;;
 join) [ -n "${2:-}" ] || die "usage: $SELF join <invite>"; guest_join "$2"; guest_show; guest_wait ;;
 start) start ;;
+newaddress) newaddress ;;
 status) status ;;
 name) name_cmd "${2:-}" ;;
 stop) stop ;;
 watch) watch "${2:-}" ;;
 zsi[12].*|zsr[12].*) code "$1" ;;
--h|--help|help) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
+-h|--help|help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
 *) die "unknown command '$1' (try: $SELF help)" ;;
 esac

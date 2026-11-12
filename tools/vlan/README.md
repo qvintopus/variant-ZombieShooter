@@ -5,7 +5,7 @@ A direct WireGuard tunnel between the host and each guest. It needs **no port fo
 | | address | game |
 |---|---|---|
 | host | `10.77.0.1` | hosts on port `24565` |
-| guests | `10.77.0.2` – `10.77.0.8` | join `10.77.0.1` |
+| guests (up to 7) | each picks its own, `10.77.0.2` – `10.77.0.254` | join `10.77.0.1` |
 
 ## Quick start
 
@@ -17,16 +17,18 @@ It asks **host or join**, then guides you. If this PC already hosted or joined b
 
 | step | host | guest |
 |---|---|---|
-| 1 | Pick **host** and pick your name (Enter keeps the suggested one). It prints an **invite** (`zsi2.…`, copied to the clipboard). Send it to the friend. | |
+| 1 | Pick **host** and pick your name (Enter keeps the suggested one). It prints an **invite** (`zsi2.…`, copied to the clipboard). Send the same invite to every friend. | |
 | 2 | | Pick **join** and paste the invite. It shows a suggested name. Type your own, or press Enter to keep it. The host sees this name. It prints a **reply** (`zsr2.…`, copied). Send it back. |
-| 3 | Paste the reply when it asks (or run `vlan_auto <reply>` later). It waits until the guest is online. | It waits for the host, then says **online** and copies `10.77.0.1`. |
+| 3 | Paste each reply as it comes in, when it asks (or run `vlan_auto <reply>` later). It waits until that guest is online. | It waits for the host, then says **online** and copies `10.77.0.1`. |
 | play | **Comms Terminal → Host → Open to friends** (its invite list shows the *Virtual LAN* address with Copy), or run the dedicated server. | **Comms Terminal → Join →** paste `10.77.0.1` (or press the *Virtual LAN host* button). |
 
-Each further guest repeats steps 1–3. The host's `vlan_auto` prints the next invite every time.
+One invite serves everyone: each guest picks its own address and the reply tells the host which, so the host only pastes the replies. In the rare case two guests pick the same address, the host is told; that guest runs `vlan_auto newaddress` and sends the new reply it prints.
+
+Older per-guest invites (made by earlier versions, with a fixed address) still work.
 
 Codes hold only public keys, addresses and a name, so they are safe to send in chat. Linux and Windows PCs mix freely, either as host or as guest.
 
-**Nothing stays on by itself.** The tunnel doesn't start when the PC boots, and it switches off after 5 minutes without a game on it (see [Off after a restart or when idle](#off-after-a-restart-or-when-idle)). The next time, just run `vlan_auto` again on each PC. It starts the same tunnel, with the same codes and slots.
+**Nothing stays on by itself.** The tunnel doesn't start when the PC boots, and it switches off after 5 minutes without a game on it (see [Off after a restart or when idle](#off-after-a-restart-or-when-idle)). The next time, just run `vlan_auto` again on each PC. It starts the same tunnel, with the same codes and addresses.
 
 Done for good: `vlan_auto stop` on each PC removes everything it made.
 
@@ -43,10 +45,11 @@ The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_
 |---|---|
 | *(none)* | Guided: host or join, then the next step. Rerun it any time to see the status. |
 | `<code>` | Paste whatever you got: an invite joins, a reply adds that guest. |
-| `host` | Creates the virtual LAN, or shows it: guests online and the next invite. |
-| `host add <reply>` | Adds a guest, or updates one with the same key. |
+| `host` | Creates the virtual LAN, or shows it: guests online and the invite (the same for every guest). |
+| `host add <reply>` | Adds a guest, or updates one with the same key (also when it moved to a new address). |
 | `host remove <N>` | Removes guest `10.77.0.N`. |
 | `join <invite>` | Joins and prints the reply to send back. |
+| `newaddress` | Guest: picks another address and prints the new reply (when the host says the address is taken). |
 | `name [NEW]` | Shows or changes this PC's name (see [Names](#names)). A guest then gets a new reply to send, so the host sees the change. |
 | `start` | Starts the last tunnel again, with no prompts (running `vlan_auto` alone does the same and keeps guiding). |
 | `status` | What this PC is, who is online, and the code to send. It never starts anything. |
@@ -116,7 +119,7 @@ The menu shows whether the server is running, its room, players and uptime, and 
 | `kick <slot> [reason]` | Drops a player. |
 | `home` | Saves the run and goes back to the home base. |
 | `stop` | Saves, tells the players and quits. Ctrl+C quits at once instead; the run keeps its last checkpoint. |
-| `invite` | The invite for the next VLAN guest. |
+| `invite` | The VLAN invite (one for all guests). |
 | `add <reply>` / paste a bare `zsr2.…` | Adds a VLAN guest (a taken name becomes `Name#2`). |
 | `guests` | VLAN guests, their names, and whether they are online. |
 | `revoke <N>` | Removes VLAN guest `10.77.0.N`. |
@@ -161,10 +164,10 @@ If a public address changes (home IPs change sometimes, for example after a rout
 | | what happens |
 |---|---|
 | unchanged | The same tunnel starts. Both sides start theirs, and they find each other with no new codes. |
-| **host's** changed | The host's `vlan_auto` prints a new invite for each guest, by slot. The guest pastes it (same slot and key). No new reply is needed unless the guest's address changed too. |
+| **host's** changed | The host's `vlan_auto` prints the new invite, one for all guests. Each guest pastes it (same address and key). No new reply is needed unless the guest's public address changed too. |
 | **guest's** changed | The guest's `vlan_auto` prints the new reply. The host pastes it (`vlan_auto <reply>`, or `add` in the server console). |
 
-Keys are kept until `stop`, so a rejoin keeps its slot.
+Keys and the guest's address are kept until `stop`, so a rejoin keeps its address.
 
 ## What gets changed, and what `stop` removes
 
