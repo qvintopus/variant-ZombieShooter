@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # zs-vlan, guided, Linux (NetworkManager). Windows: vlan_auto.cmd. See README.md.
-#   vlan_auto.sh                     guided: host or join, then tells you each next step
+#   vlan_auto.sh                     guided: host or join (or continue / switch / stop what this PC has), then each next step
 #   vlan_auto.sh <code>              paste whatever you got: an invite (zsi2.) joins, a reply (zsr2.) adds that guest
 #   vlan_auto.sh host                create the virtual LAN (or show it) + the invite for the next guest
 #   vlan_auto.sh host add <reply>    add a guest from the reply they sent back
@@ -408,21 +408,89 @@ code() {
 	esac
 }
 
-guided() {
-	local pick line
+# What the saved virtual LAN is, for the menu.  (empty: none)
+saved_desc() {
+	local n hname f
 	case "$(role)" in
-	host) host_up; host_loop; return ;;
-	guest) guest_up; guest_show; guest_wait; return ;;
+	host)
+		n=0; for f in "$STATE_HOST"/peers/*; do [ -e "$f" ] && n=$((n + 1)); done
+		echo "this PC hosts a virtual LAN as $NET.1, with $n guest(s)" ;;
+	guest)
+		[ -f "$STATE_GUEST/invite" ] || return 0
+		read -r _ _ f _ _ hname <<<"$(dec zsi "$(cat "$STATE_GUEST/invite")" 2>/dev/null)"
+		echo "this PC joined the virtual LAN of \"$(clean_name "${hname:-the host}")\" as $NET.$f" ;;
 	esac
-	[ -t 0 ] || { status; return; }
-	echo "zs-vlan: a private virtual LAN for co-op over the internet (no accounts, no port forwarding)."
+}
+
+# Remove the saved role before switching to the other one (or joining a different host).
+leave() {
+	if [ -d "$STATE_HOST" ]; then STATE=$STATE_HOST; teardown; fi
+	if [ -d "$STATE_GUEST" ]; then STATE=$STATE_GUEST; teardown; fi
 	echo
-	read -r -p "[h]ost a game for friends, or [j]oin a friend? " pick || exit 1
-	case "$pick" in
-	h*|H*) host_up; host_loop ;;
+}
+
+# Ask for an invite; only a valid-looking one replaces what's saved.  arg: the current role
+ask_join() {
+	local line
+	read -r -p "paste the invite code from the host: " line || exit 1
+	line=$(tr -d '[:space:]' <<<"$line")
+	[[ $line == zsi[12].* ]] || die "that isn't an invite (invites start with zsi2.); nothing changed."
+	dec zsi "$line" >/dev/null || fail 1
+	[ "$1" = none ] || leave
+	code "$line"
+}
+
+guided() {
+	local pick r saved yn
+	r=$(role)
+	if ! [ -t 0 ] || [ "$MACHINE" = 1 ]; then   # no one to ask: carry on with what's saved
+		case "$r" in
+		host) host_up; host_loop ;;
+		guest) guest_up; guest_show; guest_wait ;;
+		*) status ;;
+		esac
+		return
+	fi
+	saved=$(saved_desc)
+	echo "zs-vlan: a private virtual LAN for co-op over the internet."
+	echo
+	if [ -n "$saved" ]; then
+		echo "$saved."
+		echo
+		if [ "$r" = host ]; then
+			echo "  c  continue hosting: start it again, show the next invite   (Enter)"
+			echo "  j  join a friend instead (removes your virtual LAN and its guests)"
+		else
+			echo "  c  continue: start the tunnel again, show your reply   (Enter)"
+			echo "  j  join a different host or a new invite (removes the old join)"
+			echo "  h  host a game for friends instead (removes the old join)"
+		fi
+		echo "  s  stop: remove everything zs-vlan made"
+		echo
+		read -r -p "choice: " pick || exit 1
+	else
+		echo "  h  host a game for friends"
+		echo "  j  join a friend (paste their invite)"
+		echo
+		read -r -p "choice: " pick || exit 1
+	fi
+	case "${pick:-c}" in
+	c*|C*)
+		case "$r" in
+		host) host_up; host_loop ;;
+		guest) guest_up; guest_show; guest_wait ;;
+		*) die "nothing done." ;;
+		esac ;;
+	h*|H*)
+		[ "$r" = guest ] && leave
+		host_up; host_loop ;;
 	j*|J*)
-		read -r -p "paste the invite code from the host: " line || exit 1
-		code "$(tr -d '[:space:]' <<<"$line")" ;;
+		if [ "$r" = host ]; then
+			read -r -p "this removes your virtual LAN; your guests would need a new invite. Sure? [y/N] " yn || exit 1
+			[[ $yn == [yY]* ]] || die "nothing changed."
+		fi
+		ask_join "$r" ;;
+	s*|S*) [ "$r" = none ] && die "nothing done."; stop ;;
 	*) die "nothing done." ;;
 	esac
 }
