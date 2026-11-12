@@ -6,7 +6,9 @@
 ## the exit gate takes the server (and so us) to the mission; and that the
 ## server's saves land in its own folder. Then drives its console (stdin):
 ## players, status, kick usage, an unknown command, and stop, which saves the run,
-## tells us and quits. Also the console's vlan_auto plumbing (paths, result line).
+## tells us and quits. The same commands over the control channel (--control: the
+## launcher menu's way in): the token, info, players. Also the console's vlan_auto
+## plumbing (paths, result line).
 ##   Godot --headless --path . res://game/tests/dedicated_server_check.tscn
 extends Node
 
@@ -92,11 +94,21 @@ func _run()->void:
 	check(await _wait(func ()->bool: return _read().contains("usage: kick <slot>"), 5.0), "console: kick without a slot shows its usage")
 	_say("frobnicate")
 	check(await _wait(func ()->bool: return _read().contains("unknown command 'frobnicate'"), 5.0), "console: unknown commands are named")
+	# the control channel (the launcher menu)
+	var _control:Dictionary = _read_control()
+	check(int(_control.get("pid", "0")) > 0 && int(_control.get("control_port", "0")) > 0 && str(_control.get("token", "")).length() == 32, "control: file with pid, port and token (%s)" % _control.keys())
+	var _reply:String = await _request(_control, "info")
+	check(_reply.contains("INFO room=room_N00 players=1 ") && _reply.contains("port=%d" % PORT) && _reply.contains("name=Server"), "control: info answered (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "players")
+	check(_reply.contains("slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), "control: players answered")
+	_reply = await _request({"control_port": _control.get("control_port", "0"), "token": "nope"}, "stop")
+	check(_reply.contains("bad token") && OS.is_process_running(_server.pid), "control: a wrong token is refused")
 	var _ended:Array = []
 	Net.session_ended.connect(func (reason:String)->void: _ended.append(reason), CONNECT_ONE_SHOT)
 	_say("stop")
 	check(await _wait(func ()->bool: return !OS.is_process_running(_server.pid), 15.0), "console: stop quits the server")
 	check(_read().contains("ServerConsole [INFO]: stopping (run saved)"), "console: stop saved the run first")
+	check(!FileAccess.file_exists(_save_dir + ".control"), "control: file removed on stop")
 	check(FileAccess.file_exists(_save_dir.path_join(RunSave.file_name + ".tres")), "console: the run checkpoint is in the server's folder")
 	check(_ended.size() == 1 && _ended[0] == "The server stopped", "player: told the server stopped (%s)" % [_ended])
 
@@ -144,10 +156,40 @@ static func _remove_dir(path:String)->void:
 
 func _spawn_server()->Dictionary:
 	var _log:String = ProjectSettings.globalize_path("user://dedicated_server_%d.log" % Time.get_ticks_msec())
-	var _cmd:String = "exec '%s' --headless --path '%s' -- --server --port %d --save-dir '%s' --status 0.5 > '%s' 2>&1" % [
-		OS.get_executable_path(), ProjectSettings.globalize_path("res://"), PORT, _save_dir, _log]
+	var _cmd:String = "exec '%s' --headless --path '%s' -- --server --port %d --save-dir '%s' --status 0.5 --control '%s' > '%s' 2>&1" % [
+		OS.get_executable_path(), ProjectSettings.globalize_path("res://"), PORT, _save_dir, _save_dir + ".control", _log]
 	var _process:Dictionary = OS.execute_with_pipe("/bin/sh", ["-c", _cmd], false)
 	return {"pid": _process.get("pid", -1), "stdio": _process.get("stdio"), "log": _log}
+
+## The control file's key=value lines.
+func _read_control()->Dictionary:
+	var _out:Dictionary = {}
+	for _line:String in FileAccess.get_file_as_string(_save_dir + ".control").split("\n", false):
+		_out[_line.get_slice("=", 0)] = _line.substr(_line.find("=") + 1)
+	return _out
+
+## One control request, the way tools/server.sh sends it; "" on no answer.
+func _request(control:Dictionary, command:String)->String:
+	var _peer:StreamPeerTCP = StreamPeerTCP.new()
+	if _peer.connect_to_host("127.0.0.1", int(control.get("control_port", "0"))) != OK:
+		return ""
+	var _text:String = ""
+	var _sent:bool = false
+	var _left:float = 5.0
+	while _left > 0.0:
+		_peer.poll()
+		var _status:int = _peer.get_status()
+		if _status == StreamPeerTCP.STATUS_CONNECTED:
+			if !_sent:
+				_peer.put_data(("TOKEN %s\n%s\n" % [control.get("token", ""), command]).to_utf8_buffer())
+				_sent = true
+			if _peer.get_available_bytes() > 0:
+				_text += _peer.get_utf8_string(_peer.get_available_bytes())
+		elif _status != StreamPeerTCP.STATUS_CONNECTING:
+			break
+		await get_tree().process_frame
+		_left -= get_process_delta_time()
+	return _text
 
 func _read()->String:
 	return FileAccess.get_file_as_string(_server.log) if FileAccess.file_exists(_server.get("log", "")) else ""

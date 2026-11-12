@@ -1,8 +1,9 @@
 ## Dedicated server: a headless host whose own player is hidden. Started with
 ##   Godot --headless --path . -- --server [--port N] [--max-players 2..8]
 ##                                [--save-dir PATH] [--name "Server"] [--vlan] [--idle-kick MIN]
-## (tools/server.sh, tools\server.cmd on Windows). Commands typed into its
-## window go to ServerConsole ("help"). It skips the title, opens the session in its home base
+## (tools/server.sh, tools\server.cmd on Windows: a menu that runs it in the background).
+## Commands typed into its window go to ServerConsole ("help"); with --control FILE they
+## also come from the launcher menu. It skips the title, opens the session in its home base
 ## and from then on goes where the players go: their copies walk through its
 ## doors and exit gate like a host's teammates do. Its own player is
 ## server_player.tscn (Net swaps it in): the player scene with everything seen
@@ -57,7 +58,7 @@ static func options()->Dictionary:
 		var _arg:String = _args[_i]
 		if _arg in ["--server", "--vlan"]:
 			_options[_arg.trim_prefix("--")] = true
-		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status", "--idle-kick"] && _i + 1 < _args.size():
+		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status", "--idle-kick", "--control"] && _i + 1 < _args.size():
 			_options[_arg.trim_prefix("--")] = _args[_i + 1]
 			_i += 1
 		_i += 1
@@ -179,6 +180,9 @@ func _following_guests()->int:
 
 ## One line: room, players, the hidden player's state and where it is.
 func print_status()->void:
+	print(status_line())
+
+func status_line()->String:
 	var _body:Node2D = Net.players.local_body()
 	var _shown:bool = false
 	var _layers:int = -1
@@ -190,7 +194,7 @@ func print_status()->void:
 	var _leader:Node2D = ServerAnchor.leader()
 	var _gap:float = _leader.global_position.distance_to(_at) if _leader != null && _body != null else -1.0
 	var _hp:float = RunSession.local_player().health.hp
-	print("SERVERSTATUS room=%s players=%d active=%d scaling=%d anchor_visible=%s anchor_layers=%d anchor_gap=%.1f anchor_hp=%.1f" % [
+	return ("SERVERSTATUS room=%s players=%d active=%d scaling=%d anchor_visible=%s anchor_layers=%d anchor_gap=%.1f anchor_hp=%.1f" % [
 		current_path(), players(), RunSession.players.count_active(), CoopScaling.players(), _shown, _layers, _gap, _hp])
 
 ## Everyone is down: the run ends here too (the hidden player dies for real).

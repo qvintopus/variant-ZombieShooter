@@ -57,16 +57,43 @@ The old script names still work as aliases: `vlan_up.sh` (= `host`), `vlan_conne
 
 | | Linux | Windows |
 |---|---|---|
-| start | `tools/server.sh [options]` | `tools\server.cmd [options]` (double-click works too) |
-| with the virtual LAN | `tools/server.sh --vlan` | `tools\server.cmd --vlan` (asks for admin) |
+| control menu | `tools/server.sh` | double-click `tools\server.cmd` |
+| one step | `tools/server.sh start\|stop\|restart\|status\|players\|log\|console\|settings` | `tools\server.cmd start\|stop\|…` (the same) |
+| in this window, the old way | `tools/server.sh run [options]` (or just `tools/server.sh --port …`) | `tools\server.cmd run [options]` |
 
-- **Godot:** `$GODOT`, then `godot` on the PATH, then a Godot binary next to the project folder. On Linux that's `Godot_v*_linux.x86_64`. On Windows it's `Godot_v*_win64_console.exe`, the console build from the same zip, which the server needs for its console.
-- **`--vlan`:** the launcher runs `vlan_auto host` first and prints the first invite. Guests are then handled from the server's console.
-- **Console:** type into the server window. `help` lists the commands.
+The menu shows whether the server is running, its room, players and uptime, and the saved settings:
+
+```
+== Zombie Shooter dedicated server ==
+  server   : RUNNING for 12m (pid 4242) - home base, 2 of 8 player(s), port 24565
+  settings : port 24565, name "Server", up to 8 players, idle kick 5 min, virtual LAN off
+
+  1  stop          2  restart
+  3  status        4  players       5  follow the log
+  6  console       7  settings
+  q  quit this menu (the server keeps running)
+```
+
+- **Start / stop:** `start` runs the server in the background, so quitting the menu or closing the window leaves it running. `stop` saves the run, tells the players, and quits. If it doesn't quit within 15 s, it's ended, and the run keeps its last checkpoint.
+- **Status, players:** asked of the running server. `send <command>` runs any console command once, e.g. `tools/server.sh send kick 2`.
+- **Follow the log:** the server's output as it comes. Ctrl+C (Linux) or q (Windows) goes back to the menu.
+  - Linux: `~/.local/state/zs-server/server.log`
+  - Windows: `%LOCALAPPDATA%\zs-server\server.log`
+  - The previous run's log is kept as `server.log.1`.
+- **Console:** type the server commands below into the running server. An empty line goes back.
+- **Settings:** port, name, max players, idle kick, and the virtual LAN on/off. They are saved next to the log and used at the next start. `start --port N …` adds one-off options on top.
+- **How the menu reaches the server:**
+  - The server is started with `--control FILE` and listens on `127.0.0.1` only, on a free port.
+  - It writes its pid, that port and a random token to the file, in a folder only this user can read. Each request must carry the token.
+  - The file is removed on a clean stop. A file left by a killed server is spotted (the pid is gone) and cleaned up.
+- **Godot:** `$GODOT`, then `godot` on the PATH, then a Godot binary next to the project folder. On Linux that's `Godot_v*_linux.x86_64`. On Windows it's `Godot_v*_win64_console.exe`, the console build from the same zip.
+- **Virtual LAN on** (settings, or `--vlan`): `start` runs `vlan_auto host` first and prints the first invite. Guests are then handled with `8 VLAN guests + invite` or from the console. On Windows this needs admin, and the menu reopens itself as administrator.
+- **Console commands** (the menu's console, `send`, or typed into the window with `run`). `help` lists them.
 
 | command | does |
 |---|---|
 | `status` | Room, players, hidden player. |
+| `info` | One line for programs (`INFO room=… players=… up=… name=…`). The menu reads it. |
 | `players` | Everyone connected: slot, name, state, address. |
 | `kick <slot> [reason]` | Drops a player. |
 | `home` | Saves the run and goes back to the home base. |
