@@ -256,7 +256,7 @@ It will become a meta upgrade later.
     - `info` gives the menu's one-line summary.
     - The file is removed on a clean stop. The launcher cleans up after a killed server by checking the pid.
   - **In the window:** `server.sh run [options]`, or any `--option` first, still runs it in the window with the console on stdin, as before. `run_server.sh` is kept as an alias.
-  - It finds Godot through `$GODOT`, then `godot` on the PATH, then a binary next to the project: `Godot_v*_linux.x86_64`, or on Windows `Godot_v*_win64_console.exe` (the console build is needed for the console).
+  - It finds Godot through `$GODOT`, then `godot` on the PATH, then a binary in the project folder, the folder above it, `tools/` or a `Godot*` folder in those: `Godot_v*_linux.x86_64` / `godot` / `godot.x86_64`, or on Windows `Godot_v*_win64_console.exe` / `godot_console.exe` with the plain exe of the same name beside it. When nothing matches, it prints the exact names and the near-misses it saw.
   - It imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
 
   | option | default | |
