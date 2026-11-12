@@ -30,6 +30,11 @@ Codes hold only public keys, addresses and a name, so they are safe to send in c
 
 Done for good: `vlan_auto stop` on each PC removes everything it made.
 
+**The tunnel is up but the game won't join?** First, the host's game must be running (Comms Terminal → Host, or the dedicated server). If it is and the host is a **Windows** PC, its firewall is the usual cause:
+- The first time Godot opens its port, Windows asks "allow access". It adds an Allow rule for the network types that are ticked (Private, by default) and a **Block** rule for the ones left unticked (Public).
+- Windows counts the virtual LAN as an unidentified network, which is **Public**. A Block rule beats zs-vlan's own game rule, so guests can ping the host but never reach the game. A player on the host PC itself still joins fine.
+- **Fix:** the host runs `vlan_auto.cmd firewall`. It switches those Godot Block rules off (it doesn't delete them; `stop` switches them back on) and allows the Godot exe from `10.77.0.0/24` only. `vlan_auto host` does this too: it asks first, or with `--machine` it just does it. The dedicated server passes its Godot exes along (`--allow EXE`), so Windows never asks.
+
 ## Commands
 
 The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_auto.cmd …` on Windows.
@@ -46,6 +51,8 @@ The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_
 | `start` | Starts the last tunnel again, with no prompts (running `vlan_auto` alone does the same and keeps guiding). |
 | `status` | What this PC is, who is online, and the code to send. It never starts anything. |
 | `stop` | Removes everything zs-vlan made on this PC. |
+| `firewall [EXE…]` | Windows: lets friends on the virtual LAN reach the game. It switches off Windows Firewall Block rules for Godot (see above) and allows the Godot exe (and any `EXE` given) from `10.77.0.0/24`. |
+| `--allow EXE` (Windows, with any command) | Also allows that game exe from the virtual LAN when hosting. |
 | `--name NAME` (with any command) | Uses that name without asking. |
 | `--machine` (with any command) | For programs: no prompts, no clipboard, short waits, and a last line `ZSVLAN key=value …`. |
 
@@ -66,7 +73,7 @@ The menu shows whether the server is running, its room, players and uptime, and 
 ```
 == Zombie Shooter dedicated server ==
   server   : RUNNING for 12m (pid 4242) - home base, 2 of 8 player(s), port 24565
-  settings : port 24565, name "Server", up to 8 players, idle kick 5 min, virtual LAN off
+  settings : port 24565, name "Server", up to 8 players, idle kick 5 min, main player: first to join, virtual LAN off
 
   1  stop          2  restart
   3  status        4  players       5  follow the log
@@ -81,7 +88,7 @@ The menu shows whether the server is running, its room, players and uptime, and 
   - Windows: `%LOCALAPPDATA%\zs-server\server.log`
   - The previous run's log is kept as `server.log.1`.
 - **Console:** type the server commands below into the running server. An empty line goes back.
-- **Settings:** port, name, max players, idle kick, and the virtual LAN on/off. They are saved next to the log and used at the next start. `start --port N …` adds one-off options on top.
+- **Settings:** port, name, max players, idle kick, main player, and the virtual LAN on/off. They are saved next to the log and used at the next start. `start --port N …` adds one-off options on top.
 - **How the menu reaches the server:**
   - The server is started with `--control FILE` and listens on `127.0.0.1` only, on a free port.
   - It writes its pid, that port and a random token to the file, in a folder only this user can read. Each request must carry the token.
@@ -90,13 +97,22 @@ The menu shows whether the server is running, its room, players and uptime, and 
   - **Windows:** keep **both** exes from the Godot zip side by side: `Godot_v4.7.x-stable_win64.exe` and `Godot_v4.7.x-stable_win64_console.exe`, or renamed to `godot.exe` and `godot_console.exe`. The server runs the console one, which starts the plain exe of the same name and shows its output. With Explorer hiding extensions, a file renamed to "godot.exe" is really `godot.exe.exe`.
   - **Linux:** `Godot_v4.7.x-stable_linux.x86_64`, `godot` or `godot.x86_64`.
 - **Virtual LAN on** (settings, or `--vlan`): `start` runs `vlan_auto host` first and prints the first invite. Guests are then handled with `8 VLAN guests + invite` or from the console. On Windows this needs admin, and the menu reopens itself as administrator.
+- **Main player:** the dedicated server has no player of its own, so one of the players wears the host's **plumber**; everyone else is an electrician.
+  - **Who:** by default, the first player to join. The setting `main player` (`--main local`) gives it instead to the first player who joins from the server's own PC.
+  - **Away:** if the main player leaves, nothing changes for the others. The seat stays theirs, and they rejoin like any guest (mid-fight they wait behind the gate until the wave is over). A player who drops mid-run gets their run back on rejoining.
+  - **Change it:** the console's `main <slot>`, or `main free` (the next player to join gets it).
+  - The hidden server player follows the main player's room (else the lowest slot's).
+- **Windows firewall:** after a start, and in `status`, the menu warns if Windows Firewall blocks Godot for other PCs, and names the fix (`tools\vlan\vlan_auto.cmd firewall`).
 - **Console commands** (the menu's console, `send`, or typed into the window with `run`). `help` lists them.
 
 | command | does |
 |---|---|
 | `status` | Room, players, hidden player. |
-| `info` | One line for programs (`INFO room=… players=… up=… name=…`). The menu reads it. |
-| `players` | Everyone connected: slot, name, state, address. |
+| `info` | One line for programs (`INFO room=… players=… up=… main=MODE:SLOT name=…`). The menu reads it. |
+| `players` | Everyone connected: slot, name, state, address. `*` marks the main player. |
+| `main` | Who is the main player (the plumber), and how it is chosen. |
+| `main <slot>` / `main free` | Makes that player the main player / frees the seat for the next player to join. |
+| `main mode first\|local` | The first player to join / the first from this PC (the `--main` option). The current main player keeps the seat. |
 | `kick <slot> [reason]` | Drops a player. |
 | `home` | Saves the run and goes back to the home base. |
 | `stop` | Saves, tells the players and quits. Ctrl+C quits at once instead; the run keeps its last checkpoint. |
@@ -161,7 +177,7 @@ Keys are kept until `stop`, so a rejoin keeps its slot.
 **Windows** (the official WireGuard client):
 - **Software:** WireGuard via winget, but only if it is missing. `stop` uninstalls it only if zs-vlan installed it.
 - **Tunnel:** a service named `WireGuardTunnel$zsvlan`, with Manual start. Guests are added to a running host live, without a restart.
-- **Firewall:** rules in the group `zs-vlan`: inbound UDP 51820, plus game UDP 24565 and ping from `10.77.0.0/24`.
+- **Firewall:** rules in the group `zs-vlan`: inbound UDP 51820, plus game UDP 24565 and ping from `10.77.0.0/24`, plus one per allowed game exe (from `10.77.0.0/24`). Godot Block rules switched off by `firewall` or `host` are listed in `C:\ProgramData\zs-vlan-fw`, and `stop` switches them back on.
 - **State:** `C:\ProgramData\zs-vlan-host` (host) or `C:\ProgramData\zs-vlan` (guest), readable only by admins and SYSTEM. The name is in `C:\ProgramData\zs-vlan-name`, readable by everyone so the game can read it.
 
 ## Settings (environment variables)

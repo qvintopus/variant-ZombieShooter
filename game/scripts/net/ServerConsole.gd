@@ -20,7 +20,11 @@ extends Node
 const HELP:String = """commands:
   status                 room, players, hidden player
   info                   one line for programs: INFO room=... players=... (the launcher menu)
-  players                everyone connected: slot, name, state, address
+  players                everyone connected: slot, name, state, address (* = the main player)
+  main                   who is the main player (the plumber) and how it's chosen
+  main <slot>            make that player the main player
+  main free              nobody: the next player to join (that the mode allows) gets it
+  main mode first|local  main = the first player to join / the first from this PC (--main)
   kick <slot> [reason]   drop a player (slot from 'players')
   home                   save the run and go back to the home base
   stop                   save, tell the players, quit (also: quit, exit)
@@ -117,6 +121,8 @@ func run(line:String)->void:
 			_list_players()
 		"kick":
 			_kick(_words)
+		"main":
+			_main(_words)
 		"home":
 			_home()
 		"stop", "quit", "exit":
@@ -153,9 +159,44 @@ func _list_players()->void:
 		_any = true
 		var _what:String = "ghost (at own home base)" if _state.ghost else ("down" if _state.downed else "active")
 		var _idle:String = (" idle %dm" % int(_state.idle_time / 60.0)) if _state.idle_time >= 60.0 else ""
-		_say("  slot %d  %-24s %-26s %s%s" % [_state.slot, _state.display_name, _what, Net.peer_address(_state.peer_id), _idle])
+		_say("%s slot %d  %-24s %-26s %s%s" % [" *" if _state.main else "  ", _state.slot, _state.display_name, _what, Net.peer_address(_state.peer_id), _idle])
 	if !_any:
 		_say("  nobody connected")
+	elif Net.main_player() == null:
+		_say("  " + main_line())
+
+## Who has the main seat, in words.
+static func main_line()->String:
+	var _how:String = "the first player to join" if Net.main_mode == "first" else "the first player to join from this PC"
+	var _main:PlayerState = Net.main_player()
+	if _main != null:
+		return "main player (plumber): %s, slot %d   (mode %s: %s)" % [_main.display_name, _main.slot, Net.main_mode, _how]
+	if !Net.main_key.is_empty():
+		return "main player: away, their seat is kept for them   (mode %s; 'main free' gives it to the next to join)" % Net.main_mode
+	return "main player: nobody yet, it goes to %s   (mode %s)" % [_how, Net.main_mode]
+
+func _main(words:PackedStringArray)->void:
+	if words.size() < 2:
+		_say(main_line())
+		return
+	var _arg:String = words[1].to_lower()
+	if _arg == "mode":
+		if words.size() < 3 || !Net.MAIN_MODES.has(words[2].to_lower()):
+			_say("usage: main mode first|local")
+			return
+		Net.main_mode = words[2].to_lower()
+		if !Net.main_key.is_empty():
+			_say("mode %s: used once the seat is free ('main free'); the current main player keeps it" % Net.main_mode)
+		_say(main_line())
+		return
+	if _arg == "free":
+		Net.set_main(-1)
+		_say(main_line())
+		return
+	if !_arg.is_valid_int() || !Net.set_main(int(_arg)):
+		_say("usage: main <slot> (a connected player, see 'players') | main free | main mode first|local")
+		return
+	_say(main_line())
 
 func _kick(words:PackedStringArray)->void:
 	if words.size() < 2 || !words[1].is_valid_int():
@@ -275,10 +316,12 @@ func _vlan_done(code:int, output:String)->void:
 ## One line for the launcher menu. The name is last and may hold spaces.
 func _info()->void:
 	var _vlan_ip:String = ENetTransport.vlan_address()
-	_say("INFO room=%s players=%d active=%d up=%d port=%d max=%d idle_kick=%s vlan=%s name=%s" % [
+	var _main:PlayerState = Net.main_player()
+	var _who:String = str(_main.slot) if _main != null else ("away" if !Net.main_key.is_empty() else "-")
+	_say("INFO room=%s players=%d active=%d up=%d port=%d max=%d idle_kick=%s vlan=%s main=%s:%s name=%s" % [
 		server.current_path().get_file().get_basename(), server.players(), RunSession.players.count_active(),
 		int(Time.get_unix_time_from_system()) - _started, Net.port, Net.max_players, Net.idle_kick_min,
-		_vlan_ip if !_vlan_ip.is_empty() else "-", server.server_name])
+		_vlan_ip if !_vlan_ip.is_empty() else "-", Net.main_mode, _who, server.server_name])
 
 # --- control channel (--control FILE) ---------------------------------------------
 

@@ -184,7 +184,7 @@ const PLAYER_DEAD_PATH:String = "res://addons/top_down/resources/InstanceResourc
 func _on_instanced(resource:InstanceResource, node:Node)->void:
 	if resource.resource_path == PLAYER_DEAD_PATH:
 		# the corpse wears the local player's skin
-		PlayerSkin.apply_to_sprites(node, RunSession.players.local_slot)
+		PlayerSkin.apply_to_sprites(node, RunSession.local_player())
 	if _replaying || !net().is_online():
 		return
 	var _kind:Variant = catalogue.get(resource.resource_path)

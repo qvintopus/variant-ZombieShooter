@@ -146,11 +146,17 @@ func _dress_local()->void:
 		var _visual:Node2D = _body.get_node_or_null("Body")
 		if _visual != null:
 			_visual.modulate.a = GuestTier.alpha(_local)
-	if _body == null || (_body == _dressed_body && _slot == _dressed_slot):
-		return
-	_dressed_body = _body
-	_dressed_slot = _slot
-	PlayerSkin.apply(_body, _slot)
+	if _body != null && (_body != _dressed_body || _slot != _dressed_slot || PlayerSkin.outdated(_body, _local)):
+		_dressed_body = _body
+		_dressed_slot = _slot
+		PlayerSkin.apply(_body, _local)
+	# a teammate became (or stopped being) the dedicated server's main player
+	for _puppet_slot:int in puppets:
+		if !is_instance_valid(puppets[_puppet_slot]):
+			continue   # freed: dropped below this frame
+		var _state:PlayerState = RunSession.players.get_state(_puppet_slot)
+		if _state != null && PlayerSkin.outdated(puppets[_puppet_slot], _state):
+			PlayerSkin.apply(puppets[_puppet_slot], _state)
 
 # --- Rooms --------------------------------------------------------------------
 

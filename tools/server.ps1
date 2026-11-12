@@ -8,9 +8,10 @@
 #   server.cmd log              follow the server's log (q goes back)
 #   server.cmd console          type server commands (help lists them) into the running server
 #   server.cmd send <command>   one server command, e.g. send kick 2
-#   server.cmd settings         change the saved settings (port, name, players, idle kick, VLAN)
+#   server.cmd settings         change the saved settings (port, name, players, idle kick, main player, VLAN)
 #   server.cmd run [options]    run it in this window instead (also: server.cmd --port ... as before)
 # Options: --vlan --port N --max-players 2..8 --save-dir PATH --name NAME --status SECONDS --idle-kick MIN
+#          --main first|local (who wears the plumber: the first player to join / the first from this PC)
 # The server runs in a hidden window until stopped (closing the menu leaves it running); its log is in
 # %LOCALAPPDATA%\zs-server\server.log. The menu talks to it over 127.0.0.1 with a token only this user
 # can read. The virtual LAN setting needs admin (the menu reopens itself as admin for it).
@@ -125,10 +126,36 @@ function FindGodot {
     $true
 }
 
+# The Godot exes the server runs as: the console exe starts the plain one, and that one opens the port.
+function GodotExes {
+    $e = @($Godot)
+    if ($Godot -match '_console\.exe$') { $e += ($Godot -replace '_console\.exe$', '.exe') }
+    $e
+}
+# Enabled inbound Block rules for Godot (Windows adds one at its "allow access" prompt for each network
+# type left unticked; the virtual LAN is a Public network). They beat any Allow rule: friends can ping this
+# PC, but the game never answers them. Reading them needs no admin; vlan_auto switches them off.
+function GodotBlocked {
+    $n = @()
+    foreach ($f in @(Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue | Where-Object { "$($_.Program)" -like "*godot*" })) {
+        foreach ($r in @($f | Get-NetFirewallRule -ErrorAction SilentlyContinue)) {
+            if ("$($r.Enabled)" -eq "True" -and "$($r.Action)" -eq "Block" -and "$($r.Direction)" -eq "Inbound") { $n += "`"$($r.DisplayName)`" ($($r.Profile)): $($f.Program)" }
+        }
+    }
+    $n
+}
+function FirewallWarn {
+    $b = @(try { GodotBlocked } catch { @() })
+    if ($b.Count -eq 0) { return }
+    Write-Host "warning: Windows Firewall blocks Godot for players on other PCs (on the virtual LAN, a Public network):"
+    $b | ForEach-Object { Write-Host "  $_" }
+    Write-Host "  fix (asks for admin): tools\vlan\vlan_auto.cmd firewall"
+}
+
 # ---------------------------------------------------------------- settings
 
 function LoadSettings {
-    $script:S = @{ port = "24565"; name = "Server"; max_players = "8"; idle_kick = "5"; vlan = "no" }
+    $script:S = @{ port = "24565"; name = "Server"; max_players = "8"; idle_kick = "5"; vlan = "no"; main = "first" }
     if (-not (Test-Path $SettingsFile)) { return }
     foreach ($line in (Get-Content $SettingsFile -Encoding UTF8)) {
         $k, $v = $line.Split("=", 2)
@@ -138,19 +165,30 @@ function LoadSettings {
             "max_players" { if ($v -match '^[2-8]$') { $S.max_players = $v } }
             "idle_kick" { if ($v -match '^\d+(\.\d+)?$') { $S.idle_kick = $v } }
             "vlan" { if ($v -in @("yes", "no")) { $S.vlan = $v } }
+            "main" { if ($v -in @("first", "local")) { $S.main = $v } }
         }
     }
 }
 function SaveSettings {
-    $text = "port=$($S.port)`nname=$($S.name)`nmax_players=$($S.max_players)`nidle_kick=$($S.idle_kick)`nvlan=$($S.vlan)`n"
+    $text = "port=$($S.port)`nname=$($S.name)`nmax_players=$($S.max_players)`nidle_kick=$($S.idle_kick)`nvlan=$($S.vlan)`nmain=$($S.main)`n"
     [IO.File]::WriteAllText($SettingsFile, $text, (New-Object Text.UTF8Encoding $false))
+}
+function MainDesc([string]$m) { if ($m -eq "local") { "first to join from this PC" } else { "first to join" } }
+# main=MODE:WHO from info -> words
+function MainWho([string]$v) {
+    $mode, $who = $v.Split(":", 2)
+    switch ($who) {
+        "-" { "nobody yet (the $(MainDesc $mode) wears the plumber)" }
+        "away" { "away, their seat is kept ($(MainDesc $mode))" }
+        default { "slot $who ($(MainDesc $mode)); change it in the console: main <slot>" }
+    }
 }
 function SettingsLine {
     $idle = if ($S.idle_kick -eq "0") { "no idle kick" } else { "idle kick $($S.idle_kick) min" }
-    "port $($S.port), name `"$($S.name)`", up to $($S.max_players) players, $idle, virtual LAN $(if ($S.vlan -eq 'yes') { 'on' } else { 'off' })"
+    "port $($S.port), name `"$($S.name)`", up to $($S.max_players) players, $idle, main player: $(MainDesc $S.main), virtual LAN $(if ($S.vlan -eq 'yes') { 'on' } else { 'off' })"
 }
 function ServerArgs {
-    $a = @("--port", $S.port, "--name", $S.name, "--max-players", $S.max_players, "--idle-kick", $S.idle_kick)
+    $a = @("--port", $S.port, "--name", $S.name, "--max-players", $S.max_players, "--idle-kick", $S.idle_kick, "--main", $S.main)
     if ($S.vlan -eq "yes") { $a += "--vlan" }
     $a
 }
@@ -227,7 +265,8 @@ function Start-Server([string[]]$extra) {
     if (-not (FindGodot)) { return }
     if ($vlan) {
         Write-Host "virtual LAN first (vlan_auto host):"
-        & (Join-Path $PSScriptRoot "vlan\vlan_auto.ps1") host --machine
+        $allow = foreach ($e in (GodotExes)) { "--allow"; $e }
+        & (Join-Path $PSScriptRoot "vlan\vlan_auto.ps1") host --machine @allow
         if ($LASTEXITCODE -ne 0) { Write-Host "the virtual LAN didn't come up (see above); fix it, or turn it off in settings"; return }
         Write-Host ""
     }
@@ -244,6 +283,7 @@ function Start-Server([string[]]$extra) {
         if ($text -match 'hosting on port \d+ - OK' -and (Test-Path $Control)) {
             Write-Host "server is up. Players join at:"
             $text -split "`n" | Where-Object { $_ -match 'join .* at' } | ForEach-Object { Write-Host ("  " + ($_ -replace '^DedicatedServer \[INFO\]: ', '').Trim()) }
+            FirewallWarn
             return
         }
         if ($text -match 'hosting on port \d+ - (?!OK)') {
@@ -282,9 +322,11 @@ function Show-Status {
         Write-Host "players  : $($I.players) connected, $($I.active) active"
         $idle = $I.idle_kick -replace '\.0$', ''
         Write-Host "idle kick: $(if ($idle -eq '0') { 'off' } else { "$idle min (ghosts 3x)" })"
+        if ($I.main) { Write-Host "main     : $(MainWho $I.main)" }
     }
     Write-Host "settings : $(SettingsLine)"
     Write-Host "log      : $Log"
+    FirewallWarn
 }
 
 function Show-Players { if (Running) { Write-Host (Request "players") } else { Write-Host "the server isn't running." } }
@@ -336,6 +378,7 @@ function Edit-Settings {
         Write-Host "  3  max players   $($S.max_players)"
         Write-Host "  4  idle kick     $(if ($S.idle_kick -eq '0') { 'off' } else { "$($S.idle_kick) min" })"
         Write-Host "  5  virtual LAN   $(if ($S.vlan -eq 'yes') { 'on (hosts zs-vlan, needs admin; see tools\vlan\README.md)' } else { 'off' })"
+        Write-Host "  6  main player   $(MainDesc $S.main) (wears the plumber; the others are electricians)"
         Write-Host "  b  back"
         $c = Read-Host "change"
         switch ($c) {
@@ -344,8 +387,9 @@ function Edit-Settings {
             "3" { $v = Ask "max players (2-8)" $S.max_players; if ($v -match '^[2-8]$') { $S.max_players = $v } else { Write-Host "2 to 8" } }
             "4" { $v = Ask "idle kick minutes (0 = off)" $S.idle_kick; if ($v -match '^\d+(\.\d+)?$') { $S.idle_kick = $v } else { Write-Host "a number of minutes" } }
             "5" { $S.vlan = if ($S.vlan -eq "yes") { "no" } else { "yes" } }
+            "6" { $S.main = if ($S.main -eq "first") { "local" } else { "first" } }
             { $_ -in @("b", "q", "") } { SaveSettings; if (Running) { Write-Host "the server is running: restart it to use the new settings." }; return }
-            default { Write-Host "pick 1-5 or b" }
+            default { Write-Host "pick 1-6 or b" }
         }
         SaveSettings
     }
@@ -392,7 +436,8 @@ function Run-Here([string[]]$pass) {
     Set-Location $Root
     if ($vlan) {
         # --machine: shows the invite but doesn't stop to ask for replies - paste those into the server console
-        & (Join-Path $PSScriptRoot "vlan\vlan_auto.ps1") host --machine
+        $allow = foreach ($e in (GodotExes)) { "--allow"; $e }
+        & (Join-Path $PSScriptRoot "vlan\vlan_auto.ps1") host --machine @allow
         if ($LASTEXITCODE -ne 0) { Write-Host "server: the virtual LAN didn't come up (see above); fix it or start without --vlan"; exit 1 }
         Write-Host ""
     }
@@ -416,7 +461,7 @@ switch -regex ($Cmd) {
         Write-Host (Request ($Rest -join " ")); break
     }
     '^settings$' { Edit-Settings; break }
-    '^(help|-h|--help)$' { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 17 | ForEach-Object { $_ -replace '^# ?', '' }; break }
+    '^(help|-h|--help)$' { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 18 | ForEach-Object { $_ -replace '^# ?', '' }; break }
     '^run$' { Run-Here $Rest; break }
     '^-' { Run-Here $Argv; break }
     default { Write-Host "unknown command '$Cmd' (try: $Self help)"; exit 1 }

@@ -8,7 +8,9 @@
 ## players, status, kick usage, an unknown command, and stop, which saves the run,
 ## tells us and quits. The same commands over the control channel (--control: the
 ## launcher menu's way in): the token, info, players. Also the console's vlan_auto
-## plumbing (paths, result line).
+## plumbing (paths, result line). The main player: we join first, so we wear the
+## plumber; "main free" / "main <slot>" hand it over, and leaving mid-run keeps
+## the seat (and parks our run) until we're back.
 ##   Godot --headless --path . res://game/tests/dedicated_server_check.tscn
 extends Node
 
@@ -61,7 +63,8 @@ func _run()->void:
 	check(Net.players.puppets.is_empty(), "player: no copy of the server's player in the room")
 	var _panel:PartyPanel = _find(get_tree().root, func (n:Node)->bool: return n is PartyPanel) as PartyPanel
 	check(_panel == null || _panel.rows.is_empty(), "player: no party panel row for the server")
-	check((_body().get_node("Body/Stretch/Sprite2D") as Sprite2D).texture == PlayerSkin.GUEST_TEXTURE, "player: wears the electrician (no visible host)")
+	check(RunSession.local_player().main, "player: the first to join is the main player")
+	check(_texture() == PlayerSkin.HOST_TEXTURE, "player: the main player wears the plumber")
 
 	# the hidden player sits on us and is untouchable
 	_body().global_position += Vector2(24, 8)
@@ -87,7 +90,7 @@ func _run()->void:
 
 	# the console
 	_say("players")
-	check(await _wait(func ()->bool: return _read().contains("  slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), 5.0), "console: players lists us")
+	check(await _wait(func ()->bool: return _read().contains(" * slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), 5.0), "console: players lists us, as the main player")
 	_say("status")
 	check(await _wait(func ()->bool: return _read().contains("room room_N00, 1 player(s)"), 5.0), "console: status shows the room and players")
 	_say("kick")
@@ -103,11 +106,46 @@ func _run()->void:
 	check(_reply.contains("slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), "control: players answered")
 	_reply = await _request({"control_port": _control.get("control_port", "0"), "token": "nope"}, "stop")
 	check(_reply.contains("bad token") && OS.is_process_running(_server.pid), "control: a wrong token is refused")
+
+	# the main player
+	var _slot:int = RunSession.players.local_slot
+	var _me:String = RunSession.local_player().display_name
+	_reply = await _request(_control, "main")
+	check(_reply.contains("main player (plumber): %s, slot %d" % [_me, _slot]) && _reply.contains("mode first"), "main: names us (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "info")
+	check(_reply.contains("main=first:%d " % _slot), "main: in info (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "main free")
+	check(await _wait(func ()->bool: return !RunSession.local_player().main && _texture() == PlayerSkin.GUEST_TEXTURE, 5.0), "main free: we're an electrician now")
+	check(_reply.contains("nobody yet"), "main free: nobody has it (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "main %d" % _slot)
+	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main <slot>: the plumber again")
+	_reply = await _request(_control, "main 7")
+	check(_reply.contains("usage: main <slot>"), "main: an empty slot is refused")
+	_reply = await _request(_control, "main mode sideways")
+	check(_reply.contains("usage: main mode"), "main mode: only first or local")
+	# leave mid-run: the seat (and our run) waits; back, we're the main player again
+	Net.players.leaving_by_choice = true
+	Net.leave()
+	var _away:bool = false
+	for _try:int in 20:
+		await _frames(15)
+		_reply = await _request(_control, "info")
+		if _reply.contains("main=first:away "):
+			_away = true
+			break
+	check(_away, "main: kept while we're away (%s)" % _reply.strip_edges())
+	check(await _wait(func ()->bool: return Net.state == Net.State.OFFLINE && _body() != null, 10.0), "player: left")
+	check(await _wait(func ()->bool: return _field("room") == HOME, 15.0), "server: nobody left mid-run, back home with the run kept")
+	_err = Net.join("127.0.0.1:%d" % PORT)
+	check(_err == OK && await _wait(func ()->bool: return Net.is_guest() && _body() != null && _current() == HOME, 20.0), "player: rejoined")
+	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main: ours again after rejoining")
+	_control = _read_control()
 	var _ended:Array = []
 	Net.session_ended.connect(func (reason:String)->void: _ended.append(reason), CONNECT_ONE_SHOT)
 	_say("stop")
 	check(await _wait(func ()->bool: return !OS.is_process_running(_server.pid), 15.0), "console: stop quits the server")
-	check(_read().contains("ServerConsole [INFO]: stopping (run saved)"), "console: stop saved the run first")
+	# (back home after our leave: the run was checkpointed then, nothing new to save now)
+	check(_read().contains("ServerConsole [INFO]: stopping"), "console: stop said so")
 	check(!FileAccess.file_exists(_save_dir + ".control"), "control: file removed on stop")
 	check(FileAccess.file_exists(_save_dir.path_join(RunSave.file_name + ".tres")), "console: the run checkpoint is in the server's folder")
 	check(_ended.size() == 1 && _ended[0] == "The server stopped", "player: told the server stopped (%s)" % [_ended])
@@ -210,6 +248,10 @@ func _field(key:String)->String:
 
 func _body()->Node2D:
 	return Net.players.local_body()
+
+func _texture()->Texture2D:
+	var _body_now:Node2D = _body()
+	return (_body_now.get_node("Body/Stretch/Sprite2D") as Sprite2D).texture if _body_now != null else null
 
 func _current()->String:
 	var _scene:Node = get_tree().current_scene
