@@ -283,8 +283,10 @@ func _refresh_roster()->void:
 	for _state:PlayerState in RunSession.players.all():
 		var _row:HBoxContainer = HBoxContainer.new()
 		var _tags:PackedStringArray = []
-		if _state.slot == 0:
+		if _state.slot == 0 && !_state.hidden:
 			_tags.append("host")
+		if _state.main:
+			_tags.append("main")
 		if _state.is_local:
 			_tags.append("you")
 		var _suffix:String = " (%s)" % ", ".join(_tags) if !_tags.is_empty() else ""

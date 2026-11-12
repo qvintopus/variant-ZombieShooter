@@ -278,6 +278,8 @@ guest_show() {
 	if [ "$st" = online ]; then
 		echo "connected. In the game: Comms Terminal -> Join ->  $NET.1"
 		clip "$NET.1"
+		echo "   (the host's game must be running: Comms Terminal -> Host, or the dedicated server."
+		echo "    The tunnel works but the game can't join? A Windows host runs:  vlan_auto.cmd firewall)"
 	else
 		[ -z "${PUB_OLD:-}" ] || echo "this PC's public address changed since your last reply, so the host needs the new one."
 		echo "1. send this reply back to the host:"
@@ -301,6 +303,8 @@ guest_wait() {
 		echo
 		echo "online! In the game: Comms Terminal -> Join ->  $NET.1"
 		clip "$NET.1"
+		echo "   (the host's game must be running: Comms Terminal -> Host, or the dedicated server."
+		echo "    The tunnel works but the game can't join? A Windows host runs:  vlan_auto.cmd firewall)"
 	else
 		echo "no answer from the host yet. Check that:"
 		echo "  - the host started their virtual LAN and pasted your reply (vlan_auto, or 'add <reply>' on the server console)"

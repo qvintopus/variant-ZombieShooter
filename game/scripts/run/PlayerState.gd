@@ -53,6 +53,10 @@ var idle_time:float
 var last_aim:Vector2
 ## The dedicated server's own player: invisible, never hurt, never counted.
 var hidden:bool
+## Dedicated server: the main player, who wears the host's plumber (Net.main_mode).
+var main:bool
+## Server: who this guest is across rejoins ("profile|machine"), for the main seat.
+var main_key:String
 ## Co-op guest tier (GuestTier): an electrician brings its loot home, a ghost
 ## (the default) is faint in the host's home base and keeps nothing.
 var electrician:bool

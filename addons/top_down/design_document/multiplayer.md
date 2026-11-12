@@ -151,7 +151,8 @@ Test: `game/tests/coop_world_check.tscn` uses two real games, with the guest in 
 
 - Slot 0 (the host or single player) wears the plumber, and every guest wears the electrician (`characters/electrician_16x16_strip8.png`, the same layout).
 - The skin is applied to puppets (`RemotePlayer`), to the local body (`NetPlayers._dress_local`) and to the player's corpse effect.
-- On a dedicated server slot 0 is the hidden player, so everyone visible is an electrician.
+- On a dedicated server slot 0 is the hidden player. The plumber goes to its **main player** instead (`PlayerState.main`, see below), and the rest are electricians.
+- `PlayerSkin.is_plumber(state)` decides. A body remembers what it wears (meta `plumber`), and `NetPlayers._dress_local` re-dresses the local body and the copies when that changes.
 
 ## Join tiers (`GuestTier`)
 
@@ -269,6 +270,7 @@ It will become a meta upgrade later.
   | `--control FILE` | off | the launcher menu's control channel (see above) |
   | `--vlan` | off | also host the zs-vlan virtual LAN (below) |
   | `--idle-kick MIN` | `5` | drop guests idle that long, and ghosts after 3× that; `0` = never |
+  | `--main first\|local` | `first` | who becomes the main player (below) |
 
   - The server skips the title and hosts from its home base. It is ready when it prints `DedicatedServer [INFO]: hosting on port … - OK`, followed by the addresses to join at.
   - **Idle kick (`Net.idle_kick_min`, host only, off for a normal host):**
@@ -284,6 +286,7 @@ It will become a meta upgrade later.
   |---|---|
   | `status`, `players` | room and players; slot, name, state, address |
   | `kick <slot> [reason]` | `Net.kick` |
+  | `main`, `main <slot>`, `main free`, `main mode first\|local` | show / hand over / free the main seat, and how it is given (`Net.set_main`, `Net.main_mode`) |
   | `home` | checkpoint, then back to the home base |
   | `stop` / `quit` / `exit` | checkpoint, kick everyone with "The server stopped", `Net.leave()`, quit |
   | `invite`, `add <reply>` (or a bare `zsr2.…`), `guests`, `revoke <N>` | zs-vlan, through `vlan_auto … --machine` |
@@ -303,5 +306,11 @@ It will become a meta upgrade later.
 - **Hidden player:** `game/scenes/actors/server_player.tscn`, the player scene with everything seen or used switched off (no layers, invisible, input, weapons and camera disabled). `Net` swaps it into the player instance resource.
   - `ServerAnchor` keeps it on the party leader and never lets it die, except on a party wipe.
   - It is `hidden` in the roster, so guests show no copy or panel row.
+- **Main player** (`Net.main_mode`, `Net.main_key`, `PlayerState.main`):
+  - Set in `_hello` (`_claim_main`). With `first`, the first guest to join gets it. With `local`, the first one whose `_hello.machine` equals the server's own `GuestSandbox.machine_id()` gets it, whether it joins over 127.0.0.1, the LAN or the VLAN.
+  - The seat is kept by key (`profile_id|machine`), so it waits while that player is away. Others don't take it over. The console can hand it over or free it.
+  - It travels in the roster as `main`, which drives the skin, the co-op dialog's "main" tag, and `ServerAnchor.leader()`. The hidden player follows the main player when it's active in a room, and otherwise the lowest active slot.
+  - Tiers are unchanged: the main player is a guest like the others (ghost or electrician tier, `GuestTier`).
+- **A guest dropping mid-run** (leaving, a crash, a lost link): `_on_peer_disconnected` parks its run data in `RunSession.waiting_guests` first, as the idle kick does, so a rejoin gets it back (`_return_saved_guests`). Mid-fight, a rejoin waits at the door (`WaitingAtDoor`). This applies to every host, not only the dedicated server.
 - Guests' copies trigger its doors and exit gate the way a host's teammates do.
 - Victory, game over, and the last player leaving mid-run all take it back to its home base.

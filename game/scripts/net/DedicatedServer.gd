@@ -1,6 +1,7 @@
 ## Dedicated server: a headless host whose own player is hidden. Started with
 ##   Godot --headless --path . -- --server [--port N] [--max-players 2..8]
 ##                                [--save-dir PATH] [--name "Server"] [--vlan] [--idle-kick MIN]
+##                                [--main first|local]
 ## (tools/server.sh, tools\server.cmd on Windows: a menu that runs it in the background).
 ## Commands typed into its window go to ServerConsole ("help"); with --control FILE they
 ## also come from the launcher menu. It skips the title, opens the session in its home base
@@ -17,6 +18,9 @@
 ## 10.77.0.1); the server says so once it's hosting, and guests are added from its console.
 ## --idle-kick MIN (IDLE_KICK_MIN): guests idle that long are dropped, ghosts after 3x that
 ## (Net.idle_kick_min); 0 keeps everyone.
+## --main first|local: who becomes the main player, who wears the host's plumber
+## (Net.main_mode): the first player to join (default), or the first to join from this PC.
+## The seat stays theirs while they're away; the console's "main" command changes it.
 class_name DedicatedServer
 extends Node
 
@@ -58,7 +62,7 @@ static func options()->Dictionary:
 		var _arg:String = _args[_i]
 		if _arg in ["--server", "--vlan"]:
 			_options[_arg.trim_prefix("--")] = true
-		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status", "--idle-kick", "--control"] && _i + 1 < _args.size():
+		elif _arg in ["--port", "--max-players", "--save-dir", "--name", "--status", "--idle-kick", "--control", "--main"] && _i + 1 < _args.size():
 			_options[_arg.trim_prefix("--")] = _args[_i + 1]
 			_i += 1
 		_i += 1
@@ -81,6 +85,8 @@ func _ready()->void:
 	Net.max_players = clampi(int(_options_now.get("max-players", str(Net.MAX_PLAYERS))), MIN_PLAYERS, Net.MAX_PLAYERS)
 	_status_every = maxf(float(_options_now.get("status", "0")), 0.0)
 	Net.idle_kick_min = maxf(float(_options_now.get("idle-kick", str(IDLE_KICK_MIN))), 0.0)
+	var _main_mode:String = str(_options_now.get("main", "first")).to_lower()
+	Net.main_mode = _main_mode if Net.MAIN_MODES.has(_main_mode) else "first"
 	Transition.instant = true
 	var _master:int = AudioServer.get_bus_index("Master")
 	if _master >= 0:
@@ -88,8 +94,9 @@ func _ready()->void:
 	var _local:PlayerState = RunSession.local_player()
 	_local.hidden = true
 	_local.display_name = server_name
-	print("DedicatedServer [INFO]: port %d, up to %d players, saves in %s, %s" % [port, Net.max_players, SaveableResource.save_dir,
-		("idle guests dropped after %s min (ghosts %s min)" % [Net.idle_kick_min, Net.idle_kick_min * Net.IDLE_GHOST_FACTOR]) if Net.idle_kick_min > 0.0 else "no idle kick"])
+	print("DedicatedServer [INFO]: port %d, up to %d players, saves in %s, %s, main player: %s" % [port, Net.max_players, SaveableResource.save_dir,
+		("idle guests dropped after %s min (ghosts %s min)" % [Net.idle_kick_min, Net.idle_kick_min * Net.IDLE_GHOST_FACTOR]) if Net.idle_kick_min > 0.0 else "no idle kick",
+		"first to join" if Net.main_mode == "first" else "first to join from this PC"])
 	console = ServerConsole.new()
 	console.name = "ServerConsole"
 	console.server = self

@@ -7,10 +7,12 @@
 #   vlan_auto.cmd join <invite>       join a host's virtual LAN; prints the reply to send back
 #   vlan_auto.cmd start               start the last virtual LAN again (after a restart or going idle)
 #   vlan_auto.cmd name [NEW]          this PC's name on the virtual LAN (default: the computer name)
+#   vlan_auto.cmd firewall [EXE...]   let friends on the virtual LAN reach the game through Windows Firewall
 #   vlan_auto.cmd status              what this PC is, who is online, the code to send
 #   vlan_auto.cmd stop                remove everything this made (host or guest)
 # --name NAME anywhere: use that name without asking (host and join ask for one).
 # The same name twice on one virtual LAN becomes Name#2, Name#3, ...
+# --allow EXE anywhere (repeatable): also allow that game exe on the virtual LAN (tools\server.cmd passes Godot).
 # --machine anywhere: no prompts, no clipboard, short waits, and a last line "ZSVLAN key=value ..."
 # The tunnel never starts at boot, and goes off after VLAN_IDLE_MIN (5) minutes without game traffic.
 # Starting it again checks the public address: unchanged, the old codes still work; changed, it says
@@ -23,12 +25,15 @@ $ErrorActionPreference = "Stop"
 $Machine = $false
 $SetName = ""
 $CarryWg = $false   # set by Teardown -KeepWg: zs-vlan had installed WireGuard
+$AllowExe = @()   # --allow EXE: game exes to let in from the virtual LAN
+$FwState = "ok"   # the firewall for the game: ok, fixed, blocked
 $Argv = @()
 for ($i = 0; $i -lt $args.Count; $i++) {
     $a = "$($args[$i])"
     if ($a -eq "--machine") { $Machine = $true }
     elseif ($a -eq "--name") { if ($i + 1 -lt $args.Count) { $i++; $SetName = "$($args[$i])" } }
     elseif ($a.StartsWith("--name=")) { $SetName = $a.Substring(7) }
+    elseif ($a -eq "--allow") { if ($i + 1 -lt $args.Count) { $i++; $AllowExe += "$($args[$i])" } }
     else { $Argv += $a }
 }
 $Cmd = if ($Argv.Count -gt 0) { $Argv[0] } else { "" }
@@ -41,6 +46,7 @@ $WgExe = Join-Path $env:ProgramFiles "WireGuard\wireguard.exe"
 $Wg = Join-Path $env:ProgramFiles "WireGuard\wg.exe"
 $Svc = 'WireGuardTunnel$' + $Name
 $Self = "vlan_auto.cmd"
+$FwSaved = Join-Path $env:ProgramData "zs-vlan-fw"   # firewall rules zs-vlan switched off; 'stop' switches them back on
 $NameFile = Join-Path $env:ProgramData "zs-vlan-name"   # this PC's name on the VLAN (outside the admin-only folders: the game reads it)
 $NameMax = 24   # = Net.MAX_NAME_LENGTH in the game
 $IdleMin = if ($env:VLAN_IDLE_MIN -match '^\d+$') { [int]$env:VLAN_IDLE_MIN } else { 5 }   # 0 = never
@@ -48,7 +54,7 @@ $IdleBytes = 2048   # less traffic than this per check counts as idle (a game se
 $IdleCheck = if ($env:VLAN_IDLE_CHECK -match '^\d+$') { [int]$env:VLAN_IDLE_CHECK } else { 30 }   # seconds
 
 if ($Cmd -in @("help", "-h", "--help")) {
-    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 19 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 21 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 0
 }
 
@@ -69,6 +75,7 @@ if (-not $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     $a = @("-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
     foreach ($x in $Argv) { $a += "`"$x`"" }
     if ($SetName) { $a += "--name"; $a += "`"$SetName`"" }
+    foreach ($x in $AllowExe) { $a += "--allow"; $a += "`"$x`"" }
     Start-Process powershell -Verb RunAs -ArgumentList $a
     exit 10   # vlan_auto.cmd: the admin window took over, don't pause here
 }
@@ -275,12 +282,95 @@ function Watch([int]$min) {
         }
     }
 }
-# UDP to WireGuard from anywhere; over the tunnel only the game and ping.
+# UDP to WireGuard from anywhere; over the tunnel only the game and ping. Each rule on its own, so a
+# rule set left by an older version (or one rule deleted by hand) is completed.
+function FwRule([string]$display, [hashtable]$opt) {
+    if (Get-NetFirewallRule -DisplayName $display -ErrorAction SilentlyContinue) { return }
+    New-NetFirewallRule -DisplayName $display -Group "zs-vlan" -Direction Inbound -Action Allow -Profile Any @opt | Out-Null
+}
 function FwOpen {
-    if (Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue) { return }
-    New-NetFirewallRule -DisplayName "zs-vlan WireGuard UDP $Port" -Group "zs-vlan" -Direction Inbound -Protocol UDP -LocalPort $Port -Action Allow -Profile Any | Out-Null
-    New-NetFirewallRule -DisplayName "zs-vlan game UDP $GamePort" -Group "zs-vlan" -Direction Inbound -Protocol UDP -LocalPort $GamePort -RemoteAddress "$Net.0/24" -Action Allow -Profile Any | Out-Null
-    New-NetFirewallRule -DisplayName "zs-vlan ping" -Group "zs-vlan" -Direction Inbound -Protocol ICMPv4 -IcmpType 8 -RemoteAddress "$Net.0/24" -Action Allow -Profile Any | Out-Null
+    FwRule "zs-vlan WireGuard UDP $Port" @{ Protocol = "UDP"; LocalPort = $Port }
+    FwRule "zs-vlan game UDP $GamePort" @{ Protocol = "UDP"; LocalPort = $GamePort; RemoteAddress = "$Net.0/24" }
+    FwRule "zs-vlan ping" @{ Protocol = "ICMPv4"; IcmpType = 8; RemoteAddress = "$Net.0/24" }
+}
+
+# The network type Windows gave the virtual LAN (an unidentified network: Public, unless changed).
+function VlanCategory {
+    $c = Get-NetConnectionProfile -InterfaceAlias $Name -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($c) { "$($c.NetworkCategory)" } else { "Public" }
+}
+# Enabled inbound Block rules for a Godot exe that apply on the virtual LAN. Windows makes them at its
+# "allow access" prompt for each network type left unticked (Public is unticked by default), and a Block
+# rule beats zs-vlan's game-port rule: friends can ping this PC, but the game never answers them.
+function FwGodotBlocks {
+    if ($null -ne $script:FwBlocks) { return $script:FwBlocks }
+    $cat = VlanCategory
+    if ($cat -eq "DomainAuthenticated") { $cat = "Domain" }
+    $out = @()
+    $filters = @(Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue | Where-Object { "$($_.Program)" -like "*godot*" })
+    foreach ($f in $filters) {
+        foreach ($r in @($f | Get-NetFirewallRule -ErrorAction SilentlyContinue)) {
+            if ("$($r.Enabled)" -ne "True" -or "$($r.Action)" -ne "Block" -or "$($r.Direction)" -ne "Inbound") { continue }
+            if ("$($r.Profile)" -ne "Any" -and "$($r.Profile)" -notmatch $cat) { continue }
+            $out += [pscustomobject]@{ Name = $r.Name; Display = $r.DisplayName; Program = "$($f.Program)" }
+        }
+    }
+    $script:FwBlocks = $out
+    $out
+}
+# Allow one game exe from the virtual LAN only (also keeps Windows from asking, and from adding a Block rule).
+function FwAllowExe([string]$exe) {
+    $exe = [Environment]::ExpandEnvironmentVariables($exe)
+    if (-not (Test-Path $exe -PathType Leaf)) { return }
+    foreach ($r in @(Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue)) {
+        if ("$(($r | Get-NetFirewallApplicationFilter).Program)" -eq $exe) { return }
+    }
+    New-NetFirewallRule -DisplayName "zs-vlan game: $(Split-Path $exe -Leaf)" -Group "zs-vlan" -Direction Inbound -Action Allow -Profile Any `
+        -Protocol UDP -Program $exe -RemoteAddress "$Net.0/24" | Out-Null
+    Write-Host "allowed $exe from the virtual LAN ($Net.0/24 only)"
+}
+# Switch the Godot Block rules off (not deleted: 'stop' switches them back on) and allow the exes.
+function FwFix {
+    $blocks = @(FwGodotBlocks)
+    foreach ($b in $blocks) {
+        Disable-NetFirewallRule -Name $b.Name
+        Add-Content $FwSaved $b.Name
+        Write-Host "switched off firewall rule `"$($b.Display)`" (it blocked $($b.Program))"
+    }
+    foreach ($exe in (@($blocks | ForEach-Object { $_.Program }) + @($AllowExe) | Where-Object { $_ } | Select-Object -Unique)) { FwAllowExe $exe }
+    $script:FwBlocks = @()
+    if ($blocks.Count -gt 0) { $script:FwState = "fixed" }
+}
+# Hosting: find Godot Block rules and fix them (asks first, unless --machine: hosting means letting friends in).
+function FwCheck {
+    $blocks = @(FwGodotBlocks)
+    if ($blocks.Count -gt 0) {
+        Write-Host "Windows Firewall blocks Godot on the virtual LAN (a `"$(VlanCategory)`" network), so friends could ping"
+        Write-Host "this PC but never get into the game:"
+        foreach ($b in $blocks) { Write-Host "  `"$($b.Display)`"  $($b.Program)" }
+        if (-not $Machine) {
+            $yn = Read-Host "switch these off so friends can join? ('$Self stop' switches them back on) [Y/n]"
+            if ($yn -match '^[nN]') { $script:FwState = "blocked"; Write-Host "left as they are. Later: $Self firewall"; Write-Host ""; return }
+        }
+    }
+    FwFix
+    if ($blocks.Count -gt 0) { Write-Host "" }
+}
+# 'stop': switch back on what FwFix switched off.
+function FwRestore {
+    if (-not (Test-Path $FwSaved)) { return }
+    foreach ($n in (Get-Content $FwSaved | Where-Object { $_ } | Select-Object -Unique)) {
+        if (Get-NetFirewallRule -Name $n -ErrorAction SilentlyContinue) { Enable-NetFirewallRule -Name $n; Write-Host "switched firewall rule `"$((Get-NetFirewallRule -Name $n).DisplayName)`" back on" }
+    }
+    Remove-Item $FwSaved -Force
+}
+function FirewallCmd {
+    $blocks = @(FwGodotBlocks)
+    if ($blocks.Count -eq 0) { Write-Host "no Windows Firewall rule blocks Godot on the virtual LAN." }
+    FwOpen
+    FwCheck
+    if ($FwState -ne "blocked") { Write-Host "friends on the virtual LAN can reach a game hosted on this PC (UDP $GamePort)." }
+    Result "role=$(Role) state=firewall fw=$FwState"
 }
 
 # ---------------------------------------------------------------- host
@@ -309,6 +399,8 @@ function HostUp {
         $was = TunnelOn
         TunnelStarted $StateHost
         if (-not $was) { Write-Host "started the virtual LAN again (same keys and guests) - this PC is $Net.1"; Write-Host "" }
+        FwOpen
+        FwCheck
         return
     }
     Preflight
@@ -323,6 +415,7 @@ function HostUp {
     FwOpen
     Write-Host "created the virtual LAN - this PC is $Net.1"
     Write-Host ""
+    FwCheck
 }
 
 function HostShow {
@@ -386,8 +479,12 @@ function HostShow {
     }
     Write-Host ""
     Write-Host "game: host from the Comms Terminal, or run tools\server.cmd - friends join  $Net.1"
+    if ($FwState -eq "blocked" -or @(FwGodotBlocks).Count -gt 0) {
+        $script:FwState = "blocked"
+        Write-Host "warning: Windows Firewall blocks Godot here, friends can't get into the game. Fix: $Self firewall"
+    }
     $g = if ($list.Count -gt 0) { $list -join "," } else { "-" }
-    Result "role=host state=up ip=$Net.1 name=$(Pct $mine) game=$Net.1`:$GamePort next=$slot code=$code guests=$g moved=$moved"
+    Result "role=host state=up ip=$Net.1 name=$(Pct $mine) game=$Net.1`:$GamePort next=$slot code=$code guests=$g moved=$moved fw=$FwState"
 }
 
 function HostAdd([string]$reply) {
@@ -528,6 +625,8 @@ function GuestShow {
     if ($st -eq "online") {
         Write-Host "connected. In the game: Comms Terminal -> Join ->  $Net.1"
         Clip "$Net.1"
+        Write-Host "   (the host's game must be running: Comms Terminal -> Host, or the dedicated server."
+        Write-Host "    The tunnel works but the game can't join? A Windows host runs:  vlan_auto.cmd firewall)"
     } else {
         if ($script:PubOld) { Write-Host "this PC's public address changed since your last reply, so the host needs the new one." }
         Write-Host "1. send this reply back to the host:"
@@ -551,6 +650,8 @@ function GuestWait {
         Write-Host ""
         Write-Host "online! In the game: Comms Terminal -> Join ->  $Net.1"
         Clip "$Net.1"
+        Write-Host "   (the host's game must be running: Comms Terminal -> Host, or the dedicated server."
+        Write-Host "    The tunnel works but the game can't join? A Windows host runs:  vlan_auto.cmd firewall)"
     } else {
         Write-Host "no answer from the host yet. Check that:"
         Write-Host "  - the host started their virtual LAN and pasted your reply (vlan_auto, or 'add <reply>' on the server console)"
@@ -581,6 +682,7 @@ function Teardown([string]$dir, [switch]$KeepWg) {
     WatchStop $dir
     if (TunnelUp) { & $WgExe /uninstalltunnelservice $Name; Start-Sleep 3; Write-Host "removed tunnel $Name" }
     if (Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Group "zs-vlan"; Write-Host "removed firewall rules (group zs-vlan)" }
+    FwRestore
     if ($KeepWg) { if (Test-Path "$dir\installed_wireguard") { $script:CarryWg = $true } }
     elseif (Test-Path "$dir\installed_wireguard") {
         winget uninstall --id WireGuard.WireGuard -e --silent | Out-Host
@@ -620,7 +722,8 @@ function Stop {
     if (-not $did) {
         if (TunnelUp) { & $WgExe /uninstalltunnelservice $Name; Write-Host "removed tunnel $Name" }
         if (Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Group "zs-vlan"; Write-Host "removed firewall rules (group zs-vlan)" }
-        else { Write-Host "nothing to remove." }
+        elseif (-not (Test-Path $FwSaved)) { Write-Host "nothing to remove." }
+        FwRestore
     }
     Write-Host "done."
     Result "role=none state=down"
@@ -744,6 +847,7 @@ switch -regex ($Cmd) {
     '^watch$' { Watch $(if ($Arg1 -match '^\d+$') { [int]$Arg1 } else { $IdleMin }); break }
     '^status$' { Status; break }
     '^name$' { NameCmd $Arg1; break }
+    '^firewall$' { $AllowExe += @($Argv | Select-Object -Skip 1); FirewallCmd; break }
     '^stop$' { Stop; break }
     '^zs[ir][12]\.' { Code $Cmd; break }
     default { Fail 1 "unknown command '$Cmd' (try: $Self help)" }

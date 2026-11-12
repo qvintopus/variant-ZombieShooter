@@ -9,9 +9,10 @@
 #   tools/server.sh log              follow the server's log (Ctrl+C goes back)
 #   tools/server.sh console          type server commands (help lists them) into the running server
 #   tools/server.sh send <command>   one server command, e.g. send kick 2
-#   tools/server.sh settings         change the saved settings (port, name, players, idle kick, VLAN)
+#   tools/server.sh settings         change the saved settings (port, name, players, idle kick, main player, VLAN)
 #   tools/server.sh run [options]    run it in this window instead (also: server.sh --port ... as before)
 # Options: --vlan --port N --max-players 2..8 --save-dir PATH --name NAME --status SECONDS --idle-kick MIN
+#          --main first|local (who wears the plumber: the first player to join / the first from this PC)
 # The server runs in the background until stopped (closing the menu leaves it running); its log is in
 # ~/.local/state/zs-server/server.log. The menu talks to it over 127.0.0.1 with a token only this user
 # can read. Godot: $GODOT, else `godot` on the PATH, else a Godot binary near the project (see find_godot).
@@ -62,7 +63,7 @@ find_godot() {
 # ---------------------------------------------------------------- settings
 
 load_settings() {
-	S_PORT=24565; S_NAME=Server; S_MAX=8; S_IDLE=5; S_VLAN=no
+	S_PORT=24565; S_NAME=Server; S_MAX=8; S_IDLE=5; S_VLAN=no; S_MAIN=first
 	local k v
 	[ -f "$SETTINGS" ] || return 0
 	while IFS='=' read -r k v; do
@@ -72,18 +73,20 @@ load_settings() {
 		max_players) [[ $v =~ ^[2-8]$ ]] && S_MAX=$v ;;
 		idle_kick) [[ $v =~ ^[0-9]+([.][0-9]+)?$ ]] && S_IDLE=$v ;;
 		vlan) [[ $v =~ ^(yes|no)$ ]] && S_VLAN=$v ;;
+		main) [[ $v =~ ^(first|local)$ ]] && S_MAIN=$v ;;
 		esac
 	done <"$SETTINGS"
 }
 save_settings() {
-	printf 'port=%s\nname=%s\nmax_players=%s\nidle_kick=%s\nvlan=%s\n' "$S_PORT" "$S_NAME" "$S_MAX" "$S_IDLE" "$S_VLAN" >"$SETTINGS"
+	printf 'port=%s\nname=%s\nmax_players=%s\nidle_kick=%s\nvlan=%s\nmain=%s\n' "$S_PORT" "$S_NAME" "$S_MAX" "$S_IDLE" "$S_VLAN" "$S_MAIN" >"$SETTINGS"
 }
+main_desc() { [ "$1" = local ] && echo "first to join from this PC" || echo "first to join"; }
 settings_line() {
 	local idle="idle kick $S_IDLE min"; [ "$S_IDLE" = 0 ] && idle="no idle kick"
-	echo "port $S_PORT, name \"$S_NAME\", up to $S_MAX players, $idle, virtual LAN $([ "$S_VLAN" = yes ] && echo on || echo off)"
+	echo "port $S_PORT, name \"$S_NAME\", up to $S_MAX players, $idle, main player: $(main_desc "$S_MAIN"), virtual LAN $([ "$S_VLAN" = yes ] && echo on || echo off)"
 }
 server_args() {
-	ARGS=(--port "$S_PORT" --name "$S_NAME" --max-players "$S_MAX" --idle-kick "$S_IDLE")
+	ARGS=(--port "$S_PORT" --name "$S_NAME" --max-players "$S_MAX" --idle-kick "$S_IDLE" --main "$S_MAIN")
 	[ "$S_VLAN" = yes ] && ARGS+=(--vlan)
 	return 0
 }
@@ -112,10 +115,10 @@ request() {
 	exec 3<&- 3>&-
 }
 
-# info -> I_ROOM I_PLAYERS I_ACTIVE I_UP I_PORT I_MAX I_IDLE I_VLAN I_NAME ("" when not running)
+# info -> I_ROOM I_PLAYERS I_ACTIVE I_UP I_PORT I_MAX I_IDLE I_VLAN I_MAIN I_NAME ("" when not running)
 read_info() {
 	local line kv
-	I_ROOM=""; I_PLAYERS=""; I_ACTIVE=""; I_UP=0; I_PORT=""; I_MAX=""; I_IDLE=""; I_VLAN="-"; I_NAME=""
+	I_ROOM=""; I_PLAYERS=""; I_ACTIVE=""; I_UP=0; I_PORT=""; I_MAX=""; I_IDLE=""; I_VLAN="-"; I_MAIN=""; I_NAME=""
 	line=$(request info 2>/dev/null | grep '^INFO ' | head -n 1) || true
 	[ -n "$line" ] || return 1
 	I_NAME=${line#* name=}
@@ -123,7 +126,7 @@ read_info() {
 		case "$kv" in
 		room=*) I_ROOM=${kv#*=} ;; players=*) I_PLAYERS=${kv#*=} ;; active=*) I_ACTIVE=${kv#*=} ;;
 		up=*) I_UP=${kv#*=} ;; port=*) I_PORT=${kv#*=} ;; max=*) I_MAX=${kv#*=} ;;
-		idle_kick=*) I_IDLE=${kv#*=} ;; vlan=*) I_VLAN=${kv#*=} ;;
+		idle_kick=*) I_IDLE=${kv#*=} ;; vlan=*) I_VLAN=${kv#*=} ;; main=*) I_MAIN=${kv#*=} ;;
 		esac
 	done
 }
@@ -212,9 +215,20 @@ status() {
 		echo "name     : $I_NAME"
 		echo "players  : $I_PLAYERS connected, $I_ACTIVE active"
 		echo "idle kick: $([ "${I_IDLE%.0}" = 0 ] && echo off || echo "${I_IDLE%.0} min (ghosts 3x)")"
+		[ -z "$I_MAIN" ] || echo "main     : $(main_who "$I_MAIN")"
 	fi
 	echo "settings : $(settings_line)"
 	echo "log      : $LOG"
+}
+
+# main=MODE:WHO from info -> words
+main_who() {
+	local mode=${1%%:*} who=${1#*:}
+	case "$who" in
+	-) echo "nobody yet (the $(main_desc "$mode") wears the plumber)" ;;
+	away) echo "away, their seat is kept ($(main_desc "$mode"))" ;;
+	*) echo "slot $who ($(main_desc "$mode")); change it in the console: main <slot>" ;;
+	esac
 }
 
 players() {
@@ -259,6 +273,7 @@ settings() {
 		echo "  3  max players   $S_MAX"
 		echo "  4  idle kick     $([ "$S_IDLE" = 0 ] && echo off || echo "$S_IDLE min")"
 		echo "  5  virtual LAN   $([ "$S_VLAN" = yes ] && echo "on (hosts zs-vlan, see tools/vlan/README.md)" || echo off)"
+		echo "  6  main player   $(main_desc "$S_MAIN") (wears the plumber; the others are electricians)"
 		echo "  b  back"
 		read -r -p "change: " c || break
 		case "$c" in
@@ -267,8 +282,9 @@ settings() {
 		3) ask "max players (2-8)" "$S_MAX"; [[ $REPLY =~ ^[2-8]$ ]] && S_MAX=$REPLY || echo "2 to 8" ;;
 		4) ask "idle kick minutes (0 = off)" "$S_IDLE"; [[ $REPLY =~ ^[0-9]+([.][0-9]+)?$ ]] && S_IDLE=$REPLY || echo "a number of minutes" ;;
 		5) if [ "$S_VLAN" = yes ]; then S_VLAN=no; else S_VLAN=yes; fi ;;
+		6) if [ "$S_MAIN" = first ]; then S_MAIN=local; else S_MAIN=first; fi ;;
 		b|B|q|"") break ;;
-		*) echo "pick 1-5 or b" ;;
+		*) echo "pick 1-6 or b" ;;
 		esac
 		save_settings
 	done
@@ -340,7 +356,7 @@ log) follow_log ;;
 console) console ;;
 send) shift; [ $# -gt 0 ] || { echo "usage: $SELF send <command>"; exit 1; }; running || { echo "the server isn't running."; exit 3; }; request "$@" ;;
 settings) settings ;;
--h|--help|help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' ;;
+-h|--help|help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
 run) shift; run_here "$@" ;;
 --*) run_here "$@" ;;
 *) echo "unknown command '$1' (try: $SELF help)" >&2; exit 1 ;;

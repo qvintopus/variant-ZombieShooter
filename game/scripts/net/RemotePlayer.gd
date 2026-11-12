@@ -47,7 +47,7 @@ static func create(for_state:PlayerState, at:Vector2)->Node2D:
 				_receiver.remove_child(_child)
 				_child.free()
 	_use_state_resources(_player.get_node("ResourceNode"), for_state)
-	PlayerSkin.apply(_player, for_state.slot)
+	PlayerSkin.apply(_player, for_state)
 	var _driver:RemotePlayer = RemotePlayer.new()
 	_driver.name = "RemotePlayer"
 	_driver.state = for_state
