@@ -179,7 +179,7 @@ function MainWho([string]$v) {
     $mode, $who = $v.Split(":", 2)
     switch ($who) {
         "-" { "nobody yet (the $(MainDesc $mode) wears the plumber)" }
-        "away" { "away, their seat is kept ($(MainDesc $mode))" }
+        "away" { "away, their seat is kept until everyone has left ($(MainDesc $mode))" }
         default { "slot $who ($(MainDesc $mode)); change it in the console: main <slot>" }
     }
 }
@@ -239,6 +239,18 @@ function ReadInfo {
     $script:I = $i
     $true
 }
+# The whole log so far. The server's cmd still has it open for writing, so open it
+# sharing write access ([IO.File]::ReadAllText doesn't and fails while it's open).
+function ReadLog {
+    if (-not (Test-Path $Log)) { return "" }
+    try {
+        $fs = New-Object IO.FileStream($Log, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete)
+        $r = New-Object IO.StreamReader($fs)
+        $text = $r.ReadToEnd()
+        $r.Close()
+        $text
+    } catch { "" }
+}
 function Duration([int]$s) { if ($s -ge 3600) { "$([int][Math]::Floor($s / 3600))h $([int][Math]::Floor(($s % 3600) / 60))m" } elseif ($s -ge 60) { "$([int][Math]::Floor($s / 60))m" } else { "${s}s" } }
 function RoomName([string]$r) { if ($r -eq "room_H00") { "home base" } elseif (-not $r) { "starting" } else { $r -replace '^room_', '' } }
 function StateLine {
@@ -270,7 +282,7 @@ function Start-Server([string[]]$extra) {
         if ($LASTEXITCODE -ne 0) { Write-Host "the virtual LAN didn't come up (see above); fix it, or turn it off in settings"; return }
         Write-Host ""
     }
-    if (Test-Path $Log) { Move-Item $Log "$Log.1" -Force }
+    if (Test-Path $Log) { Move-Item $Log "$Log.1" -Force -ErrorAction SilentlyContinue }
     if (Test-Path $Control) { Remove-Item $Control -Force }
     # a hidden window of its own (so closing this one leaves it running); cmd writes its output to the log
     $q = @("--headless", "--path", ".", "--", "--server", "--control", $Control) + $a | ForEach-Object { if ($_ -match '[\s"]' -or $_ -eq "") { "`"$($_ -replace '"', '')`"" } else { $_ } }
@@ -279,7 +291,7 @@ function Start-Server([string[]]$extra) {
     Write-Host "starting the server ($($a -join ' '))"
     for ($n = 0; $n -lt 120; $n++) {
         Start-Sleep -Milliseconds 500
-        $text = if (Test-Path $Log) { [IO.File]::ReadAllText($Log) } else { "" }   # (cmd keeps it open: ReadAllText shares it)
+        $text = ReadLog
         if ($text -match 'hosting on port \d+ - OK' -and (Test-Path $Control)) {
             Write-Host "server is up. Players join at:"
             $text -split "`n" | Where-Object { $_ -match 'join .* at' } | ForEach-Object { Write-Host ("  " + ($_ -replace '^DedicatedServer \[INFO\]: ', '').Trim()) }

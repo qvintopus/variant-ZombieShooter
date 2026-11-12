@@ -9,8 +9,9 @@
 ## tells us and quits. The same commands over the control channel (--control: the
 ## launcher menu's way in): the token, info, players. Also the console's vlan_auto
 ## plumbing (paths, result line). The main player: we join first, so we wear the
-## plumber; "main free" / "main <slot>" hand it over, and leaving mid-run keeps
-## the seat (and parks our run) until we're back.
+## plumber; "main free" / "main <slot>" hand it over, and leaving mid-run parks
+## our run; we were the only player, so the seat is freed and we get it again as
+## the first to rejoin.
 ##   Godot --headless --path . res://game/tests/dedicated_server_check.tscn
 extends Node
 
@@ -123,22 +124,22 @@ func _run()->void:
 	check(_reply.contains("usage: main <slot>"), "main: an empty slot is refused")
 	_reply = await _request(_control, "main mode sideways")
 	check(_reply.contains("usage: main mode"), "main mode: only first or local")
-	# leave mid-run: the seat (and our run) waits; back, we're the main player again
+	# leave mid-run: our run waits; nobody else is on, so the seat is free again
 	Net.players.leaving_by_choice = true
 	Net.leave()
-	var _away:bool = false
+	var _freed:bool = false
 	for _try:int in 20:
 		await _frames(15)
 		_reply = await _request(_control, "info")
-		if _reply.contains("main=first:away "):
-			_away = true
+		if _reply.contains("main=first:- "):
+			_freed = true
 			break
-	check(_away, "main: kept while we're away (%s)" % _reply.strip_edges())
+	check(_freed, "main: freed once everyone has left (%s)" % _reply.strip_edges())
 	check(await _wait(func ()->bool: return Net.state == Net.State.OFFLINE && _body() != null, 10.0), "player: left")
 	check(await _wait(func ()->bool: return _field("room") == HOME, 15.0), "server: nobody left mid-run, back home with the run kept")
 	_err = Net.join("127.0.0.1:%d" % PORT)
 	check(_err == OK && await _wait(func ()->bool: return Net.is_guest() && _body() != null && _current() == HOME, 20.0), "player: rejoined")
-	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main: ours again after rejoining")
+	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main: ours again, the first to rejoin")
 	_control = _read_control()
 	var _ended:Array = []
 	Net.session_ended.connect(func (reason:String)->void: _ended.append(reason), CONNECT_ONE_SHOT)
