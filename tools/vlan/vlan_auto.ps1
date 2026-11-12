@@ -1,5 +1,5 @@
 # zs-vlan, guided, Windows (official WireGuard client). Linux: vlan_auto.sh. See README.md.
-#   vlan_auto.cmd                     guided: host or join, then tells you each next step
+#   vlan_auto.cmd                     guided: host or join (or continue / switch / stop what this PC has), then each next step
 #   vlan_auto.cmd <code>              paste whatever you got: an invite (zsi2.) joins, a reply (zsr2.) adds that guest
 #   vlan_auto.cmd host                create the virtual LAN (or show it) + the invite for the next guest
 #   vlan_auto.cmd host add <reply>    add a guest from the reply they sent back
@@ -22,6 +22,7 @@
 $ErrorActionPreference = "Stop"
 $Machine = $false
 $SetName = ""
+$CarryWg = $false   # set by Teardown -KeepWg: zs-vlan had installed WireGuard
 $Argv = @()
 for ($i = 0; $i -lt $args.Count; $i++) {
     $a = "$($args[$i])"
@@ -187,6 +188,7 @@ function NewStateDir([string]$dir) {
     if (Test-Path $dir) { return }
     New-Item -ItemType Directory $dir | Out-Null
     icacls $dir /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" | Out-Null   # admins + SYSTEM only
+    if ($script:CarryWg) { Set-Content "$dir\installed_wireguard" "1"; $script:CarryWg = $false }
 }
 function EnsureWireGuard([string]$dir) {
     if (Test-Path $WgExe) { return }
@@ -574,11 +576,13 @@ function Status {
     }
 }
 
-function Teardown([string]$dir) {
+# -KeepWg: switching roles, so WireGuard stays; the next state dir remembers that zs-vlan installed it.
+function Teardown([string]$dir, [switch]$KeepWg) {
     WatchStop $dir
     if (TunnelUp) { & $WgExe /uninstalltunnelservice $Name; Start-Sleep 3; Write-Host "removed tunnel $Name" }
     if (Get-NetFirewallRule -Group "zs-vlan" -ErrorAction SilentlyContinue) { Remove-NetFirewallRule -Group "zs-vlan"; Write-Host "removed firewall rules (group zs-vlan)" }
-    if (Test-Path "$dir\installed_wireguard") {
+    if ($KeepWg) { if (Test-Path "$dir\installed_wireguard") { $script:CarryWg = $true } }
+    elseif (Test-Path "$dir\installed_wireguard") {
         winget uninstall --id WireGuard.WireGuard -e --silent | Out-Host
         Write-Host "uninstalled WireGuard (zs-vlan had installed it)"
     }
@@ -637,18 +641,89 @@ function Code([string]$c) {
     else { Fail 1 "that isn't a zs-vlan code (invites start with zsi2., replies with zsr2.)" }
 }
 
-function Guided {
+# What the saved virtual LAN is, for the menu.  ("" = none)
+function SavedDesc {
     switch (Role) {
-        "host" { HostUp; HostLoop; return }
-        "guest" { GuestUp; GuestShow; GuestWait; return }
+        "host" { return "this PC hosts a virtual LAN as $Net.1, with $(@(Peers).Count) guest(s)" }
+        "guest" {
+            if (-not (Test-Path "$StateGuest\invite")) { return "" }
+            $inv = (Get-Content "$StateGuest\invite" -Raw).Trim()
+            try { $f = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($inv.Substring($inv.IndexOf(".") + 1))).Split(" ") }
+            catch { return "this PC joined a virtual LAN" }   # Dec would end the script on a broken file
+            $hn = CleanName (Rest $f 5)
+            if (-not $hn) { $hn = "the host" }
+            return "this PC joined the virtual LAN of `"$hn`" as $Net.$($f[2])"
+        }
     }
-    if ($Machine) { Status; return }
-    Write-Host "zs-vlan: a private virtual LAN for co-op over the internet (no accounts, no port forwarding)."
+    ""
+}
+
+# Remove the saved role before switching to the other one (or joining a different host).
+function Leave {
+    foreach ($dir in @($StateHost, $StateGuest)) { if (Test-Path $dir) { Teardown $dir -KeepWg } }
     Write-Host ""
-    $pick = Read-Host "[h]ost a game for friends, or [j]oin a friend?"
-    if ($pick -match '^[hH]') { HostUp; HostLoop }
-    elseif ($pick -match '^[jJ]') { Code ((Read-Host "paste the invite code from the host") -replace '\s', '') }
-    else { Fail 1 "nothing done." }
+}
+
+# Ask for an invite; only a valid-looking one replaces what's saved.
+function AskJoin([string]$r) {
+    $line = (Read-Host "paste the invite code from the host") -replace '\s', ''
+    if ($line -notmatch '^zsi[12]\.') { Fail 1 "that isn't an invite (invites start with zsi2.); nothing changed." }
+    $null = Dec "zsi" $line
+    if ($r -ne "none") { Leave }
+    Code $line
+}
+
+function Guided {
+    $r = Role
+    if ($Machine) {   # no one to ask: carry on with what's saved
+        switch ($r) {
+            "host" { HostUp; HostLoop }
+            "guest" { GuestUp; GuestShow; GuestWait }
+            default { Status }
+        }
+        return
+    }
+    $saved = SavedDesc
+    Write-Host "zs-vlan: a private virtual LAN for co-op over the internet."
+    Write-Host ""
+    if ($saved) {
+        Write-Host "$saved."
+        Write-Host ""
+        if ($r -eq "host") {
+            Write-Host "  c  continue hosting: start it again, show the next invite   (Enter)"
+            Write-Host "  j  join a friend instead (removes your virtual LAN and its guests)"
+        } else {
+            Write-Host "  c  continue: start the tunnel again, show your reply   (Enter)"
+            Write-Host "  j  join a different host or a new invite (removes the old join)"
+            Write-Host "  h  host a game for friends instead (removes the old join)"
+        }
+        Write-Host "  s  stop: remove everything zs-vlan made"
+    } else {
+        Write-Host "  h  host a game for friends"
+        Write-Host "  j  join a friend (paste their invite)"
+    }
+    Write-Host ""
+    $pick = Read-Host "choice"
+    if (-not $pick) { $pick = "c" }
+    switch -regex ($pick) {
+        '^[cC]' {
+            switch ($r) {
+                "host" { HostUp; HostLoop }
+                "guest" { GuestUp; GuestShow; GuestWait }
+                default { Fail 1 "nothing done." }
+            }
+        }
+        '^[hH]' { if ($r -eq "guest") { Leave }; HostUp; HostLoop }
+        '^[jJ]' {
+            if ($r -eq "host") {
+                $yn = Read-Host "this removes your virtual LAN; your guests would need a new invite. Sure? [y/N]"
+                if ($yn -notmatch '^[yY]') { Fail 1 "nothing changed." }
+            }
+            AskJoin $r
+        }
+        '^[sS]' { if ($r -eq "none") { Fail 1 "nothing done." }; Stop }
+        default { Fail 1 "nothing done." }
+    }
 }
 
 $Arg1 = if ($Argv.Count -gt 1) { $Argv[1] } else { "" }

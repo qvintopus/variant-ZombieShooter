@@ -13,7 +13,7 @@ A direct WireGuard tunnel between the host and each guest. It needs **no port fo
 |---|---|---|
 | run | `tools/vlan/vlan_auto.sh` | double-click `tools\vlan\vlan_auto.cmd` |
 
-It asks **host or join**, then guides you:
+It asks **host or join**, then guides you. If this PC already hosted or joined before, the menu says so first and offers **c** continue that one (Enter), **j** join a different host or a new invite, **h** host instead, or **s** stop. Switching removes the old one; a pasted invite is checked before anything is removed.
 
 | step | host | guest |
 |---|---|---|
