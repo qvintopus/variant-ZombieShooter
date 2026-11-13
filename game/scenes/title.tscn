@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://game/resources/meta_upgrade_resource.tres" id="m2_meta"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/boss_crystal_resource.tres" id="m3_crystal"]
 [ext_resource type="Script" path="res://game/scripts/ui/ContinueButton.gd" id="c1_continue"]
+[ext_resource type="Script" path="res://game/scripts/ui/CoopTitleButton.gd" id="k1_coop"]
 
 [node name="Title" instance=ExtResource("1_title")]
 
@@ -81,6 +82,19 @@ script = ExtResource("5_change")
 button = NodePath("../MarginContainer/Control/Body/TitleMenu/HomeBase/Button")
 scene_path = "res://game/scenes/room_H00.tscn"
 
+[node name="Coop" parent="MarginContainer/Control/Body/TitleMenu" index="5" instance=ExtResource("2_btn")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/TitleMenu/Coop" index="1"]
+text = "Co-op"
+
+[node name="CoopComponent" type="Node" parent="." node_paths=PackedStringArray("button", "label", "menu_root")]
+script = ExtResource("k1_coop")
+button = NodePath("../MarginContainer/Control/Body/TitleMenu/Coop/Button")
+label = NodePath("../MarginContainer/Control/Body/TitleMenu/Coop/Label")
+menu_root = NodePath("../MarginContainer/Control/Body")
+
 [editable path="MarginContainer/Control/Body/TitleMenu/NewGamePlus"]
 [editable path="MarginContainer/Control/Body/TitleMenu/Upgrades"]
 [editable path="MarginContainer/Control/Body/TitleMenu/HomeBase"]
+[editable path="MarginContainer/Control/Body/TitleMenu/Coop"]

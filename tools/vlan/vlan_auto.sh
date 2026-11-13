@@ -10,11 +10,12 @@
 #   vlan_auto.sh start               start the last virtual LAN again (after a restart or going idle)
 #   vlan_auto.sh name [NEW]          this PC's name on the virtual LAN (default: the computer name)
 #   vlan_auto.sh status              what this PC is, who is online, the code to send
+#   vlan_auto.sh off                 take the tunnel down, keep everything (start brings it back)
 #   vlan_auto.sh stop                remove everything this made (host or guest)
 # --name NAME anywhere: use that name without asking (host and join ask for one on a terminal).
 # The same name twice on one virtual LAN becomes Name#2, Name#3, ...
 # --machine anywhere: no prompts, no clipboard, short waits, and a last line "ZSVLAN key=value ..."
-# (exit codes in lib.sh). The dedicated server console uses it; so will the game.
+# (exit codes in lib.sh). The dedicated server console and the game's Co-op dialog use it.
 # The tunnel never starts at boot, and goes off after VLAN_IDLE_MIN (5) minutes without game traffic.
 # Starting it again checks the public address: unchanged, the old codes still work; changed, it says
 # which new code to send.
@@ -402,6 +403,18 @@ watch() {
 	done
 }
 
+# Take the tunnel down but keep keys, guests and the join ("start" brings it back), like going idle.
+off() {
+	local r
+	r=$(role)
+	case "$r" in host) STATE=$STATE_HOST ;; guest) STATE=$STATE_GUEST ;; *) echo "this PC isn't in a virtual LAN."; result "role=none state=down"; return 0 ;; esac
+	watch_stop
+	if tunnel_on; then nmcli connection down "$NAME" >/dev/null 2>&1 || true; echo "the virtual LAN is off (start it again: $SELF start)"
+	else echo "the virtual LAN was already off"; fi
+	echo "taken down at $(date '+%H:%M')" >"$STATE/idle_down"
+	result "role=$r state=off"
+}
+
 # Show or change this PC's name. Guests send a fresh reply so the host sees it; hosts' new invites carry it.
 name_cmd() {
 	local r reply
@@ -547,8 +560,9 @@ newaddress) newaddress ;;
 status) status ;;
 name) name_cmd "${2:-}" ;;
 stop) stop ;;
+off) off ;;
 watch) watch "${2:-}" ;;
 zsi[12].*|zsr[12].*) code "$1" ;;
--h|--help|help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
+-h|--help|help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
 *) die "unknown command '$1' (try: $SELF help)" ;;
 esac

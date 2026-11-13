@@ -11,6 +11,9 @@ STATE_GUEST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan-guest
 # Over the tunnel only the game is let in (ping is allowed by ufw's defaults).
 GAME_RULE="in on $NAME to any port $GAME_PORT proto udp"
 MACHINE=${MACHINE:-0}        # 1: no prompts, no clipboard, sudo never asks; a ZSVLAN line ends the output
+# How to get root for ufw. The game sets ZS_SUDO=pkexec (a desktop password prompt); a --machine run
+# without it uses "sudo -n" (never asks).
+ZS_SUDO=${ZS_SUDO:-}
 IDLE_MIN=${VLAN_IDLE_MIN:-5} # the tunnel goes down after this many minutes without game traffic (0 = never)
 IDLE_BYTES=2048              # less traffic than this in a 30 s check counts as idle (a game sends far more)
 IDLE_CHECK=${VLAN_IDLE_CHECK:-30}  # seconds between watchdog checks
@@ -20,6 +23,7 @@ VLAN_AUTO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vlan_auto.sh"
 
 # Exit codes (stable, the game and the dedicated server read them):
 #   0 ok, 1 usage or broken code, 2 something this PC needs is missing, 3 wrong state (not set up / other role), 4 timed out
+#   (5 is the game's own: Windows asked for admin rights and they were declined)
 fail() {
 	local code=$1; shift
 	[ -z "$*" ] || echo "$*" >&2
@@ -249,19 +253,29 @@ fw_has() {
 }
 
 # Open ufw rules (sudo) if ufw is active; remember which ones we added so teardown removes only those.
+# One root call for all of them, so pkexec asks once.
 fw_open() {
-	local r st sudo=sudo
+	local added
 	if ! systemctl is-active -q ufw 2>/dev/null; then echo "ufw inactive, nothing changed" >"$STATE/firewall"; return; fi
-	[ "$MACHINE" = 1 ] && sudo="sudo -n"
-	echo "ufw is active: sudo needed to allow: $*"
-	st=$($sudo ufw status) || { echo "sudo failed, ufw untouched - peers may be blocked (rerun vlan_auto.sh in a terminal)" | tee "$STATE/firewall"; return; }
-	for r in "$@"; do
-		fw_has "$r" "$st" && continue
-		# shellcheck disable=SC2086
-		$sudo ufw allow $r comment zs-vlan >/dev/null && echo "$r" >>"$STATE/ufw_rules"
-	done
+	echo "ufw is active: root needed to allow: $*"
+	# prints each rule it added; exit 1: no root
+	# shellcheck disable=SC2016
+	added=$(as_root bash -c "$(declare -f fw_has)"'
+		st=$(ufw status) || exit 1
+		for r in "$@"; do
+			fw_has "$r" "$st" && continue
+			ufw allow $r comment zs-vlan >/dev/null && echo "$r"
+		done' bash "$@") || { echo "no root (sudo/pkexec failed), ufw untouched - peers may be blocked (rerun vlan_auto.sh in a terminal)" | tee "$STATE/firewall"; return; }
+	[ -z "$added" ] || echo "$added" >>"$STATE/ufw_rules"
 	if [ -s "$STATE/ufw_rules" ]; then echo "ufw rules added: $(paste -sd, "$STATE/ufw_rules")" >"$STATE/firewall"
 	else echo "ufw already allowed it, nothing changed" >"$STATE/firewall"; fi
+}
+
+# Run a command as root for ufw: ZS_SUDO (the game: pkexec), else sudo (sudo -n with --machine: never asks).
+as_root() {
+	if [ -n "$ZS_SUDO" ]; then $ZS_SUDO "$@"
+	elif [ "$MACHINE" = 1 ]; then sudo -n "$@"
+	else sudo "$@"; fi
 }
 
 # Undo everything for one role: NM connection, ufw rules we added, keys/state.
@@ -269,11 +283,11 @@ teardown() {
 	watch_stop
 	if conn_exists; then nmcli connection delete "$NAME" >/dev/null && echo "removed NM connection $NAME"; else echo "no NM connection $NAME"; fi
 	if [ -s "$STATE/ufw_rules" ]; then
-		echo "removing ufw rules (sudo)"
-		while IFS= read -r r; do
-			# shellcheck disable=SC2086
-			sudo ufw delete allow $r >/dev/null && echo "  removed ufw: $r" || echo "  FAILED ufw: $r (fix by hand: sudo ufw status numbered)"
-		done <"$STATE/ufw_rules"
+		echo "removing ufw rules (root)"
+		# shellcheck disable=SC2016
+		as_root bash -c 'while IFS= read -r r; do
+			ufw delete allow $r >/dev/null && echo "  removed ufw: $r" || echo "  FAILED ufw: $r (fix by hand: sudo ufw status numbered)"
+		done' <"$STATE/ufw_rules" || echo "  no root (sudo/pkexec failed): the zs-vlan ufw rules are still there (sudo ufw status numbered)"
 	fi
 	if [ -d "$STATE" ]; then rm -rf "$STATE" && echo "removed $STATE"; fi
 }

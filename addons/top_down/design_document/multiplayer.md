@@ -31,8 +31,11 @@
     - The guest takes the name it was given from the roster, so it sees itself as everyone else does.
     - Leaving restores the profile's name.
 
-### Comms Terminal (home base, map character `N`)
-- `CommsTerminal.gd` opens `CoopDialog.gd`.
+### Comms Terminal (home base, map character `N`) and Main Menu Co-op
+- `CommsTerminal.gd` and the title's **Co-op** button (`CoopTitleButton.gd`) open `CoopDialog.gd` with `CoopDialog.open_layer()` (one at a time, layer 4). On the title the menu's buttons can't take the focus while it's open.
+  - Hosting from the title calls `NetPlayers.mark_scene_seen()` (being on the title isn't arriving at it, which ends a host's session) and goes on to the home base.
+  - Always there: **VLAN** (`CoopVlanTab.gd`, `VlanTool`: `vlan_auto --machine` on a thread; UAC per change on Windows, output read back via `--out`; pkexec for ufw on Linux) and **Server** (`CoopServerTab.gd`, `ServerProcess`: starts `--headless -- --server --control … --main local` in the background in the scripts' `zs-server` folder, waits for `info` to say `hosting=1`, then joins 127.0.0.1).
+  - Quitting (window close or the title's Quit) goes through `QuitPrompt`: if a server or the tunnel still runs, Stop all / Keep running / Cancel.
   - **Offline**, it shows two tabs:
     - **Host:** set the port and press Open to friends.
     - **Join:** type an address (`ip` or `ip:port`) or pick from recent hosts (`NetSettings`, `user://NetSettings.tres`), then connect.
@@ -54,6 +57,7 @@
 - `game/tests/coop_terminal_check.tscn` covers the terminal, the dialog, the input freeze and Escape.
 - `game/tests/coop_home_check.tscn` covers a guest in the host's home base: tiers, shared floor weapons, levers and Write, weapons coming back, and crystals taken back.
 - `game/tests/dedicated_server_check.tscn` starts a real `--server` process and joins it.
+- `game/tests/server_process_check.tscn` covers `VlanTool` (parsing, a real read-only `status`), `ServerProcess` (settings in the scripts' format, start in the background, `server.sh status` sees it, joining as main, stop) and the title's Co-op button (tabs, Host from the title).
 - `net_loopback_check` also covers a second copy of the same install joining as a blank guest that writes no file.
 - `game/tests/coop_world_check.tscn` plays two real games together (the guest is `net_client.tscn` "world" mode). It covers:
   - characters, weapons, HP and the party panel

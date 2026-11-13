@@ -160,6 +160,11 @@ func _dress_local()->void:
 
 # --- Rooms --------------------------------------------------------------------
 
+## The current scene is already known (hosting from the title: being on it isn't
+## arriving at it, which would end the session; the next scene is then the party's room).
+func mark_scene_seen()->void:
+	_scene = get_tree().current_scene
+
 func _watch_scene()->void:
 	var _now:Node = get_tree().current_scene
 	if _now == _scene:

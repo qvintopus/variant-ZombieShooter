@@ -4,7 +4,7 @@
 ## The virtual LAN commands run tools/vlan/vlan_auto (.sh on Linux, .ps1 on
 ## Windows) in its --machine mode on a worker thread. Its human text is printed
 ## as is, and its last line ("ZSVLAN key=value ...") is kept in `vlan_result`.
-## Later the game will drive vlan_auto the same way.
+## The game's Co-op dialog drives vlan_auto the same way (VlanTool).
 ##
 ## Ctrl+C kills the process at once (Godot runs no shutdown code on SIGINT): the
 ## run keeps its last checkpoint. "stop" saves first and tells the players.
@@ -239,48 +239,15 @@ func stop()->void:
 
 # --- virtual LAN ------------------------------------------------------------------
 
-## Where vlan_auto is: the project's tools/vlan, or tools/vlan next to an exported game.
+## vlan_auto's helpers live in VlanTool (the Co-op dialog uses them too).
 static func vlan_dir()->String:
-	var _name:String = "vlan_auto.ps1" if OS.get_name() == "Windows" else "vlan_auto.sh"
-	for _dir:String in [ProjectSettings.globalize_path("res://tools/vlan"), OS.get_executable_path().get_base_dir().path_join("tools/vlan")]:
-		if !_dir.is_empty() && FileAccess.file_exists(_dir.path_join(_name)):
-			return _dir
-	return ""
+	return VlanTool.vlan_dir()
 
-## [program, arguments] to run vlan_auto with `args` in --machine mode; [] if unsupported here.
 static func vlan_command(args:PackedStringArray)->Array:
-	var _dir:String = vlan_dir()
-	if _dir.is_empty():
-		return []
-	var _argv:PackedStringArray = args.duplicate()
-	_argv.append("--machine")
-	match OS.get_name():
-		"Windows":
-			var _ps:PackedStringArray = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", _dir.path_join("vlan_auto.ps1")]
-			_ps.append_array(_argv)
-			return ["powershell", _ps]
-		"Linux", "FreeBSD":
-			var _sh:PackedStringArray = [_dir.path_join("vlan_auto.sh")]
-			_sh.append_array(_argv)
-			return ["bash", _sh]
-	return []
+	return VlanTool.vlan_command(args)
 
-## "ZSVLAN a=1 b=2" -> {a: "1", b: "2"}; {} when the text has no such line.
 static func parse_result(output:String)->Dictionary:
-	var _result:Dictionary = {}
-	for _line:String in output.split("\n"):
-		_line = _line.strip_edges()
-		if !_line.begins_with("ZSVLAN "):
-			continue
-		_result = {}
-		for _pair:String in _line.trim_prefix("ZSVLAN ").split(" ", false):
-			var _key:String = _pair.get_slice("=", 0)
-			var _value:String = _pair.substr(_pair.find("=") + 1)
-			# names are the only values with escapes (space, %)
-			if _key.ends_with("name"):
-				_value = _value.replace("%20", " ").replace("%25", "%")
-			_result[_key] = _value
-	return _result
+	return VlanTool.parse_result(output)
 
 func _vlan(args:PackedStringArray)->void:
 	var _command:Array = vlan_command(args)
@@ -318,10 +285,10 @@ func _info()->void:
 	var _vlan_ip:String = ENetTransport.vlan_address()
 	var _main:PlayerState = Net.main_player()
 	var _who:String = str(_main.slot) if _main != null else ("away" if !Net.main_key.is_empty() else "-")
-	_say("INFO room=%s players=%d active=%d up=%d port=%d max=%d idle_kick=%s vlan=%s main=%s:%s name=%s" % [
+	_say("INFO room=%s players=%d active=%d up=%d port=%d max=%d idle_kick=%s vlan=%s main=%s:%s hosting=%d name=%s" % [
 		server.current_path().get_file().get_basename(), server.players(), RunSession.players.count_active(),
 		int(Time.get_unix_time_from_system()) - _started, Net.port, Net.max_players, Net.idle_kick_min,
-		_vlan_ip if !_vlan_ip.is_empty() else "-", Net.main_mode, _who, server.server_name])
+		_vlan_ip if !_vlan_ip.is_empty() else "-", Net.main_mode, _who, int(Net.is_host()), server.server_name])
 
 # --- control channel (--control FILE) ---------------------------------------------
 

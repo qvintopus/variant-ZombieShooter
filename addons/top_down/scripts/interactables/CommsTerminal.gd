@@ -3,8 +3,6 @@
 class_name CommsTerminal
 extends Interactable
 
-const DIALOG_SCRIPT:String = "res://game/scripts/ui/CoopDialog.gd"
-
 @export var sprite:Sprite2D
 
 var _dialog:Node
@@ -23,24 +21,16 @@ func _can_use()->bool:
 
 func _use()->void:
 	busy = true
-	var _layer:CanvasLayer = CanvasLayer.new()
-	# above the HUD, below Transition (5)
-	_layer.layer = 4
-	_layer.name = "CoopDialogLayer"
-	_dialog = (load(DIALOG_SCRIPT) as GDScript).new()
-	_layer.add_child(_dialog)
-	get_tree().root.add_child(_layer)
+	_dialog = CoopDialog.open_layer()
 	_set_player_input(false)
 	_dialog.tree_exited.connect(func ()->void:
 		_dialog = null
 		busy = false
-		if is_instance_valid(_layer):
-			_layer.queue_free()
 		if is_inside_tree():
 			_set_player_input(true), CONNECT_ONE_SHOT)
 	tree_exiting.connect(func ()->void:
-		if is_instance_valid(_layer):
-			_layer.queue_free(), CONNECT_ONE_SHOT)
+		if is_instance_valid(_dialog):
+			_dialog.close(), CONNECT_ONE_SHOT)
 
 ## No walking or shooting while typing an address.
 func _set_player_input(enabled:bool)->void:

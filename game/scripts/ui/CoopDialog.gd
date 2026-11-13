@@ -1,16 +1,24 @@
-## Modal co-op dialog opened by the home base Comms Terminal.
-## Offline it shows Host (pick a port, open to friends) and Join (type ip[:port]
-## or pick a recent host). Once a session is open only the Session tab is left,
-## and it opens by itself: what to tell a friend (with Copy), everyone in the
-## session (the host can kick) and Leave session.
+## Modal co-op dialog, opened by the home base Comms Terminal and the title's Co-op button
+## (open_layer). Offline it shows Host (pick a port, open to friends) and Join (type ip[:port]
+## or pick a recent host). Once a session is open the Session tab replaces them, and it
+## opens by itself: what to tell a friend (with Copy), everyone in the session (the host
+## can kick) and Leave session. Always there: VLAN (the zs-vlan virtual LAN, CoopVlanTab)
+## and Server (a dedicated server on this PC, CoopServerTab).
+## Hosting or joining from the title goes on to the home base (a host on the title leaves its
+## session; a guest lends the host a gun from its own home base).
 ## Built in code so it follows game_gui_theme; it consumes Escape before the
 ## pause menu sees it and does not freeze the room (the session keeps running).
+class_name CoopDialog
 extends Control
+
+const LAYER_NAME:String = "CoopDialogLayer"
+const HOME_SCENE:String = "res://game/scenes/room_H00.tscn"
+const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 
 const THEME_PATH:String = "res://addons/top_down/resources/theme/game_gui_theme.theme"
 const SETTINGS_PATH:String = "res://game/resources/net_settings.tres"
 const FONT_SIZE:int = 8
-enum Tab {HOST, JOIN, SESSION}
+enum Tab {HOST, JOIN, SESSION, VLAN, SERVER}
 
 var _settings:NetSettings
 var _status:Label
@@ -29,6 +37,44 @@ var _vlan_name_button:Button
 var _connect_button:Button
 var _recent:VBoxContainer
 var _leave_button:Button
+var _vlan_tab:Node
+var _server_tab:Node
+
+## The dialog on its own layer at the root (above the HUD, below Transition), or the one
+## already open. It frees the layer when it closes.
+static func open_layer()->CoopDialog:
+	var _tree:SceneTree = Engine.get_main_loop() as SceneTree
+	var _old:Node = _tree.root.get_node_or_null(LAYER_NAME)
+	if _old != null && !_old.is_queued_for_deletion() && _old.get_child_count() > 0:
+		return _old.get_child(0) as CoopDialog
+	var _layer:CanvasLayer = CanvasLayer.new()
+	_layer.layer = 4
+	_layer.name = LAYER_NAME
+	var _dialog:CoopDialog = CoopDialog.new()
+	_layer.add_child(_dialog)
+	_tree.root.add_child(_layer)
+	_dialog.tree_exited.connect(func ()->void:
+		if is_instance_valid(_layer):
+			_layer.queue_free(), CONNECT_ONE_SHOT)
+	return _dialog
+
+static func make_label(text:String)->Label:
+	var _l:Label = Label.new()
+	_l.text = text
+	return _l
+
+static func make_edit(text:String, placeholder:String)->LineEdit:
+	var _edit:LineEdit = LineEdit.new()
+	_edit.text = text
+	_edit.placeholder_text = placeholder
+	_edit.size_flags_horizontal = SIZE_EXPAND_FILL
+	return _edit
+
+static func make_button(text:String, callback:Callable)->Button:
+	var _b:Button = Button.new()
+	_b.text = text
+	_b.pressed.connect(callback)
+	return _b
 
 func _ready()->void:
 	_settings = load(SETTINGS_PATH)
@@ -135,6 +181,14 @@ func _build()->void:
 	_leave_button = _button("Leave session", _on_leave_pressed)
 	_session.add_child(_leave_button)
 
+	# the virtual LAN and the dedicated server: there in every state
+	_vlan_tab = (load("res://game/scripts/ui/CoopVlanTab.gd") as GDScript).new()
+	_vlan_tab.dialog = self
+	_tabs.add_child(_vlan_tab)
+	_server_tab = (load("res://game/scripts/ui/CoopServerTab.gd") as GDScript).new()
+	_server_tab.dialog = self
+	_tabs.add_child(_server_tab)
+
 	# playtest log: a file a tester can send (PlaytestLog)
 	var _log_row:HBoxContainer = HBoxContainer.new()
 	_box.add_child(_log_row)
@@ -164,22 +218,50 @@ func _small_theme()->Theme:
 	return _theme
 
 func _label(text:String)->Label:
-	var _l:Label = Label.new()
-	_l.text = text
-	return _l
+	return make_label(text)
 
 func _line_edit(text:String, placeholder:String)->LineEdit:
-	var _edit:LineEdit = LineEdit.new()
-	_edit.text = text
-	_edit.placeholder_text = placeholder
-	_edit.size_flags_horizontal = SIZE_EXPAND_FILL
-	return _edit
+	return make_edit(text, placeholder)
 
 func _button(text:String, callback:Callable)->Button:
-	var _b:Button = Button.new()
-	_b.text = text
-	_b.pressed.connect(callback)
-	return _b
+	return make_button(text, callback)
+
+## The VLAN tab says this PC hosts a virtual LAN that is up.
+func vlan_hosting()->bool:
+	return _vlan_tab != null && _vlan_tab.hosting_up()
+
+## The VLAN tab has news (the Server tab's "over the virtual LAN" follows it).
+func vlan_changed()->void:
+	if _server_tab != null:
+		_server_tab._refresh()
+
+## Join this address now (the VLAN and Server tabs' Join buttons).
+func join_address(address:String)->void:
+	_address_edit.text = address
+	_tabs.current_tab = Tab.JOIN
+	_on_connect_pressed()
+
+## Go to the home base, then join `address` there. A coroutine; false if it didn't start.
+static func join_from_home(address:String)->bool:
+	var _tree:SceneTree = Engine.get_main_loop() as SceneTree
+	Transition.change_scene(HOME_SCENE)
+	var _left:float = 15.0
+	while _left > 0.0:
+		var _scene:Node = _tree.current_scene
+		if _scene != null && _scene.scene_file_path == HOME_SCENE && Net.players.local_body() != null:
+			break
+		await _tree.process_frame
+		_left -= _tree.root.get_process_delta_time()
+	if Net.state != Net.State.OFFLINE:
+		return false
+	var _err:Error = Net.join(address)
+	if _err != OK:
+		Net.connection_failed.emit("couldn't start connecting to " + address)
+	return _err == OK
+
+func _on_title()->bool:
+	var _scene:Node = get_tree().current_scene
+	return _scene != null && _scene.scene_file_path == TITLE_SCENE
 
 func _refresh()->void:
 	if !is_inside_tree():
@@ -195,6 +277,8 @@ func _refresh()->void:
 		Tab.HOST: !_online && !_connecting,
 		Tab.JOIN: !_online,
 		Tab.SESSION: _online,
+		Tab.VLAN: true,
+		Tab.SERVER: true,
 	}
 	# Unhide first and pick the tab, then hide the rest: hiding the current tab
 	# makes TabContainer jump to a neighbour on its own.
@@ -210,6 +294,8 @@ func _refresh()->void:
 			_tabs.current_tab = Tab.JOIN
 		elif _tabs.current_tab == Tab.SESSION:
 			_tabs.current_tab = Tab.HOST
+	if _server_tab != null:
+		_server_tab._refresh()
 	for _tab:int in _visible:
 		if !_visible[_tab]:
 			_tabs.set_tab_hidden(_tab, true)
@@ -325,12 +411,19 @@ func _on_host_pressed()->void:
 	if _port < 1024 || _port > 65535:
 		_status.text = "Port must be 1024-65535"
 		return
+	var _title:bool = _on_title()
 	var _err:Error = Net.host(_port)
+	if _err == OK && _title:
+		Net.players.mark_scene_seen()
 	if _err != OK:
 		_status.text = "Couldn't open port %d (in use?)" % _port
 		return
 	_settings.host_port = _port
 	_settings.save_resource()
+	if _title:
+		# a host arriving at the title leaves (NetPlayers): go on to the home base
+		close()
+		Transition.change_scene(HOME_SCENE)
 
 func _on_connect_pressed()->void:
 	if Net.state != Net.State.OFFLINE:
@@ -338,6 +431,13 @@ func _on_connect_pressed()->void:
 	var _text:String = _address_edit.text.strip_edges()
 	if Net.parse_address(_text).is_empty():
 		_status.text = "Type an address like 192.168.1.20 or 192.168.1.20:%d" % Net.DEFAULT_PORT
+		return
+	if _on_title():
+		# from our own home base, like at its terminal: it lends the host a gun for a
+		# mission (HomeBase.lend_to_host)
+		_settings.remember_host(_text)
+		close()
+		join_from_home(_text)
 		return
 	if Net.join(_text) != OK:
 		_status.text = "Couldn't start connecting"
