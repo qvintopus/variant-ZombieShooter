@@ -1,7 +1,7 @@
-## Title menu: "Co-op" opens the Co-op dialog (host, join, the virtual LAN, the dedicated
-## server) at any time, like the home base Comms Terminal does. The label shows the
-## player count while a session is open. The title's other buttons can't take the focus
-## while the dialog is open, and the Co-op button gets it back when it closes.
+## Title menu and pause menu: "Co-op" opens the Co-op dialog (host, join, the virtual LAN,
+## the dedicated server) at any time, like the home base Comms Terminal does. The label
+## shows the player count while a session is open. The menu's other buttons can't take the
+## focus while the dialog is open, and the Co-op button gets it back when it closes.
 extends Node
 
 @export var button:Button
