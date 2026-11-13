@@ -39,10 +39,7 @@ static func request(quit:Callable)->void:
 var _quit:Callable
 
 func _ready()->void:
-	theme = (load(CoopDialog.THEME_PATH) as Theme).duplicate()
-	theme.default_font_size = CoopDialog.FONT_SIZE
-	for _type:StringName in [&"Label", &"Button"]:
-		theme.set_font_size(&"font_size", _type, CoopDialog.FONT_SIZE)
+	theme = CoopStyle.theme()
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -54,29 +51,27 @@ func _ready()->void:
 	_center.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(_center)
 	var _panel:PanelContainer = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(220, 0)
+	_panel.theme_type_variation = &"DialogPanel"
+	_panel.custom_minimum_size = Vector2(260, 0)
 	_center.add_child(_panel)
-	var _margin:MarginContainer = MarginContainer.new()
-	for _side:String in ["left", "right", "top", "bottom"]:
-		_margin.add_theme_constant_override("margin_" + _side, 6)
-	_panel.add_child(_margin)
 	var _box:VBoxContainer = VBoxContainer.new()
-	_margin.add_child(_box)
+	_box.add_theme_constant_override(&"separation", 8)
+	_panel.add_child(_box)
+	_box.add_child(CoopStyle.label("QUIT THE GAME?", &"TitleLabel"))
 	var _running:PackedStringArray = []
 	if _server:
 		_running.append("the dedicated server")
 	if _vlan:
 		_running.append("the virtual LAN (%s)" % ENetTransport.vlan_address())
-	_text = CoopDialog.make_label("Still running on this PC: %s.\nFriends can keep playing while it runs." % " and ".join(_running))
-	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_text = CoopStyle.label("Still running on this PC: %s.\nFriends can keep playing while it runs." % " and ".join(_running), &"", true)
 	_box.add_child(_text)
 	_buttons = HBoxContainer.new()
-	_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_box.add_child(_buttons)
-	var _stop:Button = CoopDialog.make_button("Stop all, quit", _stop_all)
+	_buttons.alignment = BoxContainer.ALIGNMENT_END
+	var _stop:Button = CoopStyle.button("Stop all, quit", _stop_all, CoopStyle.PRIMARY)
+	_buttons.add_child(CoopStyle.button("Cancel", close, CoopStyle.GHOST))
+	_buttons.add_child(CoopStyle.button("Keep running, quit", func ()->void: _quit.call()))
 	_buttons.add_child(_stop)
-	_buttons.add_child(CoopDialog.make_button("Keep running, quit", func ()->void: _quit.call()))
-	_buttons.add_child(CoopDialog.make_button("Cancel", close))
 	_stop.grab_focus.call_deferred()
 
 func close()->void:

@@ -58,6 +58,11 @@ func _vlan_checks()->void:
 	var _result:Dictionary = VlanTool.parse_result("ZSVLAN role=host state=up guests=3:online:Big%20Bob\n")
 	check(VlanTool.parse_guests(_result.guests)[0].name == "Big Bob", "vlan: names in the guest list unescaped")
 	check(VlanTool.exit_text(VlanTool.EXIT_DECLINED).contains("declined"), "vlan: declined admin has its own text")
+	check(VlanTool.exit_text(VlanTool.EXIT_LAUNCH).contains("couldn't start"), "vlan: a launch failure isn't called declined")
+	var _subst:String = "O:\\: => D:\\Games\\Disk\r\nP:\\: => C:\\Other\r\n"
+	check(VlanTool.unsubst("O:/Projects/Godot/godot.exe", _subst) == "D:\\Games\\Disk\\Projects\\Godot\\godot.exe", "vlan: a subst drive resolved (%s)" % VlanTool.unsubst("O:/Projects/Godot/godot.exe", _subst))
+	check(VlanTool.unsubst("C:/Games/godot.exe", _subst) == "C:/Games/godot.exe", "vlan: a real drive left alone")
+	check(VlanTool.stage_dir().ends_with("zs-vlan-game") && !VlanTool.stage_dir().contains("/"), "vlan: the script runs from a local folder (%s)" % VlanTool.stage_dir())
 	check(VlanTool.human_lines("one\r\nZSVLAN a=1\ntwo\n") == PackedStringArray(["one", "two"]), "vlan: human lines without the result line")
 	check(!VlanTool.needs_admin(["status"]) && (VlanTool.needs_admin(["host"]) == (OS.get_name() == "Windows")), "vlan: only Windows asks for admin, never for status")
 
@@ -134,7 +139,22 @@ func _title_checks()->void:
 		return
 	var _dialog:CoopDialog = _layer.get_child(0)
 	var _tabs:TabContainer = _dialog.find_children("*", "TabContainer", true, false)[0]
-	check(_tabs.get_tab_count() == 5 && _tabs.get_tab_title(3) == "VLAN" && _tabs.get_tab_title(4) == "Server", "dialog: Host, Join, Session, VLAN, Server")
+	check(_tabs.get_tab_count() == 4 && _tabs.get_tab_title(CoopDialog.Tab.VLAN) == "VLAN" && _tabs.get_tab_title(CoopDialog.Tab.SERVER) == "Server", "dialog: Play, Session, VLAN, Server")
+	# every button has a box you can see (the game theme's own buttons are transparent)
+	var _invisible:Array = []
+	for _node:Node in _dialog.find_children("*", "Button", true, false):
+		var _b:Button = _node as Button
+		if _b is CheckBox:
+			continue
+		var _box:StyleBoxFlat = _b.get_theme_stylebox(&"normal") as StyleBoxFlat
+		var _ghost:bool = _b.theme_type_variation in [CoopStyle.GHOST, CoopStyle.NAV]
+		if !_ghost && (_box == null || (_box.bg_color.a < 0.05 && _box.border_width_bottom == 0)):
+			_invisible.append(_b.text)
+	check(_invisible.is_empty(), "dialog: every button is drawn as a button (%s)" % [_invisible])
+	_dialog._nav[CoopDialog.Tab.SERVER].pressed.emit()
+	check(_tabs.current_tab == CoopDialog.Tab.SERVER, "dialog: the rail opens the Server page")
+	_dialog._nav[CoopDialog.Tab.PLAY].pressed.emit()
+	check(_tabs.current_tab == CoopDialog.Tab.PLAY && _dialog._nav[CoopDialog.Tab.PLAY].button_pressed, "dialog: back to Play, marked in the rail")
 	check(_button.focus_mode == Control.FOCUS_NONE, "title: the menu can't take the focus while it's open")
 	_button.pressed.emit()
 	await _frames(2)

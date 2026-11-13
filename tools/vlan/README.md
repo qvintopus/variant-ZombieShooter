@@ -41,18 +41,18 @@ Done for good: `vlan_auto stop` on each PC removes everything it made.
 
 ## From the game
 
-The Co-op dialog (Main Menu → **Co-op**, or the home base Comms Terminal) drives `vlan_auto --machine` and starts the dedicated server itself. Its tabs:
-- **Host / Join / Session:** as before. Hosting from the Main Menu goes on to the home base.
-- **VLAN:**
-  - Not set up: **Host a virtual LAN**, or paste a host's invite (**Paste**) and **Join**.
-  - Hosting: the invite with **Copy**, a field for each friend's reply (**Paste**, **Add**), the guests with online state and **Remove**, and **Turn off** (keeps keys and guests).
-  - Joined: your reply with **Copy**; once the host answers, **Join the host's game at 10.77.0.1**. Also **New address** and **Turn off**.
+The Co-op dialog (Main Menu → **Co-op**, or the home base Comms Terminal) drives `vlan_auto --machine` and starts the dedicated server itself. Its pages (the rail on the left):
+- **Play / Session:** host or join on the same network; while in a session, the players and the addresses to share. Hosting from the Main Menu goes on to the home base.
+- **Internet (VLAN):** numbered steps.
+  - Not set up: **Create virtual LAN**, or paste a host's invite (**Paste**) and **Join**.
+  - Hosting: 1 the invite with **Copy**, 2 a field for each friend's reply (**Paste**, **Add**), 3 the guests with online state and **Remove**; **Turn off** (keeps keys and guests).
+  - Joined: 1 your reply with **Copy**, 2 waiting for the host, 3 **Join <host>'s game (10.77.0.1)** once the host answers. Also **New address** and **Turn off**.
   - Off: **Start again**. Always: **Remove** / **Leave** (press twice), which is `stop`.
   - The state is checked when the tab opens and every 15 s while it's shown.
 - **Server:** a dedicated server on this PC, in the background (see [Dedicated server](#dedicated-server)). Set its name, players, idle kick and "over the virtual LAN" (needs this PC to host the VLAN), then **Start and join**: you're its main player (the plumber). Also **Join it**, **Stop** (saves the run) and **Log**. It's the same server `server.sh` / `server.cmd` see: same folder, settings and control file.
 
 Rights:
-- **Windows:** every change shows a **UAC prompt** (WireGuard and the firewall need admin); nothing privileged stays installed. The status check needs none: it shows the role and tunnel state now, and the rest as the last admin run saved it (`C:\ProgramData\zs-vlan-last`, public info only). Declining the prompt changes nothing and says so. The game's exe is let in through the firewall (`--allow`).
+- **Windows:** every change shows a **UAC prompt** (WireGuard and the firewall need admin); nothing privileged stays installed. The game runs a copy of `vlan_auto.ps1` from `%LOCALAPPDATA%\zs-vlan-game` (an admin process doesn't see `subst` or mapped drives, so a game on `O:` couldn't be found), and lets the real path of its exe through the firewall. If the hidden admin run fails or says nothing, the VLAN page offers **Open in a window**: the same command in a PowerShell window that asks for admin itself and keeps its window open, so you see every message; the page updates by itself when it's done. On a standard (non-admin) Windows account, the prompt needs an administrator's password. The status check needs none: it shows the role and tunnel state now, and the rest as the last admin run saved it (`C:\ProgramData\zs-vlan-last`, public info only). Declining the prompt changes nothing and says so. The game's exe is let in through the firewall (`--allow`).
 - **Linux:** if ufw is active, a desktop password prompt (pkexec) appears once per step; without pkexec it uses `sudo -n` and says to run `vlan_auto.sh` in a terminal once if that fails.
 
 Quitting the game while a server or the tunnel still runs asks: **Stop all** (stops the server, then `vlan_auto off`), **Keep running**, or **Cancel**.

@@ -62,9 +62,10 @@ func _ready()->void:
 	var _tabs:TabContainer = _dialog._tabs
 	check(_tabs.current_tab == _dialog.Tab.SESSION, "hosting opens the Session tab")
 	check(!_tabs.is_tab_hidden(_dialog.Tab.SESSION), "Session tab shown while hosting")
-	check(_tabs.is_tab_hidden(_dialog.Tab.HOST) && _tabs.is_tab_hidden(_dialog.Tab.JOIN), "Host and Join tabs hidden while hosting")
+	check(_tabs.is_tab_hidden(_dialog.Tab.PLAY), "Play page hidden while hosting")
+	check(!_dialog._nav[_dialog.Tab.PLAY].visible && _dialog._nav[_dialog.Tab.SESSION].visible && _dialog._nav[_dialog.Tab.SESSION].button_pressed, "the rail shows Session, selected")
 	check(_dialog._roster.get_child_count() == 1, "Session lists the host")
-	check(_text_of(_dialog._roster).contains("(host, you)"), "host marked as host and you")
+	check(_text_of(_dialog._roster).contains("HOST") && _text_of(_dialog._roster).contains("YOU"), "host marked as host and you")
 	check(_dialog._status.text.begins_with("Hosting on port %d" % PORT), "dialog shows the hosting status")
 	var _shared:bool = await _wait(func ()->bool: return !Net.share_addresses.is_empty(), 15.0)
 	check(_shared, "share addresses looked up")
@@ -119,7 +120,7 @@ func _ready()->void:
 	_again._on_leave_pressed()
 	await _frames(2)
 	check(_again._tabs.is_tab_hidden(_again.Tab.SESSION), "Session tab hidden after leaving")
-	check(!_again._tabs.is_tab_hidden(_again.Tab.HOST) && _again._tabs.current_tab == _again.Tab.HOST, "back to the Host tab after leaving")
+	check(!_again._tabs.is_tab_hidden(_again.Tab.PLAY) && _again._tabs.current_tab == _again.Tab.PLAY, "back to the Play page after leaving")
 	_again.close()
 	await _frames(2)
 	check(_sprite.frame == 0, "terminal dark again after leaving")
@@ -139,7 +140,7 @@ func _finish()->void:
 
 func _text_of(node:Node)->String:
 	var _text:String = ""
-	if node is Label or node is Button:
+	if node is Label or node is Button or node is LineEdit:
 		_text += node.text + "\n"
 	for _child:Node in node.get_children():
 		if !_child.is_queued_for_deletion():
