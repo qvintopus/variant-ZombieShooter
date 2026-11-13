@@ -137,7 +137,11 @@ func _build()->void:
 		_rail.add_child(_b)
 		_nav[_page] = _b
 	_rail.add_child(_vspacer())
-	_rail.add_child(CoopStyle.label(_rail_hint(), &"SmallLabel", true))
+	# indented like the rail buttons' text
+	var _hint:MarginContainer = MarginContainer.new()
+	_hint.add_theme_constant_override(&"margin_left", int(CoopStyle.NAV_PAD))
+	_hint.add_child(CoopStyle.label(_rail_hint(), &"SmallLabel", true))
+	_rail.add_child(_hint)
 
 	_tabs = TabContainer.new()
 	_tabs.tabs_visible = false
