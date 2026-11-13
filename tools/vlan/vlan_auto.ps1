@@ -86,6 +86,17 @@ function Fail([int]$code, [string]$msg) {
     if ($Machine) { Write-Host "ZSVLAN state=error exit=$code" }
     exit $code
 }
+# Anything unexpected still says what and where: into --out and the ZSVLAN line for the game
+# (its admin window is hidden), and a pause in a window of its own (the game's "Open in a window").
+trap {
+    $msg = "error: $($_.Exception.Message) (vlan_auto.ps1 line $($_.InvocationInfo.ScriptLineNumber))"
+    if (-not $Machine) {
+        [Console]::Error.WriteLine($msg)
+        try { Read-Host "press Enter to close" | Out-Null } catch {}
+        exit 2
+    }
+    Fail 2 $msg
+}
 function Result([string]$text) {
     if (-not $Machine) { return }
     Write-Host "ZSVLAN $text"

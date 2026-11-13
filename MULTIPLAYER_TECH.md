@@ -441,10 +441,20 @@ ufw on Linux, and the server has to outlive the game.
 # ZS_VLAN_ARGS = -NoProfile -ExecutionPolicy Bypass -File "<dir>\vlan_auto.ps1" "host" "--name" "Bob"
 #                "--allow" "<game exe>" --machine --out "<user dir>\vlan_out_123.txt"
 var script := ("try { $p = Start-Process powershell -Verb RunAs -WindowStyle Hidden -PassThru -ArgumentList $env:ZS_VLAN_ARGS; "
-	+ "$null = $p.Handle; $p.WaitForExit(); exit $p.ExitCode } catch { exit 5 }")
-OS.execute("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], output, true)
-# then read and delete the --out file; a declined UAC prompt throws -> exit 5
+	+ "$null = $p.Handle; $p.WaitForExit(); exit $p.ExitCode } "
+	+ "catch { $e = $_.Exception; $m = $e.Message; while ($e) { if ($e.NativeErrorCode -eq 1223) { exit 5 }; $e = $e.InnerException }; "
+	+ "Write-Output ('ZS_LAUNCH ' + $m); exit 6 }")
+OS.execute(powershell_full_path, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], output, true)
+# then read and delete the --out file; a declined UAC prompt (Win32 error 1223) -> 5, any other launch failure -> 6
 ```
+  - **Run a local copy:** an elevated process doesn't see `subst` or mapped drives of the user's session, so a
+    game on such a drive fails before the script starts. Copy `vlan_auto.ps1` to `%LOCALAPPDATA%\zs-vlan-game`
+    (only when its md5 changed), run it and put `--out` there; resolve the exe passed to `--allow` through `subst`.
+  - **Say why:** a script-level `trap` writes any unhandled error (message and line) to `--out` with a
+    `ZSVLAN state=error` line. A nonzero exit with an empty `--out` means the admin window never ran the script.
+  - **Fallback:** "Open in a window" runs the same command with `OS.create_process(powershell, [-File, script, …], true)`
+    (a visible console, no `--machine`). The script elevates itself into a `-NoExit` admin window, and the page's
+    `status` poll (every 4 s for 5 min) picks up the result.
   - `$null = $p.Handle` before `WaitForExit()` is needed, or `ExitCode` comes back empty.
   - `WaitForExit` waits for vlan_auto itself, not for the idle watchdog it leaves running.
   - `status` needs no admin. The admin check sits below the read-only dispatch, and status reads the
@@ -478,7 +488,8 @@ OS.execute("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"
 - `CoopDialog.open_layer()`: one shared opener (a CanvasLayer, one at a time). The in-world terminal and the
   **Main Menu's Co-op button** (`CoopTitleButton`) both use it. The title's other buttons lose focus while
   it's open.
-- Tabs: **Host / Join / Session**, plus **VLAN** (`CoopVlanTab`: host/join/paste/add/remove/turn off/start
+- Pages (a left rail over a `TabContainer` with `tabs_visible = false`; `CoopStyle` gives every button kind a
+  visible box, because this game's theme draws none): **Play / Session**, plus **VLAN** (`CoopVlanTab`: host/join/paste/add/remove/turn off/start
   again/remove all; `status` is polled every 15 s while shown) and **Server** (`CoopServerTab`: settings, Start
   and join, Join it, Stop, Log; `info` is polled every 3 s while shown).
 - **Hosting from the title:** this game ends a host's session when it arrives at the title. So Host from the

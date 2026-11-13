@@ -36,10 +36,11 @@
   - Hosting from the title calls `NetPlayers.mark_scene_seen()` (being on the title isn't arriving at it, which ends a host's session) and goes on to the home base.
   - Always there: **VLAN** (`CoopVlanTab.gd`, `VlanTool`: `vlan_auto --machine` on a thread; UAC per change on Windows, output read back via `--out`; pkexec for ufw on Linux) and **Server** (`CoopServerTab.gd`, `ServerProcess`: starts `--headless -- --server --control … --main local` in the background in the scripts' `zs-server` folder, waits for `info` to say `hosting=1`, then joins 127.0.0.1).
   - Quitting (window close or the title's Quit) goes through `QuitPrompt`: if a server or the tunnel still runs, Stop all / Keep running / Cancel.
-  - **Offline**, it shows two tabs:
-    - **Host:** set the port and press Open to friends.
-    - **Join:** type an address (`ip` or `ip:port`) or pick from recent hosts (`NetSettings`, `user://NetSettings.tres`), then connect.
-  - **In a session**, only the **Session** tab remains, and it opens on its own when you host, join, or reopen the dialog. It shows:
+  - Layout (`CoopStyle.gd` draws it: the game theme's own buttons are transparent): a header with a session chip and Close, a left rail of pages (**Play** / **Session**, **Internet (VLAN)**, **Server**), and a message bar that keeps errors until the next action. A join from the title that fails opens the dialog again in the home base with the reason.
+  - **Offline**, the **Play** page has your name and two cards:
+    - **Host a game:** set the port and press Host game.
+    - **Join a game:** type an address (`ip` or `ip:port`) or pick a recent host chip (`NetSettings`, `user://NetSettings.tres`), then Join.
+  - **In a session**, **Session** replaces Play, and it opens on its own when you host, join, or reopen the dialog. It shows:
     - the players, with the host marked and a Kick button on each guest for the host
     - Invite: what a friend types, with a Copy button per address (the zs-vlan virtual LAN address when this PC has one, internet when UPnP mapped the port, the network-card LAN addresses with Docker/VM/VPN interfaces filtered out, and 127.0.0.1 for the same computer), plus a port-forwarding hint when there's no internet address
     - Join, inside someone's zs-vlan: a *Virtual LAN host 10.77.0.1* quick pick
