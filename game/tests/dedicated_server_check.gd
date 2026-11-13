@@ -66,6 +66,8 @@ func _run()->void:
 	check(_panel == null || _panel.rows.is_empty(), "player: no party panel row for the server")
 	check(RunSession.local_player().main, "player: the first to join is the main player")
 	check(_texture() == PlayerSkin.HOST_TEXTURE, "player: the main player wears the plumber")
+	check(!RunSession.local_player().electrician && GuestTier.full(RunSession.local_player()) && GuestTier.keeps_loot() && GuestTier.alpha(RunSession.local_player()) == 1.0, "player: the main player is never a ghost, without an upgrade too")
+	check(!(load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, "player: the main player keeps its crystals")
 
 	# the hidden player sits on us and is untouchable
 	_body().global_position += Vector2(24, 8)
@@ -117,9 +119,11 @@ func _run()->void:
 	check(_reply.contains("main=first:%d " % _slot), "main: in info (%s)" % _reply.strip_edges())
 	_reply = await _request(_control, "main free")
 	check(await _wait(func ()->bool: return !RunSession.local_player().main && _texture() == PlayerSkin.GUEST_TEXTURE, 5.0), "main free: we're an electrician now")
+	check(await _wait(func ()->bool: return !GuestTier.keeps_loot() && (load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, 5.0), "main free: a ghost again (no upgrade)")
 	check(_reply.contains("nobody yet"), "main free: nobody has it (%s)" % _reply.strip_edges())
 	_reply = await _request(_control, "main %d" % _slot)
 	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main <slot>: the plumber again")
+	check(await _wait(func ()->bool: return GuestTier.keeps_loot() && !(load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, 5.0), "main <slot>: full tier again")
 	_reply = await _request(_control, "main 7")
 	check(_reply.contains("usage: main <slot>"), "main: an empty slot is refused")
 	_reply = await _request(_control, "main mode sideways")
