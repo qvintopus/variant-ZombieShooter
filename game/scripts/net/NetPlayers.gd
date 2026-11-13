@@ -761,7 +761,7 @@ func _ghost_rewards(weapons:PackedStringArray)->void:
 	if !net().is_ghost() || weapons.size() > PlayerRunData.MAX_WEAPONS:
 		return
 	# a ghost-tier guest keeps nothing from the host's run (GuestTier)
-	if !RunSession.local_player().electrician:
+	if !GuestTier.full(RunSession.local_player()):
 		return
 	var _database:ItemCollectionResource = load(DATABASE_PATH)
 	var _carried:ItemCollectionResource = ItemCollectionResource.new()

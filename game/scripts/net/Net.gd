@@ -456,8 +456,10 @@ func _roster_update(roster:Array)->void:
 			var _given:String = _clean_name(str(_entry.get("name", "")))
 			if !_name_before.is_empty() && !_given.is_empty():
 				RunSession.local_player().display_name = _given
-			RunSession.local_player().main = bool(_entry.get("main", false))
-			if RunSession.local_player().electrician != _electrician || _tier_unset:
+			var _main:bool = bool(_entry.get("main", false))
+			var _main_changed:bool = RunSession.local_player().main != _main
+			RunSession.local_player().main = _main
+			if RunSession.local_player().electrician != _electrician || _main_changed || _tier_unset:
 				_tier_unset = false
 				GuestTier.enter(_electrician)
 			continue
