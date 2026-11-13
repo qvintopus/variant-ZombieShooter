@@ -1,5 +1,5 @@
-## Modal co-op dialog, opened by the home base Comms Terminal and the title's Co-op button
-## (open_layer). A card with a header (title, session chip, Close), a left rail of pages and
+## Modal co-op dialog, opened by the home base Comms Terminal and the Co-op button on the
+## title and in the pause menu (open_layer). A card with a header (title, session chip, Close), a left rail of pages and
 ## a message bar:
 ## - Play (offline): your name, then two cards side by side: Host a game (port, Host game)
 ##   and Join a game (address, Join, recent hosts as chips).
@@ -8,8 +8,9 @@
 ## - Internet (VLAN): the zs-vlan virtual LAN, CoopVlanTab. Server: a dedicated server on
 ##   this PC, CoopServerTab. Both are there in every state.
 ## Hosting or joining from the title goes on to the home base (a host on the title leaves its
-## session; a guest lends the host a gun from its own home base). A join from the title that
-## fails opens the dialog again in the home base with the reason.
+## session; a guest lends the host a gun from its own home base). A join from a mission (pause
+## menu) saves the run checkpoint first and goes the same way. A join that fails there opens
+## the dialog again in the home base with the reason. Hosting from a mission stays in it.
 ## Built in code with CoopStyle; it consumes Escape before the pause menu sees it and does
 ## not freeze the room (the session keeps running).
 class_name CoopDialog
@@ -227,7 +228,8 @@ func _build_play()->void:
 	_host_button = CoopStyle.button("Host game", _on_host_pressed, CoopStyle.PRIMARY)
 	_host.add_child(_host_button)
 
-	var _join:VBoxContainer = CoopStyle.card(_cards, "Join a game", "Type the address the host sent.")
+	var _join:VBoxContainer = CoopStyle.card(_cards, "Join a game", "Type the address the host sent."
+		+ (" Your run is saved; you join from your home base." if _in_mission() else ""))
 	_address_edit = CoopStyle.edit(_settings.recent_hosts[0] if !_settings.recent_hosts.is_empty() else "", "ip or ip:port")
 	_address_edit.text_submitted.connect(func (_text:String)->void: _on_connect_pressed())
 	_join.add_child(_address_edit)
@@ -323,6 +325,11 @@ static func join_from_home(address:String)->bool:
 func _on_title()->bool:
 	var _scene:Node = get_tree().current_scene
 	return _scene != null && _scene.scene_file_path == TITLE_SCENE
+
+## In a run room (opened from the pause menu): neither the title nor the home base.
+func _in_mission()->bool:
+	var _scene:Node = get_tree().current_scene
+	return _scene != null && _scene.scene_file_path != TITLE_SCENE && _scene.scene_file_path != HOME_SCENE
 
 func _refresh()->void:
 	if !is_inside_tree():
@@ -495,9 +502,12 @@ func _on_connect_pressed()->void:
 		say("Type an address like 192.168.1.20 or 192.168.1.20:%d" % Net.DEFAULT_PORT, CoopStyle.Tone.ERROR)
 		_address_edit.grab_focus()
 		return
-	if _on_title():
+	if _on_title() || _in_mission():
 		# from our own home base, like at its terminal: it lends the host a gun for a
-		# mission (HomeBase.lend_to_host)
+		# mission (HomeBase.lend_to_host). A run in progress is saved first, like the
+		# pause menu's Main Menu does, so Continue resumes it.
+		if _in_mission():
+			RunSession.checkpoint()
 		_settings.remember_host(_text)
 		close()
 		join_from_home(_text)

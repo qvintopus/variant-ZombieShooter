@@ -124,7 +124,41 @@ func _ready()->void:
 	_again.close()
 	await _frames(2)
 	check(_sprite.frame == 0, "terminal dark again after leaving")
+	await _check_pause_menu(_pause, _input)
 	_finish()
+
+## Pause -> Co-op opens the same dialog over the pause menu; Escape closes only the
+## dialog and the pause menu gets its focus back.
+func _check_pause_menu(pause:BoolResource, input:PlayerInput)->void:
+	var _component:Node = _room.find_child("CoopComponent", true, false)
+	check(_component != null, "pause menu has a Co-op button")
+	if _component == null:
+		return
+	pause.set_value(true)
+	await _frames(2)
+	var _button:Button = _component.button
+	check(_button.is_visible_in_tree() && _component.label.text == "Co-op", "Co-op shown in the pause menu")
+	_button.pressed.emit()
+	await _frames(2)
+	var _layer:Node = get_tree().root.get_node_or_null("CoopDialogLayer")
+	check(_layer != null && _layer.get_child_count() == 1, "pause Co-op opens the dialog")
+	var _resume:Button = _room.find_child("PausingManager", true, false).resume_button
+	check(_resume.focus_mode == Control.FOCUS_NONE, "pause buttons can't take focus under the dialog")
+	var _escape:InputEventAction = InputEventAction.new()
+	_escape.action = &"ui_cancel"
+	_escape.pressed = true
+	Input.parse_input_event(_escape)
+	var _release:InputEventAction = InputEventAction.new()
+	_release.action = &"ui_cancel"
+	_release.pressed = false
+	Input.parse_input_event(_release)
+	await _frames(4)
+	check(get_tree().root.get_node_or_null("CoopDialogLayer") == null, "Escape closes the dialog from the pause menu")
+	check(pause.value, "still paused after closing the dialog")
+	check(_resume.focus_mode != Control.FOCUS_NONE && _button.has_focus(), "pause menu usable again, Co-op focused")
+	pause.set_value(false)
+	await _frames(2)
+	check(input.enabled, "player input back after resuming")
 
 func _finish()->void:
 	if Net.state != Net.State.OFFLINE:
