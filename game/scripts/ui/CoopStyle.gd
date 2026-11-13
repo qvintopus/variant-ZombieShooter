@@ -25,6 +25,8 @@ const BODY:int = 8
 const SMALL:int = 7
 const HEADING:int = 10
 const TITLE:int = 12
+## Left padding of a rail item's text (the rail note is indented to match).
+const NAV_PAD:float = 8.0
 
 const PRIMARY:StringName = &"PrimaryButton"
 const DANGER:StringName = &"DangerButton"
@@ -109,10 +111,10 @@ static func theme()->Theme:
 	_t.set_font_size(&"font_size", GHOST, SMALL)
 	# the left rail: the open page has an amber bar
 	_variation(_t, NAV, &"Button")
-	var _nav_on:StyleBoxFlat = box(RAISED, AMBER, 0, 0, 8, 4)
+	var _nav_on:StyleBoxFlat = box(RAISED, AMBER, 0, 0, NAV_PAD, 4)
 	_nav_on.border_width_left = 2
-	_buttons(_t, NAV, box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 8, 4), box(Color(RAISED, 0.6), Color.TRANSPARENT, 0, 0, 8, 4), _nav_on,
-		box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, 8, 4), MUTED, TEXT, Color(MUTED, 0.4), _focus)
+	_buttons(_t, NAV, box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, NAV_PAD, 4), box(Color(RAISED, 0.6), Color.TRANSPARENT, 0, 0, NAV_PAD, 4), _nav_on,
+		box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 0, NAV_PAD, 4), MUTED, TEXT, Color(MUTED, 0.4), _focus)
 	_t.set_color(&"font_pressed_color", NAV, TEXT)
 	_t.set_color(&"font_hover_pressed_color", NAV, TEXT)
 	_t.set_stylebox(&"hover_pressed", NAV, _nav_on)
@@ -129,7 +131,8 @@ static func theme()->Theme:
 		_t.set_color(&"caret_color", _type, AMBER)
 		_t.set_color(&"selection_color", _type, Color(AMBER, 0.35))
 	for _state:StringName in [&"normal", &"hover", &"pressed", &"focus", &"disabled", &"hover_pressed"]:
-		_t.set_stylebox(_state, &"CheckBox", box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 2, 2, 1))
+		# no side padding: the box lines up with the labels above it
+		_t.set_stylebox(_state, &"CheckBox", box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 2, 0, 1))
 	_t.set_stylebox(&"focus", &"CheckBox", _focus)
 	_t.set_color(&"font_color", &"CheckBox", MUTED)
 	_t.set_color(&"font_hover_color", &"CheckBox", TEXT)
@@ -140,7 +143,33 @@ static func theme()->Theme:
 	_t.set_icon(&"unchecked", &"CheckBox", _check_icon(false, true))
 	_t.set_icon(&"checked_disabled", &"CheckBox", _check_icon(true, false))
 	_t.set_icon(&"unchecked_disabled", &"CheckBox", _check_icon(false, false))
+	# the base theme's 16 px radio icons still size the box: it would reserve
+	# their width before the text and their height above it
+	_t.set_icon(&"radio_checked", &"CheckBox", _check_icon(true, true))
+	_t.set_icon(&"radio_unchecked", &"CheckBox", _check_icon(false, true))
+	_t.set_icon(&"radio_checked_disabled", &"CheckBox", _check_icon(true, false))
+	_t.set_icon(&"radio_unchecked_disabled", &"CheckBox", _check_icon(false, false))
 	_t.set_constant(&"h_separation", &"CheckBox", 4)
+	_t.set_constant(&"check_v_offset", &"CheckBox", 0)
+
+	# number field: small arrows that fit the field's height
+	for _state:String in ["", "_hover", "_pressed", "_disabled"]:
+		var _arrow:Color = MUTED if _state == "" else (TEXT if _state != "_disabled" else Color(MUTED, 0.4))
+		if _state == "_pressed":
+			_arrow = AMBER
+		_t.set_icon(StringName("up" + _state), &"SpinBox", _arrow_icon(true, _arrow))
+		_t.set_icon(StringName("down" + _state), &"SpinBox", _arrow_icon(false, _arrow))
+	for _side:String in ["up", "down"]:
+		_t.set_stylebox(StringName(_side + "_background"), &"SpinBox", box(FIELD, Color.TRANSPARENT, 0, 0, 0, 0))
+		_t.set_stylebox(StringName(_side + "_background_hovered"), &"SpinBox", box(RAISED, Color.TRANSPARENT, 0, 0, 0, 0))
+		_t.set_stylebox(StringName(_side + "_background_pressed"), &"SpinBox", box(BORDER, Color.TRANSPARENT, 0, 0, 0, 0))
+		_t.set_stylebox(StringName(_side + "_background_disabled"), &"SpinBox", box(FIELD, Color.TRANSPARENT, 0, 0, 0, 0))
+	_t.set_stylebox(&"field_and_buttons_separator", &"SpinBox", StyleBoxEmpty.new())
+	_t.set_stylebox(&"up_down_buttons_separator", &"SpinBox", StyleBoxEmpty.new())
+	_t.set_constant(&"buttons_width", &"SpinBox", 10)
+	_t.set_constant(&"field_and_buttons_separation", &"SpinBox", 2)
+	_t.set_constant(&"buttons_vertical_separation", &"SpinBox", 0)
+	_t.set_constant(&"set_min_buttons_width_from_icons", &"SpinBox", 0)
 
 	# panels
 	_t.set_stylebox(&"panel", &"PanelContainer", box(CARD, BORDER, 1, 3, 6, 5))
@@ -202,6 +231,16 @@ static func _check_icon(on:bool, enabled:bool)->ImageTexture:
 		_image.set_pixel(_size - 1, _i, _color)
 	if on:
 		_image.fill_rect(Rect2i(2, 2, _size - 4, _size - 4), _color)
+	return ImageTexture.create_from_image(_image)
+
+## A 5x3 arrow for the number field's up/down buttons.
+static func _arrow_icon(up:bool, color:Color)->ImageTexture:
+	var _image:Image = Image.create(5, 3, false, Image.FORMAT_RGBA8)
+	_image.fill(Color.TRANSPARENT)
+	for _y:int in 3:
+		var _row:int = (2 - _y) if up else _y
+		for _x:int in range(_row, 5 - _row):
+			_image.set_pixel(_x, _y, color)
 	return ImageTexture.create_from_image(_image)
 
 static func _line(color:Color)->StyleBoxLine:
@@ -292,7 +331,10 @@ static func step(number:int, title:String, state:int)->HBoxContainer:
 	var _badge:PanelContainer = PanelContainer.new()
 	_badge.add_theme_stylebox_override(&"panel", box(_color if state != Step.TODO else Color.TRANSPARENT, _color, 1, 6, 3, 0))
 	_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# one width for "1" and "ok", so every step's title starts at the same x
+	_badge.custom_minimum_size = Vector2(16, 0)
 	var _n:Label = label("ok" if state == Step.DONE else str(number))
+	_n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_n.add_theme_font_size_override(&"font_size", SMALL)
 	_n.add_theme_color_override(&"font_color", INK if state != Step.TODO else MUTED)
 	_badge.add_child(_n)
