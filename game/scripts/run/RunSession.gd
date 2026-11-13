@@ -62,8 +62,10 @@ func _ready()->void:
 
 func _notification(what:int)->void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		checkpoint()
-		get_tree().quit()
+		# a server or the virtual LAN still up on this PC: ask first (QuitPrompt)
+		QuitPrompt.request(func ()->void:
+			checkpoint()
+			get_tree().quit())
 
 func local_player()->PlayerState:
 	return players.local()

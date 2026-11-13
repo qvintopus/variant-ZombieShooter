@@ -10,16 +10,21 @@
 #   vlan_auto.cmd name [NEW]          this PC's name on the virtual LAN (default: the computer name)
 #   vlan_auto.cmd firewall [EXE...]   let friends on the virtual LAN reach the game through Windows Firewall
 #   vlan_auto.cmd status              what this PC is, who is online, the code to send
+#   vlan_auto.cmd off                 take the tunnel down, keep everything (start brings it back)
 #   vlan_auto.cmd stop                remove everything this made (host or guest)
 # --name NAME anywhere: use that name without asking (host and join ask for one).
 # The same name twice on one virtual LAN becomes Name#2, Name#3, ...
 # --allow EXE anywhere (repeatable): also allow that game exe on the virtual LAN (tools\server.cmd passes Godot).
 # --machine anywhere: no prompts, no clipboard, short waits, and a last line "ZSVLAN key=value ..."
+#   (the game's Co-op dialog and the dedicated server console use it). "status --machine" also works
+#   without admin: role and tunnel state now, the rest as the last admin run saw it.
+# --out FILE anywhere: also write everything shown into FILE (UTF-8); the game reads it, because the
+#   output of an elevated run can't be piped back.
 # The tunnel never starts at boot, and goes off after VLAN_IDLE_MIN (5) minutes without game traffic.
 # Starting it again checks the public address: unchanged, the old codes still work; changed, it says
 # which new code to send.
 # Exit codes: 0 ok, 1 usage or broken code, 2 something this PC needs is missing, 3 wrong state, 4 timed out,
-#   10 reopened itself as admin in a new window.
+#   10 reopened itself as admin in a new window (5 is the game's: admin rights were declined).
 # Asks for admin. Installs WireGuard with winget if missing ('stop' uninstalls it again if it was installed here).
 # The invite/reply codes are the same as vlan_auto.sh's, so Linux and Windows PCs mix freely.
 $ErrorActionPreference = "Stop"
@@ -28,6 +33,7 @@ $SetName = ""
 $CarryWg = $false   # set by Teardown -KeepWg: zs-vlan had installed WireGuard
 $AllowExe = @()   # --allow EXE: game exes to let in from the virtual LAN
 $FwState = "ok"   # the firewall for the game: ok, fixed, blocked
+$Out = ""   # --out FILE
 $Argv = @()
 for ($i = 0; $i -lt $args.Count; $i++) {
     $a = "$($args[$i])"
@@ -35,6 +41,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     elseif ($a -eq "--name") { if ($i + 1 -lt $args.Count) { $i++; $SetName = "$($args[$i])" } }
     elseif ($a.StartsWith("--name=")) { $SetName = $a.Substring(7) }
     elseif ($a -eq "--allow") { if ($i + 1 -lt $args.Count) { $i++; $AllowExe += "$($args[$i])" } }
+    elseif ($a -eq "--out") { if ($i + 1 -lt $args.Count) { $i++; $Out = "$($args[$i])" } }
     else { $Argv += $a }
 }
 $Cmd = if ($Argv.Count -gt 0) { $Argv[0] } else { "" }
@@ -50,28 +57,80 @@ $Self = "vlan_auto.cmd"
 $FwSaved = Join-Path $env:ProgramData "zs-vlan-fw"   # firewall rules zs-vlan switched off; 'stop' switches them back on
 $NameFile = Join-Path $env:ProgramData "zs-vlan-name"   # this PC's name on the VLAN (outside the admin-only folders: the game reads it)
 $NameMax = 24   # = Net.MAX_NAME_LENGTH in the game
+$LastFile = Join-Path $env:ProgramData "zs-vlan-last"   # the last status line (public info only), for "status" without admin
 $IdleMin = if ($env:VLAN_IDLE_MIN -match '^\d+$') { [int]$env:VLAN_IDLE_MIN } else { 5 }   # 0 = never
 $IdleBytes = 2048   # less traffic than this per check counts as idle (a game sends far more)
 $IdleCheck = if ($env:VLAN_IDLE_CHECK -match '^\d+$') { [int]$env:VLAN_IDLE_CHECK } else { 30 }   # seconds
 
 if ($Cmd -in @("help", "-h", "--help")) {
-    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 22 | ForEach-Object { $_ -replace '^# ?', '' }
+    Get-Content $PSCommandPath | Select-Object -Skip 1 -First 28 | ForEach-Object { $_ -replace '^# ?', '' }
     exit 0
+}
+
+# --out FILE: everything shown goes into FILE too. This Write-Host comes before the cmdlet for the
+# whole script; the console still gets it.
+if ($Out) {
+    $OutEnc = New-Object Text.UTF8Encoding($false)
+    [IO.File]::WriteAllText($Out, "", $OutEnc)
+    function Write-Host {
+        param([Parameter(Position = 0, ValueFromRemainingArguments = $true)]$Object, [switch]$NoNewline, $ForegroundColor, $BackgroundColor, $Separator = " ")
+        $text = (@($Object) | ForEach-Object { "$_" }) -join $Separator
+        [IO.File]::AppendAllText($Out, $(if ($NoNewline) { $text } else { "$text`r`n" }), $OutEnc)
+        Microsoft.PowerShell.Utility\Write-Host $text -NoNewline:$NoNewline
+    }
 }
 
 function Fail([int]$code, [string]$msg) {
     [Console]::Error.WriteLine($msg)
+    if ($Out) { [IO.File]::AppendAllText($Out, "$msg`r`n", $OutEnc) }
     if ($Machine) { Write-Host "ZSVLAN state=error exit=$code" }
     exit $code
 }
-function Result([string]$text) { if ($Machine) { Write-Host "ZSVLAN $text" } }
+function Result([string]$text) {
+    if (-not $Machine) { return }
+    Write-Host "ZSVLAN $text"
+    # a whole status (role and state first): kept for "status" without admin
+    if ($text -match '^role=(host|guest|none) state=(up|off|down)( |$)') {
+        try { Set-Content $LastFile "ZSVLAN $text" -Encoding UTF8 } catch {}
+    }
+}
 function Clip([string]$text) {
     if ($Machine) { return }
     try { Set-Clipboard -Value $text; Write-Host "   (copied to the clipboard)" } catch {}
 }
 
 $me = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-if (-not $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+$IsAdmin = $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# "status --machine" without admin: what can be seen without it (the game polls this, no UAC prompt)
+if (-not $IsAdmin -and $Machine -and $Cmd -eq "status") {
+    $r = if ([IO.Directory]::Exists($StateHost)) { "host" } elseif ([IO.Directory]::Exists($StateGuest)) { "guest" } else { "none" }
+    if ($r -eq "none") { Write-Host "this PC isn't in a virtual LAN."; Write-Host "ZSVLAN role=none state=down"; exit 0 }
+    $svc = Get-Service ('WireGuardTunnel$' + $Name) -ErrorAction SilentlyContinue
+    $st = if (-not $svc) { "down" } elseif ("$($svc.Status)" -eq "Running") { "up" } else { "off" }
+    $last = if (Test-Path $LastFile) { "$(Get-Content $LastFile -TotalCount 1 -Encoding UTF8)".Trim() } else { "" }
+    $fields = [ordered]@{}
+    if ($last -match "^ZSVLAN role=$r ") {
+        foreach ($pair in $last.Substring(7).Split(" ", [StringSplitOptions]::RemoveEmptyEntries)) {
+            $k = $pair.Split("=")[0]; $fields[$k] = $pair.Substring($k.Length + 1)
+        }
+    }
+    $fields["role"] = $r; $fields["state"] = $st
+    if ($st -eq "up") {   # who answers now
+        if ($r -eq "host" -and $fields.Contains("guests") -and $fields["guests"] -ne "-") {
+            $fields["guests"] = (@($fields["guests"].Split(",") | ForEach-Object {
+                $g = $_.Split(":"); $g[1] = if ("$(ping -n 1 -w 1000 "$Net.$($g[0])")" -match 'TTL=') { "online" } else { "no-reply" }; $g -join ":"
+            }) -join ",")
+        }
+        if ($r -eq "guest") { $fields["host"] = if ("$(ping -n 1 -w 1000 "$Net.1")" -match 'TTL=') { "online" } else { "no-reply" } }
+    } else {
+        foreach ($k in @($fields.Keys)) { if ($k -notin @("role", "state", "ip", "name", "host_name")) { $fields.Remove($k) } }
+    }
+    $fields["light"] = "1"
+    Write-Host "this PC: $r, the virtual LAN is $st"
+    Write-Host ("ZSVLAN " + (($fields.Keys | ForEach-Object { "$_=$($fields[$_])" }) -join " "))
+    exit 0
+}
+if (-not $IsAdmin) {
     if ($Machine) { Fail 2 "zs-vlan needs admin rights: run it (or the dedicated server) as administrator" }
     $a = @("-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
     foreach ($x in $Argv) { $a += "`"$x`"" }
@@ -771,6 +830,18 @@ function Stop {
     Result "role=none state=down"
 }
 
+# Take the tunnel down but keep keys, guests and the join ("start" brings it back), like going idle.
+function Off {
+    $r = Role
+    if ($r -eq "none") { Write-Host "this PC isn't in a virtual LAN."; Result "role=none state=down"; return }
+    $dir = if ($r -eq "host") { $StateHost } else { $StateGuest }
+    WatchStop $dir
+    if (TunnelOn) { Stop-Service $Svc -ErrorAction SilentlyContinue; Write-Host "the virtual LAN is off (start it again: $Self start)" }
+    else { Write-Host "the virtual LAN was already off" }
+    Set-Content "$dir\idle_down" "taken down at $(Get-Date -Format HH:mm)"
+    Result "role=$r state=off"
+}
+
 # Start whichever role this PC has again, without prompts.
 function Start-Role {
     switch (Role) {
@@ -893,6 +964,7 @@ switch -regex ($Cmd) {
     '^name$' { NameCmd $Arg1; break }
     '^firewall$' { $AllowExe += @($Argv | Select-Object -Skip 1); FirewallCmd; break }
     '^stop$' { Stop; break }
+    '^off$' { Off; break }
     '^zs[ir][12]\.' { Code $Cmd; break }
     default { Fail 1 "unknown command '$Cmd' (try: $Self help)" }
 }

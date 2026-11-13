@@ -9,6 +9,8 @@ A direct WireGuard tunnel between the host and each guest. It needs **no port fo
 
 ## Quick start
 
+**From the game** (no terminal): **Co-op** on the Main Menu, or the home base Comms Terminal, has a **VLAN** tab (see [From the game](#from-the-game)). The scripts below do the same and stay the fallback.
+
 | | Linux | Windows |
 |---|---|---|
 | run | `tools/vlan/vlan_auto.sh` | double-click `tools\vlan\vlan_auto.cmd` |
@@ -37,6 +39,24 @@ Done for good: `vlan_auto stop` on each PC removes everything it made.
 - Windows counts the virtual LAN as an unidentified network, which is **Public**. A Block rule beats zs-vlan's own game rule, so guests can ping the host but never reach the game. A player on the host PC itself still joins fine.
 - **Fix:** the host runs `vlan_auto.cmd firewall`. It switches those Godot Block rules off (it doesn't delete them; `stop` switches them back on) and allows the Godot exe from `10.77.0.0/24` only. `vlan_auto host` does this too: it asks first, or with `--machine` it just does it. The dedicated server passes its Godot exes along (`--allow EXE`), so Windows never asks.
 
+## From the game
+
+The Co-op dialog (Main Menu → **Co-op**, or the home base Comms Terminal) drives `vlan_auto --machine` and starts the dedicated server itself. Its tabs:
+- **Host / Join / Session:** as before. Hosting from the Main Menu goes on to the home base.
+- **VLAN:**
+  - Not set up: **Host a virtual LAN**, or paste a host's invite (**Paste**) and **Join**.
+  - Hosting: the invite with **Copy**, a field for each friend's reply (**Paste**, **Add**), the guests with online state and **Remove**, and **Turn off** (keeps keys and guests).
+  - Joined: your reply with **Copy**; once the host answers, **Join the host's game at 10.77.0.1**. Also **New address** and **Turn off**.
+  - Off: **Start again**. Always: **Remove** / **Leave** (press twice), which is `stop`.
+  - The state is checked when the tab opens and every 15 s while it's shown.
+- **Server:** a dedicated server on this PC, in the background (see [Dedicated server](#dedicated-server)). Set its name, players, idle kick and "over the virtual LAN" (needs this PC to host the VLAN), then **Start and join**: you're its main player (the plumber). Also **Join it**, **Stop** (saves the run) and **Log**. It's the same server `server.sh` / `server.cmd` see: same folder, settings and control file.
+
+Rights:
+- **Windows:** every change shows a **UAC prompt** (WireGuard and the firewall need admin); nothing privileged stays installed. The status check needs none: it shows the role and tunnel state now, and the rest as the last admin run saved it (`C:\ProgramData\zs-vlan-last`, public info only). Declining the prompt changes nothing and says so. The game's exe is let in through the firewall (`--allow`).
+- **Linux:** if ufw is active, a desktop password prompt (pkexec) appears once per step; without pkexec it uses `sudo -n` and says to run `vlan_auto.sh` in a terminal once if that fails.
+
+Quitting the game while a server or the tunnel still runs asks: **Stop all** (stops the server, then `vlan_auto off`), **Keep running**, or **Cancel**.
+
 ## Commands
 
 The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_auto.cmd …` on Windows.
@@ -54,12 +74,14 @@ The same on both OSes: `tools/vlan/vlan_auto.sh …` on Linux, `tools\vlan\vlan_
 | `start` | Starts the last tunnel again, with no prompts (running `vlan_auto` alone does the same and keeps guiding). |
 | `status` | What this PC is, who is online, and the code to send. It never starts anything. |
 | `stop` | Removes everything zs-vlan made on this PC. |
+| `off` | Takes the tunnel down but keeps everything (keys, guests, the join); `start` brings it back. |
 | `firewall [EXE…]` | Windows: lets friends on the virtual LAN reach the game. It switches off Windows Firewall Block rules for Godot (see above) and allows the Godot exe (and any `EXE` given) from `10.77.0.0/24`. |
 | `--allow EXE` (Windows, with any command) | Also allows that game exe from the virtual LAN when hosting. |
 | `--name NAME` (with any command) | Uses that name without asking. |
-| `--machine` (with any command) | For programs: no prompts, no clipboard, short waits, and a last line `ZSVLAN key=value …`. |
+| `--machine` (with any command) | For programs: no prompts, no clipboard, short waits, and a last line `ZSVLAN key=value …`. On Windows `status --machine` also works without admin. |
+| `--out FILE` (Windows, with any command) | Also writes everything shown into `FILE` (UTF-8): the game reads an elevated run's output from it. |
 
-Exit codes: 0 ok, 1 usage or broken code, 2 something this PC needs is missing (the message says how to fix it), 3 wrong state (not set up, or this PC already has the other role), 4 timed out waiting.
+Exit codes: 0 ok, 1 usage or broken code, 2 something this PC needs is missing (the message says how to fix it), 3 wrong state (not set up, or this PC already has the other role), 4 timed out waiting. The game uses 5 for a declined UAC prompt.
 
 The old script names still work as aliases: `vlan_up.sh` (= `host`), `vlan_connect.sh`/`.ps1` (= `join`), `vlan_down.sh`, `vlan_disconnect.sh`/`.ps1` (= `stop`).
 
@@ -175,7 +197,7 @@ Keys and the guest's address are kept until `stop`, so a rejoin keeps its addres
 
 **Linux** (NetworkManager):
 - **Network:** an NM connection and interface named `zsvlan`. Autoconnect is off, so it stays down after a reboot until `vlan_auto` runs again. No sudo is needed for this part, since polkit lets the desktop user change NetworkManager settings.
-- **Firewall:** only if ufw is active, and this step uses sudo. The rules are `allow 51820/udp` and `allow in on zsvlan to any port 24565 proto udp` (the game only), tagged with the comment `zs-vlan`. Only rules the script actually added are recorded, and only those are removed.
+- **Firewall:** only if ufw is active, and this step needs root: sudo, or pkexec from the game (`ZS_SUDO`), one call per step. The rules are `allow 51820/udp` and `allow in on zsvlan to any port 24565 proto udp` (the game only), tagged with the comment `zs-vlan`. Only rules the script actually added are recorded, and only those are removed.
 - **State:** `~/.local/state/zs-vlan` (host) or `~/.local/state/zs-vlan-guest` (guest), with mode 700. It holds the keys, the guests and their names, the public address the codes were made with, and the watchdog's lock. The name is in `~/.local/state/zs-vlan-name`.
 - **Packages:** none are installed. Keys are made with `openssl`, and NetworkManager has WireGuard built in. Anything missing is named with the install command for your distro.
 
