@@ -1,36 +1,45 @@
-## The background dedicated server, from the game: start it (this Godot, headless, its own
+## The background dedicated server, from the game: start it (this game, headless, its own
 ## process that outlives the game), ask it things over its control channel, stop it.
-## It uses the same folder and files as tools/server.sh and tools\server.cmd, so each sees a
+## It uses the same folder and files as the addon's tools/server.sh and server.cmd, so each sees a
 ## server the other started:
-##   Linux:   $XDG_STATE_HOME/zs-server (~/.local/state/zs-server)
-##   Windows: %LOCALAPPDATA%\zs-server
+##   Linux:   $XDG_STATE_HOME/<prefix>-server (~/.local/state/<prefix>-server)
+##   Windows: %LOCALAPPDATA%/<prefix>-server
 ##   control    written by the server: pid, control_port, token, port, started, name
 ##   server.log its output (the last one is server.log.1)
-##   settings   port, name, max_players, idle_kick, vlan, main (key=value, the scripts' menu edits it too)
-## ZS_SERVER_DIR overrides the folder (tests).
+##   settings   port, name, max_players, idle_kick, vlan and the game's extra_settings (key=value;
+##              the scripts' menu edits it too)
+## LANPARTY_SERVER_DIR overrides the folder (tests).
 ##
 ## Requests: "TOKEN <token>\n<command>\n", the answer, then the server closes the connection
-## (ServerConsole). The server started here always uses --main local: this PC's player is the
-## main player (the plumber) when it joins.
-class_name ServerProcess
+## (LanPartyConsole). forced_args override saved extra settings for a server started here (this
+## game: {"main": "local"}, so this PC's player gets the main seat).
+class_name LanPartyServerProcess
 extends RefCounted
 
-const DEFAULTS:Dictionary = {"port": "24565", "name": "Server", "max_players": "8", "idle_kick": "5", "vlan": "no", "main": "first"}
 const CONNECT_TIMEOUT:float = 2.0
 const ANSWER_TIMEOUT:float = 8.0
 ## Seconds to wait for a started server to host, or a stopped one to go.
 const START_TIMEOUT:float = 45.0
 const STOP_TIMEOUT:float = 15.0
 
+## The settings the server takes, with lan_party.cfg's defaults (extra settings: their first choice).
+static func defaults()->Dictionary:
+	var _settings:Dictionary = {"port": str(LanPartyConfig.game_port()), "name": LanPartyConfig.get_value("server_name"),
+		"max_players": str(LanPartyConfig.max_players()), "idle_kick": LanPartyConfig.get_value("idle_kick"), "vlan": "no"}
+	for _extra:Dictionary in LanPartyConfig.extra_settings():
+		_settings[_extra.name] = _extra.choices[0]
+	return _settings
+
+## Extra settings a server started from this game always gets (they win over saved ones).
+static var forced_args:Dictionary = {}
+
 static func state_dir()->String:
-	if OS.has_environment("ZS_SERVER_DIR"):
-		return OS.get_environment("ZS_SERVER_DIR")
+	if OS.has_environment("LANPARTY_SERVER_DIR"):
+		return OS.get_environment("LANPARTY_SERVER_DIR")
+	var _name:String = LanPartyConfig.prefix() + "-server"
 	if OS.get_name() == "Windows":
-		return OS.get_environment("LOCALAPPDATA").path_join("zs-server")
-	var _state:String = OS.get_environment("XDG_STATE_HOME")
-	if _state.is_empty():
-		_state = OS.get_environment("HOME").path_join(".local/state")
-	return _state.path_join("zs-server")
+		return OS.get_environment("LOCALAPPDATA").path_join(_name)
+	return LanPartyConfig.state_home().path_join(_name)
 
 static func control_path()->String:
 	return state_dir().path_join("control")
@@ -57,20 +66,21 @@ static func control()->Dictionary:
 
 ## The saved settings, with the scripts' defaults for what's missing or broken.
 static func load_settings()->Dictionary:
-	var _settings:Dictionary = DEFAULTS.duplicate()
+	var _settings:Dictionary = defaults()
 	var _saved:Dictionary = _key_values(settings_path())
 	if str(_saved.get("port", "")).is_valid_int():
 		_settings.port = str(clampi(int(_saved.port), 1024, 65535))
 	if !str(_saved.get("name", "")).is_empty():
 		_settings.name = _saved.name
 	if str(_saved.get("max_players", "")).is_valid_int():
-		_settings.max_players = str(clampi(int(_saved.max_players), 2, 8))
+		_settings.max_players = str(clampi(int(_saved.max_players), 2, LanPartyConfig.max_players()))
 	if str(_saved.get("idle_kick", "")).is_valid_float():
 		_settings.idle_kick = str(maxf(float(_saved.idle_kick), 0.0))
 	if _saved.get("vlan", "") in ["yes", "no"]:
 		_settings.vlan = _saved.vlan
-	if _saved.get("main", "") in ["first", "local"]:
-		_settings.main = _saved.main
+	for _extra:Dictionary in LanPartyConfig.extra_settings():
+		if (_extra.choices as PackedStringArray).has(str(_saved.get(_extra.name, ""))):
+			_settings[_extra.name] = _saved[_extra.name]
 	return _settings
 
 static func save_settings(settings:Dictionary)->void:
@@ -78,8 +88,9 @@ static func save_settings(settings:Dictionary)->void:
 	var _file:FileAccess = FileAccess.open(settings_path(), FileAccess.WRITE)
 	if _file == null:
 		return
-	for _key:String in ["port", "name", "max_players", "idle_kick", "vlan", "main"]:
-		_file.store_string("%s=%s\n" % [_key, settings.get(_key, DEFAULTS[_key])])
+	var _defaults:Dictionary = defaults()
+	for _key:String in _defaults:
+		_file.store_string("%s=%s\n" % [_key, settings.get(_key, _defaults[_key])])
 	_file.close()
 
 ## The pid this game started (OS.is_process_running only knows its own children).
@@ -101,7 +112,7 @@ static func alive()->bool:
 	DirAccess.remove_absolute(control_path())
 	return false
 
-## Godot and its arguments for a server with `settings` (see DedicatedServer).
+## Godot and its arguments for a server with `settings` (see LanPartyServer).
 static func command(settings:Dictionary)->Array:
 	var _args:PackedStringArray = ["--headless"]
 	if !OS.has_feature("template"):
@@ -111,7 +122,10 @@ static func command(settings:Dictionary)->Array:
 		_args.append_array(["--log-file", log_path()])
 	_args.append_array(["--", "--server", "--control", control_path(),
 		"--port", str(settings.port), "--name", str(settings.name), "--max-players", str(settings.max_players),
-		"--idle-kick", str(settings.idle_kick), "--main", "local"])
+		"--idle-kick", str(settings.idle_kick)])
+	for _extra:Dictionary in LanPartyConfig.extra_settings():
+		var _value:String = str(forced_args.get(_extra.name, settings.get(_extra.name, _extra.choices[0])))
+		_args.append_array(["--" + _extra.name, _value])
 	if settings.get("vlan", "no") == "yes":
 		_args.append("--vlan")
 	# not a saved setting: tests keep the server's saves out of the user's

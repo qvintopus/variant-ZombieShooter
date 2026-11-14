@@ -154,14 +154,14 @@ func _check_names()->void:
 	check(Net.unique_name(_long, [_long]) == "abcdefghijklmnopqrstuv#2", "numbered name stays within the length")
 	check(Net.unique_name("Mārtiņš", ["MĀRTIŅŠ"]) == "Mārtiņš#2", "case ignored beyond ASCII")
 	var _file:String = ProjectSettings.globalize_path("user://zs-vlan-name-test")
-	ENetTransport.vlan_name_file = _file
+	LanPartyAddresses.vlan_name_file = _file
 	DirAccess.remove_absolute(_file)
 	var _profile:PlayerProfile = PlayerProfile.new()
 	check(PlayerProfile.default_name() == "Player" && !_profile.refresh_default(), "no zs-vlan name: default Player")
 	var _out:FileAccess = FileAccess.open(_file, FileAccess.WRITE)
 	_out.store_string("  Vlan Pal \n")
 	_out.close()
-	check(ENetTransport.vlan_name() == "Vlan Pal", "zs-vlan name read")
+	check(LanPartyAddresses.vlan_name() == "Vlan Pal", "zs-vlan name read")
 	check(_profile.refresh_default() && _profile.display_name == "Vlan Pal", "unpicked name follows the zs-vlan name")
 	check((_profile.prepare_save() as PlayerProfile).display_name == "Player", "unpicked name saved as the stock one")
 	_profile.name_set = true
@@ -176,7 +176,7 @@ func _check_names()->void:
 	_loaded.prepare_load(_old)
 	check(!_loaded.name_set, "older save with the stock name follows the default")
 	DirAccess.remove_absolute(_file)
-	ENetTransport.vlan_name_file = ""
+	LanPartyAddresses.vlan_name_file = ""
 
 ## Launches net_client.tscn; its stdout goes to a file we poll.
 ## user:// save file -> modified time

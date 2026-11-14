@@ -1,13 +1,18 @@
-## The look of the co-op screens (Co-op dialog, its pages, the quit prompt): a dark card with
-## one amber accent. The game theme draws buttons with no fill and no border (the title menu
-## adds its own shader), so here every button kind has a visible box and clear hover,
-## pressed, focus and disabled states. Colour means one thing each: amber = the thing to do,
+## The look of the LAN Party screens (its pages, the quit prompt, and any game dialog that wants
+## to match): a dark card with one amber accent. Every button kind has a visible box and clear
+## hover, pressed, focus and disabled states. Colour means one thing each: amber = the thing to do,
 ## green = live / done, red = destructive / failed.
 ## Button kinds are theme type variations: PRIMARY, DANGER, GHOST, NAV (and plain Button).
-class_name CoopStyle
+## It's built on top of base_theme_path (the game's own theme, for its font), else the project's
+## theme. The sizes suit a small (480x270) viewport: set font_scale for a bigger one, before the
+## first theme() call.
+class_name LanPartyStyle
 extends RefCounted
 
-const THEME_PATH:String = "res://addons/top_down/resources/theme/game_gui_theme.theme"
+## The game theme to start from ("" = the project theme, else Godot's default).
+static var base_theme_path:String = ""
+## Multiplies every font size (and the small paddings that go with them).
+static var font_scale:float = 1.0
 
 const BG:Color = Color("121418")
 const CARD:Color = Color("1b1f26")
@@ -39,6 +44,10 @@ enum Step {TODO, ACTIVE, DONE}
 
 static var _theme:Theme
 
+## A font size, scaled.
+static func px(size:int)->int:
+	return maxi(roundi(size * font_scale), 1)
+
 static func tone_color(tone:int)->Color:
 	match tone:
 		Tone.OK: return GREEN
@@ -64,10 +73,15 @@ static func box(fill:Color, border:Color = Color.TRANSPARENT, width:int = 0, rad
 static func theme()->Theme:
 	if _theme != null:
 		return _theme
-	var _t:Theme = (load(THEME_PATH) as Theme).duplicate()
-	_t.default_font_size = BODY
+	var _base:Theme = null
+	if !base_theme_path.is_empty() && ResourceLoader.exists(base_theme_path):
+		_base = load(base_theme_path) as Theme
+	if _base == null:
+		_base = ThemeDB.get_project_theme()
+	var _t:Theme = _base.duplicate() if _base != null else Theme.new()
+	_t.default_font_size = px(BODY)
 	for _type:StringName in [&"Label", &"Button", &"LineEdit", &"CheckBox", &"SpinBox", &"TooltipLabel"]:
-		_t.set_font_size(&"font_size", _type, BODY)
+		_t.set_font_size(&"font_size", _type, px(BODY))
 
 	_t.set_color(&"font_color", &"Label", TEXT)
 	_t.set_constant(&"line_spacing", &"Label", 0)
@@ -75,11 +89,11 @@ static func theme()->Theme:
 	_t.set_color(&"font_color", &"MutedLabel", MUTED)
 	_variation(_t, &"SmallLabel", &"Label")
 	_t.set_color(&"font_color", &"SmallLabel", MUTED)
-	_t.set_font_size(&"font_size", &"SmallLabel", SMALL)
+	_t.set_font_size(&"font_size", &"SmallLabel", px(SMALL))
 	_variation(_t, &"HeadingLabel", &"Label")
-	_t.set_font_size(&"font_size", &"HeadingLabel", HEADING)
+	_t.set_font_size(&"font_size", &"HeadingLabel", px(HEADING))
 	_variation(_t, &"TitleLabel", &"Label")
-	_t.set_font_size(&"font_size", &"TitleLabel", TITLE)
+	_t.set_font_size(&"font_size", &"TitleLabel", px(TITLE))
 	_t.set_color(&"font_color", &"TitleLabel", AMBER)
 
 	var _focus:StyleBoxFlat = box(Color.TRANSPARENT, AMBER, 1, 2)
@@ -99,7 +113,7 @@ static func theme()->Theme:
 	_variation(_t, CHIP, &"Button")
 	_buttons(_t, CHIP, box(FIELD, BORDER, 1, 6, 5, 1), box(RAISED, MUTED, 1, 6, 5, 1), box(RAISED, AMBER, 1, 6, 5, 1),
 		box(Color.TRANSPARENT, Color(BORDER, 0.5), 1, 6, 5, 1), MUTED, TEXT, Color(MUTED, 0.45), _focus)
-	_t.set_font_size(&"font_size", CHIP, SMALL)
+	_t.set_font_size(&"font_size", CHIP, px(SMALL))
 	# destructive
 	_variation(_t, DANGER, &"Button")
 	_buttons(_t, DANGER, box(Color(RED, 0.1), Color(RED, 0.7), 1), box(Color(RED, 0.25), RED, 1), box(Color(RED, 0.4), RED, 1),
@@ -108,7 +122,7 @@ static func theme()->Theme:
 	_variation(_t, GHOST, &"Button")
 	_buttons(_t, GHOST, box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 2, 3), box(Color(RAISED, 0.7), Color.TRANSPARENT, 0, 2, 3),
 		box(RAISED, Color.TRANSPARENT, 0, 2, 3), box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 2, 3), MUTED, TEXT, Color(MUTED, 0.45), _focus)
-	_t.set_font_size(&"font_size", GHOST, SMALL)
+	_t.set_font_size(&"font_size", GHOST, px(SMALL))
 	# the left rail: the open page has an amber bar
 	_variation(_t, NAV, &"Button")
 	var _nav_on:StyleBoxFlat = box(RAISED, AMBER, 0, 0, NAV_PAD, 4)
@@ -286,6 +300,12 @@ static func spacer()->Control:
 	_c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return _c
 
+## Takes the free height in a VBox (pushes what follows to the bottom).
+static func vspacer()->Control:
+	var _c:Control = Control.new()
+	_c.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	return _c
+
 ## A card (raised panel) in `parent`; returns the box to fill. `title` as its heading.
 static func card(parent:Node, title:String = "", subtitle:String = "")->VBoxContainer:
 	var _panel:PanelContainer = PanelContainer.new()
@@ -308,7 +328,7 @@ static func chip(text:String, tone:int)->PanelContainer:
 	_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var _l:Label = label(text)
 	_l.add_theme_color_override(&"font_color", _color)
-	_l.add_theme_font_size_override(&"font_size", SMALL)
+	_l.add_theme_font_size_override(&"font_size", px(SMALL))
 	_panel.add_child(_l)
 	return _panel
 
@@ -332,10 +352,10 @@ static func step(number:int, title:String, state:int)->HBoxContainer:
 	_badge.add_theme_stylebox_override(&"panel", box(_color if state != Step.TODO else Color.TRANSPARENT, _color, 1, 6, 3, 0))
 	_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	# one width for "1" and "ok", so every step's title starts at the same x
-	_badge.custom_minimum_size = Vector2(16, 0)
+	_badge.custom_minimum_size = Vector2(16 * font_scale, 0)
 	var _n:Label = label("ok" if state == Step.DONE else str(number))
 	_n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_n.add_theme_font_size_override(&"font_size", SMALL)
+	_n.add_theme_font_size_override(&"font_size", px(SMALL))
 	_n.add_theme_color_override(&"font_color", INK if state != Step.TODO else MUTED)
 	_badge.add_child(_n)
 	var _title:Label = label(title, &"", true)

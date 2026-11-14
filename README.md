@@ -7,6 +7,8 @@ Project is located in [addons/top_down](addons/top_down/) to keep project confli
 
 This repository also includes [addons/great_games_library](addons/great_games_library), a collection of scripts that offer general-purpose solutions applicable across various games.
 
+Online co-op setup lives in [addons/lan_party](addons/lan_party/) (LAN Party): a self-hosted WireGuard virtual LAN for playing over the internet without port forwarding, and a headless dedicated server with a launcher menu, with in-game pages for both. It's self-contained, so other Godot games can use it; this game's names for it are in [lan_party.cfg](lan_party.cfg).
+
 Additionally, for task organization, the project includes a simple [Kanban Tasks - Todo Manager](https://godotengine.org/asset-library/asset/1474) plugin.
 
 > **⚠️ CAUTION:**  

@@ -1,24 +1,29 @@
 # Shared by the vlan_*.sh scripts (sourced, not run). See README.md.
 # Direct WireGuard tunnel via NetworkManager, no servers: both sides know each other's public address
 # and send at the same time (keepalive), so each router/firewall lets the other's packets back in.
+# Names, subnet and ports come from lan_party.cfg (lp_config.sh).
 
-NAME=zsvlan                  # NM connection + interface name (and the tunnel name on Windows)
-NET=10.77.0                  # host is .1, guests pick .2-.254 (at most 7)
-PORT=${VLAN_PORT:-51820}     # WireGuard UDP port, same on every machine
-GAME_PORT=24565
-STATE_HOST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan
-STATE_GUEST=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan-guest
+. "$(dirname "${BASH_SOURCE[0]}")/lp_config.sh"
+NAME=$LP_VLAN_NAME           # NM connection + interface name (and the tunnel name on Windows)
+NET=$LP_VLAN_NET             # host is .1, guests pick .2-.254 (at most 7)
+PORT=${VLAN_PORT:-$LP_VLAN_PORT}  # WireGuard UDP port, same on every machine
+GAME_PORT=$LP_GAME_PORT
+BRAND=$LP_PREFIX-vlan        # what people see it called; also the ufw comment
+STATE_HOST=$LP_STATE_BASE/$LP_PREFIX-vlan
+STATE_GUEST=$LP_STATE_BASE/$LP_PREFIX-vlan-guest
+CI=${LP_CODE_PREFIX}i        # invite codes: ${CI}2.<base64>
+CR=${LP_CODE_PREFIX}r        # reply codes:  ${CR}2.<base64>
 # Over the tunnel only the game is let in (ping is allowed by ufw's defaults).
 GAME_RULE="in on $NAME to any port $GAME_PORT proto udp"
-MACHINE=${MACHINE:-0}        # 1: no prompts, no clipboard, sudo never asks; a ZSVLAN line ends the output
-# How to get root for ufw. The game sets ZS_SUDO=pkexec (a desktop password prompt); a --machine run
+MACHINE=${MACHINE:-0}        # 1: no prompts, no clipboard, sudo never asks; a LANPARTY line ends the output
+# How to get root for ufw. The game sets LANPARTY_SUDO=pkexec (a desktop password prompt); a --machine run
 # without it uses "sudo -n" (never asks).
-ZS_SUDO=${ZS_SUDO:-}
+LANPARTY_SUDO=${LANPARTY_SUDO:-}
 IDLE_MIN=${VLAN_IDLE_MIN:-5} # the tunnel goes down after this many minutes without game traffic (0 = never)
 IDLE_BYTES=2048              # less traffic than this in a 30 s check counts as idle (a game sends far more)
 IDLE_CHECK=${VLAN_IDLE_CHECK:-30}  # seconds between watchdog checks
-NAME_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/zs-vlan-name   # this PC's name on the VLAN (the game reads it too)
-NAME_MAX=24                  # = Net.MAX_NAME_LENGTH in the game
+NAME_FILE=$LP_STATE_BASE/$LP_PREFIX-vlan-name   # this PC's name on the VLAN (the game reads it too)
+NAME_MAX=24                  # = LanPartyConfig.MAX_NAME_LENGTH in the game
 VLAN_AUTO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vlan_auto.sh"
 
 # Exit codes (stable, the game and the dedicated server read them):
@@ -27,13 +32,13 @@ VLAN_AUTO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/vlan_auto.sh"
 fail() {
 	local code=$1; shift
 	[ -z "$*" ] || echo "$*" >&2
-	[ "$MACHINE" = 1 ] && echo "ZSVLAN state=error exit=$code"
+	[ "$MACHINE" = 1 ] && echo "LANPARTY state=error exit=$code"
 	exit "$code"
 }
 die() { fail 1 "$*"; }
 
-# The one machine-readable line: "ZSVLAN key=value ..." (values never contain spaces).
-result() { [ "$MACHINE" = 1 ] && echo "ZSVLAN $*"; return 0; }
+# The one machine-readable line: "LANPARTY key=value ..." (values never contain spaces).
+result() { [ "$MACHINE" = 1 ] && echo "LANPARTY $*"; return 0; }
 
 # Copy to the clipboard if a tool for it is there (Wayland, then X11). Silent otherwise.
 clip() {
@@ -107,10 +112,10 @@ my_v4() {
 }
 
 # Invite/reply lines: "<prefix>.<base64 of space-separated fields>" - only public keys, addresses and a
-# name, safe for chat. Version 2 (zsi2/zsr2) adds the sender's name as the last field (it may hold
-# spaces); version 1 codes (no name) are still read. Made with: enc zsi2 "fields".
+# name, safe for chat. Version 2 (<p>i2/<p>r2) adds the sender's name as the last field (it may hold
+# spaces); version 1 codes (no name) are still read. Made with: enc ${CI}2 "fields".
 enc() { printf '%s.%s' "$1" "$(printf '%s' "$2" | base64 -w0)"; }
-# dec reports a bad code on stderr and returns 1 (callers: fields=$(dec ...) || fail 1).  args: zsi|zsr code
+# dec reports a bad code on stderr and returns 1 (callers: fields=$(dec ...) || fail 1).  args: $CI|$CR code
 dec() {
 	[[ $2 =~ ^$1[12]\. ]] || { echo "not a ${1}2 code: $2" >&2; return 1; }
 	base64 -d <<<"${2#*.}" 2>/dev/null || { echo "broken ${1}2 code (copy the whole line)" >&2; return 1; }
@@ -172,7 +177,7 @@ unique_name() {
 	done
 }
 name_taken() { local LC_ALL=C.UTF-8 want=${1,,} x; shift; for x in "$@"; do [ "${x,,}" = "$want" ] && return 0; done; return 1; }
-# A name as a ZSVLAN value (values never hold spaces): % and space escaped.
+# A name as a LANPARTY value (values never hold spaces): % and space escaped.
 pct() { local s=${1//%/%25}; printf '%s' "${s// /%20}"; }
 
 # Endpoint for a peer: IPv6 when both sides have it, else the peer's IPv4.  args: peer_v6 peer_v4 peer_port my_v6
@@ -223,7 +228,7 @@ watch_start() {
 	rm -f "$STATE/idle_down"
 	watch_running && return 0
 	# a user unit survives the terminal closing; plain setsid where there's no systemd user session
-	systemd-run --user --quiet --collect --unit zsvlan-idle ${XDG_STATE_HOME:+--setenv=XDG_STATE_HOME} bash "$VLAN_AUTO" watch "$IDLE_MIN" >/dev/null 2>&1 \
+	systemd-run --user --quiet --collect --unit "$NAME-idle" ${XDG_STATE_HOME:+--setenv=XDG_STATE_HOME} bash "$VLAN_AUTO" watch "$IDLE_MIN" >/dev/null 2>&1 \
 		|| { setsid nohup bash "$VLAN_AUTO" watch "$IDLE_MIN" >/dev/null 2>&1 </dev/null & }
 	return 0
 }
@@ -264,16 +269,16 @@ fw_open() {
 		st=$(ufw status) || exit 1
 		for r in "$@"; do
 			fw_has "$r" "$st" && continue
-			ufw allow $r comment zs-vlan >/dev/null && echo "$r"
+			ufw allow $r comment "$BRAND" >/dev/null && echo "$r"
 		done' bash "$@") || { echo "no root (sudo/pkexec failed), ufw untouched - peers may be blocked (rerun vlan_auto.sh in a terminal)" | tee "$STATE/firewall"; return; }
 	[ -z "$added" ] || echo "$added" >>"$STATE/ufw_rules"
 	if [ -s "$STATE/ufw_rules" ]; then echo "ufw rules added: $(paste -sd, "$STATE/ufw_rules")" >"$STATE/firewall"
 	else echo "ufw already allowed it, nothing changed" >"$STATE/firewall"; fi
 }
 
-# Run a command as root for ufw: ZS_SUDO (the game: pkexec), else sudo (sudo -n with --machine: never asks).
+# Run a command as root for ufw: LANPARTY_SUDO (the game: pkexec), else sudo (sudo -n with --machine: never asks).
 as_root() {
-	if [ -n "$ZS_SUDO" ]; then $ZS_SUDO "$@"
+	if [ -n "$LANPARTY_SUDO" ]; then $LANPARTY_SUDO "$@"
 	elif [ "$MACHINE" = 1 ]; then sudo -n "$@"
 	else sudo "$@"; fi
 }
@@ -287,7 +292,7 @@ teardown() {
 		# shellcheck disable=SC2016
 		as_root bash -c 'while IFS= read -r r; do
 			ufw delete allow $r >/dev/null && echo "  removed ufw: $r" || echo "  FAILED ufw: $r (fix by hand: sudo ufw status numbered)"
-		done' <"$STATE/ufw_rules" || echo "  no root (sudo/pkexec failed): the zs-vlan ufw rules are still there (sudo ufw status numbered)"
+		done' <"$STATE/ufw_rules" || echo "  no root (sudo/pkexec failed): the $BRAND ufw rules are still there (sudo ufw status numbered)"
 	fi
 	if [ -d "$STATE" ]; then rm -rf "$STATE" && echo "removed $STATE"; fi
 }

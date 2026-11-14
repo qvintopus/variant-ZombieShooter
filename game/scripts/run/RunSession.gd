@@ -62,8 +62,8 @@ func _ready()->void:
 
 func _notification(what:int)->void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		# a server or the virtual LAN still up on this PC: ask first (QuitPrompt)
-		QuitPrompt.request(func ()->void:
+		# a server or the virtual LAN still up on this PC: ask first (LanPartyQuitPrompt)
+		LanPartyQuitPrompt.request(func ()->void:
 			checkpoint()
 			get_tree().quit())
 

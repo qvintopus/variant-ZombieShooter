@@ -1,26 +1,35 @@
-# Dedicated co-op server control, Windows. Linux: tools/server.sh. See tools\vlan\README.md.
+# LAN Party dedicated server control, Windows. Linux: server.sh. See vlan\README.md.
 #   server.cmd                  menu: start / stop / restart, status, players, log, console, settings
 #   server.cmd start [options]  start it in the background (saved settings, plus these options)
-#   server.cmd stop             save the run, tell the players, quit
+#   server.cmd stop             save, tell the players, quit
 #   server.cmd restart          stop, then start
 #   server.cmd status           running or not, room, players, uptime, settings
 #   server.cmd players          who is connected
 #   server.cmd log              follow the server's log (q goes back)
 #   server.cmd console          type server commands (help lists them) into the running server
 #   server.cmd send <command>   one server command, e.g. send kick 2
-#   server.cmd settings         change the saved settings (port, name, players, idle kick, main player, VLAN)
+#   server.cmd settings         change the saved settings (port, name, players, idle kick, VLAN, the game's own)
 #   server.cmd run [options]    run it in this window instead (also: server.cmd --port ... as before)
-# Options: --vlan --port N --max-players 2..8 --save-dir PATH --name NAME --status SECONDS --idle-kick MIN
-#          --main first|local (who wears the plumber: the first player to join / the first from this PC)
-# The server runs in a hidden window until stopped (closing the menu leaves it running); its log is in
-# %LOCALAPPDATA%\zs-server\server.log. The menu talks to it over 127.0.0.1 with a token only this user
+# Options: --vlan --port N --max-players N --save-dir PATH --name NAME --status SECONDS --idle-kick MIN
+#          and the game's own (lan_party.cfg extra_settings, e.g. --main first|local)
+# The server is the game itself, run headless with "-- --server". It runs in a hidden window until stopped
+# (closing the menu leaves it running); its log is in %LOCALAPPDATA%\<prefix>-server\server.log. The menu talks to it over 127.0.0.1 with a token only this user
 # can read. The virtual LAN setting needs admin (the menu reopens itself as admin for it).
 # Godot: $env:GODOT, else godot_console/godot on the PATH, else Godot_v*_win64_console.exe or godot_console.exe
 # in the project folder, the folder above it, tools\ or a Godot* folder in those. The console exe is needed
 # (it starts the plain exe next to it and shows its output); without it the plain exe is tried.
+# For an exported game (no project.godot above this folder) set GODOT to the game's executable.
 $ErrorActionPreference = "Stop"
-$Root = Split-Path $PSScriptRoot -Parent
-$Dir = Join-Path $env:LOCALAPPDATA "zs-server"
+. (Join-Path $PSScriptRoot "vlan\lp_config.ps1")
+$Root = if ($LpProject) { $LpProject } else { $PSScriptRoot }
+$PathArgs = if ($LpProject) { @("--path", ".") } else { @() }
+$Dir = if ($env:LANPARTY_SERVER_DIR) { $env:LANPARTY_SERVER_DIR } else { Join-Path $env:LOCALAPPDATA "$($LP.prefix)-server" }
+# extra_settings "main:first,local;mode:a,b" -> @{name; choices}
+$Extra = @()
+foreach ($e in ("$($LP.extra_settings)" -split ';')) {
+    $e = $e -replace '\s', ''
+    if ($e -match '^([a-z_][a-z0-9_-]*):(.+)$') { $Extra += @{ name = $Matches[1]; choices = @($Matches[2] -split ',' | Where-Object { $_ }) } }
+}
 $Control = Join-Path $Dir "control"
 $Log = Join-Path $Dir "server.log"
 $SettingsFile = Join-Path $Dir "settings"
@@ -119,7 +128,7 @@ function FindGodot {
     if ($v -and -not $v.StartsWith("$GodotVersion.")) {
         Write-Host "note: $g is Godot $v; the project is made with Godot $GodotVersion. Use that version if the server misbehaves."
     }
-    if (-not (Test-Path (Join-Path $Root ".godot\imported"))) {
+    if ($LpProject -and -not (Test-Path (Join-Path $Root ".godot\imported"))) {
         Write-Host "first start, importing the project..."
         Push-Location $Root; & $g --headless --path . --import | Out-Null; Pop-Location
     }
@@ -149,46 +158,40 @@ function FirewallWarn {
     if ($b.Count -eq 0) { return }
     Write-Host "warning: Windows Firewall blocks Godot for players on other PCs (on the virtual LAN, a Public network):"
     $b | ForEach-Object { Write-Host "  $_" }
-    Write-Host "  fix (asks for admin): tools\vlan\vlan_auto.cmd firewall"
+    Write-Host "  fix (asks for admin): $(Join-Path $PSScriptRoot 'vlan\vlan_auto.cmd') firewall"
 }
 
 # ---------------------------------------------------------------- settings
 
 function LoadSettings {
-    $script:S = @{ port = "24565"; name = "Server"; max_players = "8"; idle_kick = "5"; vlan = "no"; main = "first" }
+    $script:S = @{ port = $LP.game_port; name = $LP.server_name; max_players = $LP.max_players; idle_kick = $LP.idle_kick; vlan = "no" }
+    foreach ($x in $Extra) { $S[$x.name] = $x.choices[0] }
     if (-not (Test-Path $SettingsFile)) { return }
     foreach ($line in (Get-Content $SettingsFile -Encoding UTF8)) {
         $k, $v = $line.Split("=", 2)
         switch ($k) {
             "port" { if ($v -match '^\d+$') { $S.port = $v } }
             "name" { if ($v) { $S.name = $v } }
-            "max_players" { if ($v -match '^[2-8]$') { $S.max_players = $v } }
+            "max_players" { if ($v -match '^\d+$' -and [int]$v -ge 2 -and [int]$v -le [int]$LP.max_players) { $S.max_players = $v } }
             "idle_kick" { if ($v -match '^\d+(\.\d+)?$') { $S.idle_kick = $v } }
             "vlan" { if ($v -in @("yes", "no")) { $S.vlan = $v } }
-            "main" { if ($v -in @("first", "local")) { $S.main = $v } }
+            default { foreach ($x in $Extra) { if ($k -eq $x.name -and $v -in $x.choices) { $S[$k] = $v } } }
         }
     }
 }
 function SaveSettings {
-    $text = "port=$($S.port)`nname=$($S.name)`nmax_players=$($S.max_players)`nidle_kick=$($S.idle_kick)`nvlan=$($S.vlan)`nmain=$($S.main)`n"
+    $text = "port=$($S.port)`nname=$($S.name)`nmax_players=$($S.max_players)`nidle_kick=$($S.idle_kick)`nvlan=$($S.vlan)`n"
+    foreach ($x in $Extra) { $text += "$($x.name)=$($S[$x.name])`n" }
     [IO.File]::WriteAllText($SettingsFile, $text, (New-Object Text.UTF8Encoding $false))
-}
-function MainDesc([string]$m) { if ($m -eq "local") { "first to join from this PC" } else { "first to join" } }
-# main=MODE:WHO from info -> words
-function MainWho([string]$v) {
-    $mode, $who = $v.Split(":", 2)
-    switch ($who) {
-        "-" { "nobody yet (the $(MainDesc $mode) wears the plumber)" }
-        "away" { "away, their seat is kept until everyone has left ($(MainDesc $mode))" }
-        default { "slot $who ($(MainDesc $mode)); change it in the console: main <slot>" }
-    }
 }
 function SettingsLine {
     $idle = if ($S.idle_kick -eq "0") { "no idle kick" } else { "idle kick $($S.idle_kick) min" }
-    "port $($S.port), name `"$($S.name)`", up to $($S.max_players) players, $idle, main player: $(MainDesc $S.main), virtual LAN $(if ($S.vlan -eq 'yes') { 'on' } else { 'off' })"
+    $more = ($Extra | ForEach-Object { ", $($_.name) $($S[$_.name])" }) -join ""
+    "port $($S.port), name `"$($S.name)`", up to $($S.max_players) players, $idle$more, virtual LAN $(if ($S.vlan -eq 'yes') { 'on' } else { 'off' })"
 }
 function ServerArgs {
-    $a = @("--port", $S.port, "--name", $S.name, "--max-players", $S.max_players, "--idle-kick", $S.idle_kick, "--main", $S.main)
+    $a = @("--port", $S.port, "--name", $S.name, "--max-players", $S.max_players, "--idle-kick", $S.idle_kick)
+    foreach ($x in $Extra) { $a += @("--$($x.name)", $S[$x.name]) }
     if ($S.vlan -eq "yes") { $a += "--vlan" }
     $a
 }
@@ -225,7 +228,7 @@ function Request([string]$line) {
     ($text -split "`n" | Where-Object { -not $_.StartsWith("> ") }) -join "`n"
 }
 
-# info -> $script:I (room players active up port max idle_kick vlan name), $null when it doesn't answer
+# info -> $script:I (room players up port max idle_kick vlan hosting name, and the game's own fields), $null when it doesn't answer
 function ReadInfo {
     $script:I = $null
     $line = (Request "info") -split "`n" | Where-Object { $_.StartsWith("INFO ") } | Select-Object -First 1
@@ -252,7 +255,8 @@ function ReadLog {
     } catch { "" }
 }
 function Duration([int]$s) { if ($s -ge 3600) { "$([int][Math]::Floor($s / 3600))h $([int][Math]::Floor(($s % 3600) / 60))m" } elseif ($s -ge 60) { "$([int][Math]::Floor($s / 60))m" } else { "${s}s" } }
-function RoomName([string]$r) { if ($r -eq "room_H00") { "home base" } elseif (-not $r) { "starting" } else { $r -replace '^room_', '' } }
+# The server's place (the game decides the word; "_" reads as a space)
+function RoomName([string]$r) { if (-not $r) { "starting" } else { $r -replace '_', ' ' } }
 function StateLine {
     $p = ServerPid
     if (-not $p) { return "stopped" }
@@ -285,7 +289,7 @@ function Start-Server([string[]]$extra) {
     if (Test-Path $Log) { Move-Item $Log "$Log.1" -Force -ErrorAction SilentlyContinue }
     if (Test-Path $Control) { Remove-Item $Control -Force }
     # a hidden window of its own (so closing this one leaves it running); cmd writes its output to the log
-    $q = @("--headless", "--path", ".", "--", "--server", "--control", $Control) + $a | ForEach-Object { if ($_ -match '[\s"]' -or $_ -eq "") { "`"$($_ -replace '"', '')`"" } else { $_ } }
+    $q = @("--headless") + $PathArgs + @("--", "--server", "--control", $Control) + $a | ForEach-Object { if ($_ -match '[\s"]' -or $_ -eq "") { "`"$($_ -replace '"', '')`"" } else { $_ } }
     $line = "`"`"$Godot`" $($q -join ' ') > `"$Log`" 2>&1 < nul`""
     Start-Process cmd -ArgumentList "/c", $line -WorkingDirectory $Root -WindowStyle Hidden | Out-Null
     Write-Host "starting the server ($($a -join ' '))"
@@ -294,7 +298,7 @@ function Start-Server([string[]]$extra) {
         $text = ReadLog
         if ($text -match 'hosting on port \d+ - OK' -and (Test-Path $Control)) {
             Write-Host "server is up. Players join at:"
-            $text -split "`n" | Where-Object { $_ -match 'join .* at' } | ForEach-Object { Write-Host ("  " + ($_ -replace '^DedicatedServer \[INFO\]: ', '').Trim()) }
+            $text -split "`n" | Where-Object { $_ -match 'join .* at' } | ForEach-Object { Write-Host ("  " + ($_ -replace '^[^\]]*\]: ', '').Trim()) }
             FirewallWarn
             return
         }
@@ -331,10 +335,12 @@ function Show-Status {
     Write-Host "server   : $(StateLine)"
     if ((Running) -and (ReadInfo)) {
         Write-Host "name     : $($I.name)"
-        Write-Host "players  : $($I.players) connected, $($I.active) active"
+        Write-Host "players  : $($I.players) connected"
         $idle = $I.idle_kick -replace '\.0$', ''
-        Write-Host "idle kick: $(if ($idle -eq '0') { 'off' } else { "$idle min (ghosts 3x)" })"
-        if ($I.main) { Write-Host "main     : $(MainWho $I.main)" }
+        Write-Host "idle kick: $(if ($idle -eq '0') { 'off' } else { "$idle min" })"
+        foreach ($k in ($I.Keys | Sort-Object)) {
+            if ($k -notin @("room", "players", "up", "port", "max", "idle_kick", "vlan", "hosting", "name")) { Write-Host ("{0,-9}: {1}" -f $k, $I[$k]) }
+        }
     }
     Write-Host "settings : $(SettingsLine)"
     Write-Host "log      : $Log"
@@ -389,19 +395,25 @@ function Edit-Settings {
         Write-Host "  2  name          $($S.name)"
         Write-Host "  3  max players   $($S.max_players)"
         Write-Host "  4  idle kick     $(if ($S.idle_kick -eq '0') { 'off' } else { "$($S.idle_kick) min" })"
-        Write-Host "  5  virtual LAN   $(if ($S.vlan -eq 'yes') { 'on (hosts zs-vlan, needs admin; see tools\vlan\README.md)' } else { 'off' })"
-        Write-Host "  6  main player   $(MainDesc $S.main) (wears the plumber; the others are electricians)"
+        Write-Host "  5  virtual LAN   $(if ($S.vlan -eq 'yes') { "on (hosts $($LP.prefix)-vlan, needs admin; see vlan\README.md)" } else { 'off' })"
+        for ($n = 0; $n -lt $Extra.Count; $n++) { Write-Host ("  {0}  {1,-13} {2}   ({3})" -f ($n + 6), $Extra[$n].name, $S[$Extra[$n].name], ($Extra[$n].choices -join "|")) }
         Write-Host "  b  back"
         $c = Read-Host "change"
         switch ($c) {
             "1" { $v = Ask "port (1024-65535)" $S.port; if ($v -match '^\d+$' -and [int]$v -ge 1024 -and [int]$v -le 65535) { $S.port = $v } else { Write-Host "not a port" } }
             "2" { $v = (Ask "server name" $S.name) -replace '[\p{Cc}"&|<>^%!]', ''; if ($v.Length -gt 24) { $v = $v.Substring(0, 24) }; if ($v) { $S.name = $v } }
-            "3" { $v = Ask "max players (2-8)" $S.max_players; if ($v -match '^[2-8]$') { $S.max_players = $v } else { Write-Host "2 to 8" } }
+            "3" { $v = Ask "max players (2-$($LP.max_players))" $S.max_players; if ($v -match '^\d+$' -and [int]$v -ge 2 -and [int]$v -le [int]$LP.max_players) { $S.max_players = $v } else { Write-Host "2 to $($LP.max_players)" } }
             "4" { $v = Ask "idle kick minutes (0 = off)" $S.idle_kick; if ($v -match '^\d+(\.\d+)?$') { $S.idle_kick = $v } else { Write-Host "a number of minutes" } }
             "5" { $S.vlan = if ($S.vlan -eq "yes") { "no" } else { "yes" } }
-            "6" { $S.main = if ($S.main -eq "first") { "local" } else { "first" } }
             { $_ -in @("b", "q", "") } { SaveSettings; if (Running) { Write-Host "the server is running: restart it to use the new settings." }; return }
-            default { Write-Host "pick 1-6 or b" }
+            default {
+                $n = if ($c -match '^\d+$') { [int]$c - 6 } else { -1 }
+                if ($n -ge 0 -and $n -lt $Extra.Count) {
+                    # the next choice, round
+                    $x = $Extra[$n]; $at = [array]::IndexOf($x.choices, $S[$x.name])
+                    $S[$x.name] = $x.choices[($at + 1) % $x.choices.Count]
+                } else { Write-Host "pick 1-$(5 + $Extra.Count) or b" }
+            }
         }
         SaveSettings
     }
@@ -411,7 +423,7 @@ function Show-Menu {
     while ($true) {
         LoadSettings
         Write-Host ""
-        Write-Host "== Zombie Shooter dedicated server =="
+        Write-Host "== $($LP.game_title): dedicated server =="
         Write-Host "  server   : $(StateLine)"
         Write-Host "  settings : $(SettingsLine)"
         Write-Host ""
@@ -453,7 +465,7 @@ function Run-Here([string[]]$pass) {
         if ($LASTEXITCODE -ne 0) { Write-Host "server: the virtual LAN didn't come up (see above); fix it or start without --vlan"; exit 1 }
         Write-Host ""
     }
-    & $Godot --headless --path . -- --server @p
+    & $Godot --headless @PathArgs -- --server @p
     exit $LASTEXITCODE
 }
 
@@ -473,7 +485,7 @@ switch -regex ($Cmd) {
         Write-Host (Request ($Rest -join " ")); break
     }
     '^settings$' { Edit-Settings; break }
-    '^(help|-h|--help)$' { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 18 | ForEach-Object { $_ -replace '^# ?', '' }; break }
+    '^(help|-h|--help)$' { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 20 | ForEach-Object { $_ -replace '^# ?', '' }; break }
     '^run$' { Run-Here $Rest; break }
     '^-' { Run-Here $Argv; break }
     default { Write-Host "unknown command '$Cmd' (try: $Self help)"; exit 1 }

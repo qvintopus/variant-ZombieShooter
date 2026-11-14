@@ -6,9 +6,21 @@ with no port forwarding, a headless dedicated server with a private control chan
 dialog that drives all of it. Each layer is written as **problem → solution → code → gotchas**, so it
 can be rebuilt in another Godot project without reading this repo's history.
 
+**Most of this now lives in the LAN Party addon (`addons/lan_party`, its own [README](addons/lan_party/README.md)),
+which another game can drop in.** The game keeps the session layer (`Net`, handshake, roster) and its own
+`DedicatedServer` on top of `LanPartyServer`. Old name → addon name: `VlanTool` → `LanPartyVlan`,
+`ServerProcess` → `LanPartyServerProcess`, `ServerConsole` → `LanPartyConsole` (+ the game's commands in
+`DedicatedServer`), `CoopStyle` → `LanPartyStyle`, `CoopVlanTab`/`CoopServerTab` → `LanPartyVlanPage`/`LanPartyServerPage`
+(through `CoopLanPartyHost`), `QuitPrompt` → `LanPartyQuitPrompt`, `ENetTransport`'s address helpers → `LanPartyAddresses`.
+`tools/vlan/*` and `tools/server.*` moved to `addons/lan_party/tools/`; the old paths are shims. Names that used
+to be hard-coded (`zs-*`, `zsvlan`, `10.77.0`, 24565, `zsi2.`/`zsr2.`) come from `lan_party.cfg` (project root),
+read by the scripts and the game alike. The result line tag is now `LANPARTY` (was `ZSVLAN`) and the env vars
+`LANPARTY_SUDO`, `LANPARTY_VLAN_ARGS`, `LANPARTY_SERVER_DIR` (were `ZS_*`). Below, paths are updated; the
+mechanisms are unchanged.
+
 Scope: **making and managing the connection**. Gameplay sync (player copies, enemies, loot, fights,
 join tiers) lives in `addons/top_down/design_document/multiplayer.md` and is not repeated here. The
-user-facing manual for the scripts is `tools/vlan/README.md`.
+user-facing manual for the scripts is `addons/lan_party/tools/vlan/README.md`.
 
 ---
 
@@ -31,20 +43,20 @@ user-facing manual for the scripts is `tools/vlan/README.md`.
 
 | Layer | What it solves | Main files |
 |---|---|---|
-| 1. Session and transport | host/join, handshake, roster, security | `game/scripts/net/Net.gd`, `NetTransport.gd`, `ENetTransport.gd`, `GuestSandbox.gd` |
-| 2. zs-vlan | internet play with no port forwarding, no accounts, no relay servers | `tools/vlan/vlan_auto.sh`, `lib.sh`, `vlan_auto.ps1`, `vlan_auto.cmd` |
-| 3. Dedicated server | a headless host that outlives the game, plus a launcher menu | `game/scripts/net/DedicatedServer.gd`, `ServerConsole.gd`, `tools/server.sh`, `server.ps1`, `server.cmd` |
-| 4. In-game control | the same, without a terminal: VLAN and server from the Main Menu | `game/scripts/net/VlanTool.gd`, `ServerProcess.gd`, `game/scripts/ui/CoopDialog.gd`, `CoopVlanTab.gd`, `CoopServerTab.gd`, `CoopTitleButton.gd`, `QuitPrompt.gd` |
+| 1. Session and transport | host/join, handshake, roster, security | `game/scripts/net/Net.gd`, `NetTransport.gd`, `ENetTransport.gd`, `GuestSandbox.gd`; addresses in `addons/lan_party/core/LanPartyAddresses.gd` |
+| 2. zs-vlan | internet play with no port forwarding, no accounts, no relay servers | `addons/lan_party/tools/vlan/vlan_auto.sh`, `lib.sh`, `lp_config.sh`, `vlan_auto.ps1`, `lp_config.ps1`, `vlan_auto.cmd` |
+| 3. Dedicated server | a headless host that outlives the game, plus a launcher menu | `addons/lan_party/server/LanPartyServer.gd`, `LanPartyConsole.gd`, `game/scripts/net/DedicatedServer.gd`, `addons/lan_party/tools/server.sh`, `server.ps1`, `server.cmd` |
+| 4. In-game control | the same, without a terminal: VLAN and server from the Main Menu | `addons/lan_party/core/LanPartyVlan.gd`, `LanPartyServerProcess.gd`, `addons/lan_party/ui/*`, `game/scripts/ui/CoopDialog.gd`, `CoopLanPartyHost.gd`, `CoopTitleButton.gd` |
 
 Constants used everywhere:
 
 | | value | where |
 |---|---|---|
-| game port (UDP) | `24565` | `Net.DEFAULT_PORT`, `lib.sh GAME_PORT`, `ServerProcess.DEFAULTS` |
-| WireGuard port (UDP) | `51820` (`VLAN_PORT`) | `lib.sh PORT`, `vlan_auto.ps1` |
-| VLAN subnet | `10.77.0.0/24`, host `.1`, guests `.2–.254` (max 7) | `ENetTransport.VLAN_PREFIX`, `lib.sh NET`, `MAX_GUESTS` |
+| game port (UDP) | `24565` | `lan_party.cfg game_port`, `Net.DEFAULT_PORT` |
+| WireGuard port (UDP) | `51820` (`VLAN_PORT`) | `lan_party.cfg vlan_port` |
+| VLAN subnet | `10.77.0.0/24`, host `.1`, guests `.2–.254` (max 7) | `lan_party.cfg vlan_net`, `lib.sh MAX_GUESTS` |
 | max players | 8, the dedicated server's hidden player not counted | `PlayerRegistry.MAX_PLAYERS` |
-| name length | 24 | `Net.MAX_NAME_LENGTH`, `lib.sh NAME_MAX` |
+| name length | 24 | `Net.MAX_NAME_LENGTH`, `LanPartyConfig.MAX_NAME_LENGTH`, `lib.sh NAME_MAX` |
 
 ---
 
@@ -166,7 +178,7 @@ Host-side rules worth copying:
 - **Failure hints:** a join to `10.77.0.x` that times out appends "Is the host's game running? A Windows
   host may need: vlan_auto.cmd firewall" (`Net._unreachable`). That's the most common real failure.
 
-Addresses to share (`ENetTransport.share_addresses`, run on a thread), best first:
+Addresses to share (`ENetTransport.share_addresses` → `LanPartyAddresses.share_list`, run on a thread), best first:
 1. the VLAN address, found **by IP prefix `10.77.0.`, not by interface name** (Windows names adapters
    its own way);
 2. the public address if UPnP mapped the port (`UPNP.discover(2000, 2)`, `add_port_mapping(port, port, "...", "UDP")`,
@@ -367,7 +379,7 @@ godot --headless --path <project> -- --server [--port 24565] [--max-players 2..8
   the server's `GuestSandbox.machine_id()`, over any address. The seat waits while its owner is away, and
   is freed when the last real player disconnects. It travels in the roster as `main`.
 
-### Console and control channel (`ServerConsole`)
+### Console and control channel (`LanPartyConsole`)
 - **stdin console:** a reader thread on `OS.read_string_from_stdin`. A console blocks until Enter. **A closed
   pipe returns "" forever**, so the thread ends after 20 empty reads (`EOF_READS`).
 - **Ctrl+C** kills Godot without running any shutdown code. Write checkpoints as the game goes. `stop` is
@@ -426,9 +438,10 @@ subcommand (`server.sh start`, `send kick 2`, …).
 Players shouldn't need a terminal. But `vlan_auto` takes 5–60 s, needs admin on Windows and root for
 ufw on Linux, and the server has to outlive the game.
 
-### Running vlan_auto (`VlanTool.gd`)
-- **Find it:** the project's `tools/vlan`, else `tools/vlan` next to the executable (exported builds must ship
-  that folder beside the exe).
+### Running vlan_auto (`LanPartyVlan.gd`)
+- **Find it:** the addon's `tools/vlan` when it's a real folder (editor, source checkout); otherwise (an exported
+  game, and always on Windows) a copy written from `res://` into `<prefix>-vlan-game` under the user's state/app-data
+  folder, with the merged `lan_party.cfg` beside it; else `tools/vlan` next to the executable.
 - **Command:** Linux `bash vlan_auto.sh <args> --machine`; Windows `powershell -NoProfile -ExecutionPolicy Bypass -File vlan_auto.ps1 <args> --machine`.
 - **Never block a frame:** `OS.execute` on a `Thread`, then `_done.call_deferred(code, output)`, which emits
   `finished(code, human_lines, result_dict)`. One command at a time (`busy()`).
@@ -460,9 +473,9 @@ OS.execute(powershell_full_path, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-
   - `status` needs no admin. The admin check sits below the read-only dispatch, and status reads the
     service state plus `zs-vlan-last`.
 
-### Starting the server (`ServerProcess.gd`)
+### Starting the server (`LanPartyServerProcess.gd`)
 - **Same folder and files as the launcher scripts**, so each sees a server the other started
-  (`ZS_SERVER_DIR` overrides it, for tests).
+  (`LANPARTY_SERVER_DIR` overrides it, for tests).
 - **Arguments:** `OS.get_executable_path()` with `--headless`, `--path <project>` unless
   `OS.has_feature("template")`, `--log-file <log>` on Windows, then
   `-- --server --control <file> --port --name --max-players --idle-kick --main local [--vlan] [--save-dir]`.

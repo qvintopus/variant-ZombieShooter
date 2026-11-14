@@ -6,7 +6,7 @@ extends SaveableResource
 @export var profile_id:String
 @export var display_name:String = "Player"
 ## The player typed this name themselves. Until then it follows default_name(): the
-## zs-vlan name of this PC (tools/vlan, kept separate), else "Player".
+## virtual LAN name of this PC (LAN Party addon, kept separate), else "Player".
 @export var name_set:bool
 
 func _init()->void:
@@ -41,10 +41,10 @@ const DEFAULT_NAME:String = "Player"
 
 ## The name used while the player hasn't picked one.
 static func default_name()->String:
-	var _vlan:String = ENetTransport.vlan_name()
+	var _vlan:String = LanPartyAddresses.vlan_name()
 	return _vlan if !_vlan.is_empty() else DEFAULT_NAME
 
-## A name not picked by the player follows the default (the zs-vlan name can be set while the
+## A name not picked by the player follows the default (the virtual LAN name can be set while the
 ## game runs). True when it changed (the caller renames the local player).
 func refresh_default()->bool:
 	if name_set:

@@ -1,6 +1,6 @@
 ## The game's own control of the virtual LAN and the dedicated server:
-## - VlanTool: guest list and exit codes, and a real (read-only) "vlan_auto status".
-## - ServerProcess: settings saved in the scripts' format; a server started in the
+## - LanPartyVlan: guest list and exit codes, and a real (read-only) "vlan_auto status".
+## - LanPartyLanPartyServerProcess: settings saved in the scripts' format; a server started in the
 ##   background (in a temp XDG_STATE_HOME, saves in a temp folder) comes up hosting, and
 ##   tools/server.sh sees the same one; we join it and are the main player (--main local);
 ##   stop saves and ends it, and the control file is gone.
@@ -51,54 +51,55 @@ func _run()->void:
 	_finish()
 
 func _vlan_checks()->void:
-	var _guests:Array[Dictionary] = VlanTool.parse_guests("3:online:Big Bob,4:no-reply:Ann:x")
+	var _guests:Array[Dictionary] = LanPartyVlan.parse_guests("3:online:Big Bob,4:no-reply:Ann:x")
 	check(_guests.size() == 2 && _guests[0].slot == 3 && _guests[0].online && _guests[0].name == "Big Bob"
 		&& _guests[1].slot == 4 && !_guests[1].online && _guests[1].name == "Ann:x", "vlan: guest list parsed (%s)" % [_guests])
-	check(VlanTool.parse_guests("-").is_empty(), "vlan: no guests")
-	var _result:Dictionary = VlanTool.parse_result("ZSVLAN role=host state=up guests=3:online:Big%20Bob\n")
-	check(VlanTool.parse_guests(_result.guests)[0].name == "Big Bob", "vlan: names in the guest list unescaped")
-	check(VlanTool.exit_text(VlanTool.EXIT_DECLINED).contains("declined"), "vlan: declined admin has its own text")
-	check(VlanTool.exit_text(VlanTool.EXIT_LAUNCH).contains("couldn't start"), "vlan: a launch failure isn't called declined")
+	check(LanPartyVlan.parse_guests("-").is_empty(), "vlan: no guests")
+	var _result:Dictionary = LanPartyVlan.parse_result("LANPARTY role=host state=up guests=3:online:Big%20Bob\n")
+	check(LanPartyVlan.parse_guests(_result.guests)[0].name == "Big Bob", "vlan: names in the guest list unescaped")
+	check(LanPartyVlan.exit_text(LanPartyVlan.EXIT_DECLINED).contains("declined"), "vlan: declined admin has its own text")
+	check(LanPartyVlan.exit_text(LanPartyVlan.EXIT_LAUNCH).contains("couldn't start"), "vlan: a launch failure isn't called declined")
 	var _subst:String = "O:\\: => D:\\Games\\Disk\r\nP:\\: => C:\\Other\r\n"
-	check(VlanTool.unsubst("O:/Projects/Godot/godot.exe", _subst) == "D:\\Games\\Disk\\Projects\\Godot\\godot.exe", "vlan: a subst drive resolved (%s)" % VlanTool.unsubst("O:/Projects/Godot/godot.exe", _subst))
-	check(VlanTool.unsubst("C:/Games/godot.exe", _subst) == "C:/Games/godot.exe", "vlan: a real drive left alone")
-	check(VlanTool.stage_dir().ends_with("zs-vlan-game") && !VlanTool.stage_dir().contains("/"), "vlan: the script runs from a local folder (%s)" % VlanTool.stage_dir())
-	check(VlanTool.human_lines("one\r\nZSVLAN a=1\ntwo\n") == PackedStringArray(["one", "two"]), "vlan: human lines without the result line")
-	check(!VlanTool.needs_admin(["status"]) && (VlanTool.needs_admin(["host"]) == (OS.get_name() == "Windows")), "vlan: only Windows asks for admin, never for status")
+	check(LanPartyVlan.unsubst("O:/Projects/Godot/godot.exe", _subst) == "D:\\Games\\Disk\\Projects\\Godot\\godot.exe", "vlan: a subst drive resolved (%s)" % LanPartyVlan.unsubst("O:/Projects/Godot/godot.exe", _subst))
+	check(LanPartyVlan.unsubst("C:/Games/godot.exe", _subst) == "C:/Games/godot.exe", "vlan: a real drive left alone")
+	check(LanPartyVlan.stage_dir().ends_with("zs-vlan-game") && (OS.get_name() != "Windows" || !LanPartyVlan.stage_dir().contains("/")), "vlan: the copy runs from a local folder (%s)" % LanPartyVlan.stage_dir())
+	check(LanPartyVlan.scripts_dir().ends_with("addons/lan_party/tools/vlan") || OS.get_name() == "Windows", "vlan: run from the addon's own folder (%s)" % LanPartyVlan.scripts_dir())
+	check(LanPartyVlan.human_lines("one\r\nLANPARTY a=1\ntwo\n") == PackedStringArray(["one", "two"]), "vlan: human lines without the result line")
+	check(!LanPartyVlan.needs_admin(["status"]) && (LanPartyVlan.needs_admin(["host"]) == (OS.get_name() == "Windows")), "vlan: only Windows asks for admin, never for status")
 
 ## status changes nothing: safe to run for real
 func _vlan_status()->void:
-	if !VlanTool.supported():
+	if !LanPartyVlan.supported():
 		return
-	var _tool:VlanTool = VlanTool.new()
+	var _tool:LanPartyVlan = LanPartyVlan.new()
 	check(_tool.start(["status"]), "vlan: status started")
 	check(!_tool.start(["status"]), "vlan: one command at a time")
 	var _done:Array = await _tool.finished
 	check(int(_done[0]) == 0 && str(_done[2].get("role", "")) in ["none", "host", "guest"], "vlan: status answered (%s)" % [_done])
 
 func _server_checks()->void:
-	check(ServerProcess.state_dir() == _state_home.path_join("zs-server"), "server: the scripts' folder (%s)" % ServerProcess.state_dir())
-	var _settings:Dictionary = ServerProcess.load_settings()
+	check(LanPartyServerProcess.state_dir() == _state_home.path_join("zs-server"), "server: the scripts' folder (%s)" % LanPartyServerProcess.state_dir())
+	var _settings:Dictionary = LanPartyServerProcess.load_settings()
 	check(_settings.port == "24565" && _settings.name == "Server", "server: default settings")
 	_settings.port = str(PORT)
 	_settings.name = "Proc Check"
 	_settings.max_players = "4"
-	ServerProcess.save_settings(_settings)
-	var _text:String = FileAccess.get_file_as_string(ServerProcess.settings_path())
+	LanPartyServerProcess.save_settings(_settings)
+	var _text:String = FileAccess.get_file_as_string(LanPartyServerProcess.settings_path())
 	check(_text.contains("port=%d\n" % PORT) && _text.contains("name=Proc Check\n") && _text.contains("max_players=4\n") && _text.contains("vlan=no\n"), "server: settings in the scripts' format")
-	_settings = ServerProcess.load_settings()
+	_settings = LanPartyServerProcess.load_settings()
 	check(_settings.port == str(PORT) && _settings.name == "Proc Check" && _settings.max_players == "4", "server: settings read back")
-	check(!ServerProcess.alive() && (await ServerProcess.info()).is_empty(), "server: none running yet")
+	check(!LanPartyServerProcess.alive() && (await LanPartyServerProcess.info()).is_empty(), "server: none running yet")
 
 	_settings.save_dir = _save_dir
-	var _pid:int = ServerProcess.start(_settings)
+	var _pid:int = LanPartyServerProcess.start(_settings)
 	check(_pid > 0, "server: started (pid %d)" % _pid)
-	var _problem:String = await ServerProcess.wait_ready(_pid)
+	var _problem:String = await LanPartyServerProcess.wait_ready(_pid)
 	check(_problem.is_empty(), "server: up and hosting (%s)" % _problem)
-	var _info:Dictionary = await ServerProcess.info()
+	var _info:Dictionary = await LanPartyServerProcess.info()
 	check(_info.get("hosting") == "1" && _info.get("port") == str(PORT) && _info.get("name") == "Proc Check" && _info.get("max") == "4"
 		&& str(_info.get("main", "")).begins_with("local:"), "server: info (%s)" % [_info])
-	check(int(ServerProcess.control().get("pid", "0")) == _pid, "server: the control file's pid is the one we started")
+	check(int(LanPartyServerProcess.control().get("pid", "0")) == _pid, "server: the control file's pid is the one we started")
 	if OS.get_name() == "Linux":
 		var _sid:Array = []
 		OS.execute("ps", ["-o", "sid=", "-p", str(_pid)], _sid)
@@ -106,6 +107,9 @@ func _server_checks()->void:
 	if OS.get_name() == "Linux":
 		var _out:Array = []
 		OS.execute("bash", [ProjectSettings.globalize_path("res://tools/server.sh"), "status"], _out, true)
+		var _out2:Array = []
+		OS.execute("bash", [ProjectSettings.globalize_path("res://addons/lan_party/tools/server.sh"), "status"], _out2, true)
+		check("".join(_out2).contains("RUNNING") && "".join(_out2).contains("Proc Check") && "".join(_out2).contains("main     : local:"), "server: the addon's server.sh sees it, with the game's fields (%s)" % "".join(_out2).strip_edges())
 		check("".join(_out).contains("RUNNING") && "".join(_out).contains("Proc Check"), "server: tools/server.sh sees it (%s)" % "".join(_out).strip_edges())
 	# from the title, the way a player would: it goes home first, then joins
 	Transition.change_scene(TITLE)
@@ -118,10 +122,10 @@ func _server_checks()->void:
 	Net.players.leaving_by_choice = true
 	Net.leave()
 	await _frames(10)
-	check(await ServerProcess.stop(), "server: stopped")
-	check(!FileAccess.file_exists(ServerProcess.control_path()), "server: control file removed")
+	check(await LanPartyServerProcess.stop(), "server: stopped")
+	check(!FileAccess.file_exists(LanPartyServerProcess.control_path()), "server: control file removed")
 	check(!OS.is_process_running(_pid), "server: process ended")
-	check(FileAccess.file_exists(ServerProcess.log_path()) && FileAccess.get_file_as_string(ServerProcess.log_path()).contains("hosting on port %d - OK" % PORT), "server: its log")
+	check(FileAccess.file_exists(LanPartyServerProcess.log_path()) && FileAccess.get_file_as_string(LanPartyServerProcess.log_path()).contains("hosting on port %d - OK" % PORT), "server: its log")
 
 func _title_checks()->void:
 	Transition.change_scene(TITLE)
@@ -147,7 +151,7 @@ func _title_checks()->void:
 		if _b is CheckBox:
 			continue
 		var _box:StyleBoxFlat = _b.get_theme_stylebox(&"normal") as StyleBoxFlat
-		var _ghost:bool = _b.theme_type_variation in [CoopStyle.GHOST, CoopStyle.NAV]
+		var _ghost:bool = _b.theme_type_variation in [LanPartyStyle.GHOST, LanPartyStyle.NAV]
 		if !_ghost && (_box == null || (_box.bg_color.a < 0.05 && _box.border_width_bottom == 0)):
 			_invisible.append(_b.text)
 	check(_invisible.is_empty(), "dialog: every button is drawn as a button (%s)" % [_invisible])
@@ -170,10 +174,10 @@ func _title_checks()->void:
 func _finish()->void:
 	if Net.is_online():
 		Net.leave()
-	if ServerProcess.alive():
-		ServerProcess.stop_now()
-	if failures > 0 && FileAccess.file_exists(ServerProcess.log_path()):
-		printerr(FileAccess.get_file_as_string(ServerProcess.log_path()).right(3000))
+	if LanPartyServerProcess.alive():
+		LanPartyServerProcess.stop_now()
+	if failures > 0 && FileAccess.file_exists(LanPartyServerProcess.log_path()):
+		printerr(FileAccess.get_file_as_string(LanPartyServerProcess.log_path()).right(3000))
 	_remove_tree(_state_home)
 	var _scene:Node = get_tree().current_scene
 	if _scene != null:

@@ -1,5 +1,5 @@
 ## Direct IP over ENet. The host is reached at ip:port; behind a router that needs
-## a forwarded UDP port, which open_port() tries to map with UPnP.
+## a forwarded UDP port, which share_addresses() tries to map with UPnP (LanPartyAddresses).
 class_name ENetTransport
 extends NetTransport
 
@@ -9,7 +9,7 @@ const CHANNELS:int = 3
 const THROTTLE_INTERVAL_MS:int = 5000
 const THROTTLE_SCALE:int = 32
 
-var _upnp:UPNP
+var _upnp_mapped:UPNP
 var _mapped_port:int = -1
 
 func create_host(port:int, max_clients:int)->MultiplayerPeer:
@@ -24,91 +24,15 @@ func create_client(address:String, port:int)->MultiplayerPeer:
 		return null
 	return _peer
 
-## LAN addresses, plus the router's public address when UPnP mapping works.
-## Blocking (UPnP discovery takes seconds): run it on a thread.
+## The virtual LAN, the public address when UPnP mapping works, the LAN, this PC
+## (LanPartyAddresses). Blocking (UPnP discovery takes seconds): run it on a thread.
 func share_addresses(port:int)->Array:
-	var _list:Array = []
-	var _vlan:String = vlan_address()
-	if !_vlan.is_empty():
-		_list.append({"label": "Virtual LAN (zs-vlan)", "address": "%s:%d" % [_vlan, port]})
-	var _public:String = _open_port(port)
-	if !_public.is_empty():
-		_list.append({"label": "Over the internet", "address": "%s:%d" % [_public, port]})
-	for _ip:String in lan_addresses():
-		_list.append({"label": "Same network", "address": "%s:%d" % [_ip, port]})
-	_list.append({"label": "Same computer", "address": "127.0.0.1:%d" % port})
+	var _upnp:Array = []
+	var _list:Array = LanPartyAddresses.share_list(port, _upnp)
+	if !_upnp.is_empty():
+		_upnp_mapped = _upnp[0]
+		_mapped_port = port
 	return _list
-
-## IPv4 addresses of real network cards: loopback, link-local and virtual
-## interfaces (Docker, VMs, VPN tunnels) are left out, a friend can't reach those.
-static func lan_addresses()->PackedStringArray:
-	var _list:PackedStringArray = []
-	for _interface:Dictionary in IP.get_local_interfaces():
-		var _name:String = str(_interface.get("name", "")).to_lower()
-		if _is_virtual(_name):
-			continue
-		for _ip:String in _interface.get("addresses", []):
-			if _ip.contains(":") || _ip.begins_with("127.") || _ip.begins_with("169.254.") || _ip.begins_with(VLAN_PREFIX):
-				continue
-			if !_list.has(_ip):
-				_list.append(_ip)
-	return _list
-
-## The zs-vlan virtual LAN (tools/vlan): its host is .1, guests pick .2-.254.
-const VLAN_PREFIX:String = "10.77.0."
-const VLAN_HOST:String = "10.77.0.1"
-
-## This PC's address on the zs-vlan virtual LAN, "" when it isn't in one. Found by
-## address, not interface name (Windows names the adapter its own way).
-static func vlan_address()->String:
-	for _ip:String in IP.get_local_addresses():
-		if _ip.begins_with(VLAN_PREFIX):
-			return _ip
-	return ""
-
-## Tests point this at a file of their own ("" = where vlan_auto keeps it).
-static var vlan_name_file:String = ""
-
-## Where tools/vlan/vlan_auto keeps this PC's name on the virtual LAN (outside its admin/private
-## state folders, so the game can read it).
-static func vlan_name_path()->String:
-	if !vlan_name_file.is_empty():
-		return vlan_name_file
-	if OS.get_name() == "Windows":
-		return OS.get_environment("ProgramData").path_join("zs-vlan-name")
-	var _state:String = OS.get_environment("XDG_STATE_HOME")
-	if _state.is_empty():
-		_state = OS.get_environment("HOME").path_join(".local/state")
-	return _state.path_join("zs-vlan-name")
-
-## This PC's zs-vlan name ("" when vlan_auto never set one). Separate from the in-game name,
-## which uses it as its default while the player hasn't picked one (PlayerProfile).
-static func vlan_name()->String:
-	var _path:String = vlan_name_path()
-	if _path.is_empty() || !FileAccess.file_exists(_path):
-		return ""
-	var _name:String = FileAccess.get_file_as_string(_path).strip_edges().replace("\n", " ").left(Net.MAX_NAME_LENGTH).strip_edges()
-	return _name
-
-const VIRTUAL_PREFIXES:PackedStringArray = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "tun", "tap", "wg", "tailscale", "zt", "cni", "flannel", "podman", "lxc", "lxd", "vethernet"]
-
-static func _is_virtual(interface_name:String)->bool:
-	for _prefix:String in VIRTUAL_PREFIXES:
-		if interface_name.begins_with(_prefix):
-			return true
-	return false
-
-func _open_port(port:int)->String:
-	_upnp = UPNP.new()
-	if _upnp.discover(2000, 2) != UPNP.UPNP_RESULT_SUCCESS:
-		return ""
-	var _gateway:UPNPDevice = _upnp.get_gateway()
-	if _gateway == null || !_gateway.is_valid_gateway():
-		return ""
-	if _upnp.add_port_mapping(port, port, "ZombieShooter co-op", "UDP") != UPNP.UPNP_RESULT_SUCCESS:
-		return ""
-	_mapped_port = port
-	return _upnp.query_external_address()
 
 ## ENet's packet throttle drops unreliable packets (snapshots, probes) at random
 ## once it decides the link is congested, and it decides that from round trip
@@ -122,6 +46,6 @@ func tune_peer(peer:MultiplayerPeer, peer_id:int)->void:
 		_packet.throttle_configure(THROTTLE_INTERVAL_MS, THROTTLE_SCALE, 0)
 
 func close()->void:
-	if _upnp != null && _mapped_port > 0:
-		_upnp.delete_port_mapping(_mapped_port, "UDP")
+	LanPartyAddresses.close_upnp(_upnp_mapped, _mapped_port)
+	_upnp_mapped = null
 	_mapped_port = -1

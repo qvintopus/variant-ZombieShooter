@@ -20,6 +20,7 @@ const CONNECT_TIMEOUT:float = 8.0
 const HELLO_TIMEOUT:float = 5.0
 const MAX_NAME_LENGTH:int = 24
 const REJECT_GRACE:float = 1.0
+const GAME_THEME_PATH:String = "res://addons/top_down/resources/theme/game_gui_theme.theme"
 
 ## GHOST: a guest gone to its own home base with "I will return". The link stays
 ## open (a faint copy of it walks the host's home base, the rejoin portal waits
@@ -94,6 +95,10 @@ var _join_host:String
 var _share_thread:Thread
 
 func _ready()->void:
+	# the LAN Party addon (virtual LAN, dedicated server): this game's look, and a server started
+	# from the game gives this PC's player the main seat
+	LanPartyStyle.base_theme_path = GAME_THEME_PATH
+	LanPartyServerProcess.forced_args = {"main": "local"}
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
@@ -589,9 +594,9 @@ func _kick_idle(delta:float)->void:
 			RunSession.waiting_guests[_state.profile_id] = _state.capture()
 		kick(_state.slot, ("Idle for %d minutes" % roundi(_minutes)) if _minutes >= 1.0 else ("Idle for %d seconds" % roundi(_minutes * 60.0)))
 
-## A join over the zs-vlan virtual LAN that got no answer: say what usually causes it.
+## A join over the virtual LAN (LAN Party) that got no answer: say what usually causes it.
 func _unreachable(reason:String)->String:
-	if !_join_host.begins_with("10.77.0."):
+	if !LanPartyAddresses.is_vlan_address(_join_host):
 		return reason
 	return reason + ". Is the host's game running (Host, or the dedicated server)? A Windows host may need: vlan_auto.cmd firewall"
 
