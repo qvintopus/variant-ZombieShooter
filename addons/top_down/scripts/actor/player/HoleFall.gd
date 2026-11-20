@@ -6,9 +6,20 @@ class_name HoleFall
 extends Node
 
 signal landed
+## The body reached its smallest size at the bottom of the hole
+signal bottomed
+
+enum HitMoment {
+	## When the body is smallest, at the bottom of the hole
+	SMALLEST,
+	## When it's back up on safe ground
+	LANDED,
+}
 
 @export var enabled:bool = true
 @export var preset:FallFxPreset
+## When fall(on_hit) calls on_hit (HoleRecovery applies the hole damage there)
+@export var hit_moment:HitMoment = HitMoment.SMALLEST
 @export var resource_node:ResourceNode
 @export var safe_tile_tracker:SafeTileTracker
 @export var player_input:PlayerInput
@@ -45,8 +56,8 @@ func _ready()->void:
 func _body()->Node2D:
 	return owner as Node2D
 
-## Starts the fall; `on_landed` runs once back on safe ground.
-func fall(on_landed:Callable = Callable())->void:
+## Starts the fall; `on_hit` runs at hit_moment (smallest size or landed).
+func fall(on_hit:Callable = Callable())->void:
 	if falling || preset == null:
 		return
 	falling = true
@@ -57,14 +68,18 @@ func fall(on_landed:Callable = Callable())->void:
 	_lock(true)
 	PlayerFx.send(fx_kind, [_entry, _land])
 	_play(-_away, func ()->void:
+		if hit_moment == HitMoment.SMALLEST && on_hit.is_valid():
+			on_hit.call()
+		bottomed.emit()
+	, func ()->void:
 		_body().global_position = _land
 		if safe_tile_tracker != null:
 			safe_tile_tracker.reset_to(_land)
 	, func ()->void:
 		_lock(false)
 		falling = false
-		if on_landed.is_valid():
-			on_landed.call()
+		if hit_moment == HitMoment.LANDED && on_hit.is_valid():
+			on_hit.call()
 		landed.emit()
 	)
 
@@ -76,7 +91,7 @@ func play_remote_fx(args:Array)->void:
 	var _land:Vector2 = args[1]
 	if !_entry.is_finite() || !_land.is_finite():
 		return
-	_play((_entry - _land).normalized(), Callable(), Callable())
+	_play((_entry - _land).normalized(), Callable(), Callable(), Callable())
 
 func _lock(value:bool)->void:
 	if _remote:
@@ -91,7 +106,8 @@ func _lock(value:bool)->void:
 		_damage.fall_immune = value
 
 ## Sink toward `into` (direction into the hole), hidden, teleport, pop up.
-func _play(into:Vector2, at_bottom:Callable, at_end:Callable)->void:
+## at_smallest: end of the sink; at_bottom: teleport moment; at_end: popped up.
+func _play(into:Vector2, at_smallest:Callable, at_bottom:Callable, at_end:Callable)->void:
 	if _tween != null:
 		_tween.kill()
 	_reset_look()
@@ -113,6 +129,8 @@ func _play(into:Vector2, at_bottom:Callable, at_end:Callable)->void:
 	_tween.tween_callback(func ()->void:
 		if visual_node != null:
 			visual_node.visible = false
+		if at_smallest.is_valid():
+			at_smallest.call()
 	)
 	_tween.tween_interval(_p.hidden_time)
 	_tween.tween_callback(func ()->void:

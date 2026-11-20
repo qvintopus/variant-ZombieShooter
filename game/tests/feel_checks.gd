@@ -223,14 +223,17 @@ func _check_hole_fall()->void:
 	await _frames(12)
 	var _body:Node2D = player.get_node("Body")
 	check(_body.scale.x < 0.9, "body shrinks while sinking")
-	check(_health.hp == _health.max_hp, "no damage before landing")
+	check(_health.hp == _health.max_hp, "no damage while still sinking")
+	var _hp_at_smallest:Array[float] = [-1.0]
+	_fall.bottomed.connect(func ()->void: _hp_at_smallest[0] = _health.hp, CONNECT_ONE_SHOT)
 	for i:int in 90:
 		await get_tree().physics_frame
 		if !_fall.falling:
 			break
+	check(_hp_at_smallest[0] == _health.max_hp - _recovery.hole_damage, "hole damage lands at the smallest size (%s)" % _hp_at_smallest[0])
 	check(!_fall.falling && !_damage.fall_immune, "fall ends")
 	check(player.global_position.distance_to(_safe) < 16.0, "lands near the safe spot (%s vs %s)" % [player.global_position, _safe])
-	check(_health.hp == _health.max_hp - _recovery.hole_damage, "hole damage once on landing")
+	check(_health.hp == _health.max_hp - _recovery.hole_damage, "hole damage applied once")
 	check(player.get_node("PlayerInput").is_physics_processing(), "input back after landing")
 	await _frames(10)
 	check(is_equal_approx(_body.scale.x, 1.0), "body scale restored")
