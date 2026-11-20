@@ -11,6 +11,8 @@ signal success
 
 @export var sound_resource:SoundResource
 
+@export var pickup_events:PickupEvents
+
 func _ready() -> void:
 	if item_resource == null:
 		return
@@ -31,7 +33,11 @@ func _delay_enable()->void:
 
 func prepare_remove()->void:
 	data_transmitter.set_enabled(false)
-	sound_resource.play_managed()
+	if pickup_events != null && item_resource != null:
+		var _label:String = item_resource.resource_name if !item_resource.resource_name.is_empty() else item_resource.scene_path.get_file().get_basename().capitalize()
+		pickup_events.emit_collected(&"weapon", 1, global_position, sound_resource, _label)
+	else:
+		sound_resource.play_managed()
 	# co-op: taken, not just gone with the room
 	set_meta(&"net_collected", true)
 	success.emit()

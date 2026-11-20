@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="3_fay7m"]
 [ext_resource type="AudioStream" uid="uid://bo4pd7t8d2s2i" path="res://addons/top_down/assets/sounds/pickup_5.wav" id="4_25psd"]
 [ext_resource type="Texture2D" uid="uid://bevk5id3o0bei" path="res://addons/top_down/assets/images/shadow.png" id="4_r0lbw"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="92_pev"]
 
 [sub_resource type="Resource" id="Resource_ig3eg"]
 resource_name = "Item Pickup"
@@ -83,6 +84,7 @@ _data = {
 
 [node name="ItemPickup" node_paths=PackedStringArray("icon_sprite", "data_transmitter") instance=ExtResource("1_ffask")]
 script = ExtResource("2_r0an6")
+pickup_events = ExtResource("92_pev")
 icon_sprite = NodePath("Pivot/Icon")
 data_transmitter = NodePath("AreaTransmitter2D/DataChannelTransmitter")
 sound_resource = SubResource("Resource_ig3eg")

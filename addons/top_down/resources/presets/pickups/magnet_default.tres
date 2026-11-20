@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="MagnetPreset" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/pickups/MagnetPreset.gd" id="1_mp"]
+
+[resource]
+resource_name = "Magnet default"
+script = ExtResource("1_mp")
