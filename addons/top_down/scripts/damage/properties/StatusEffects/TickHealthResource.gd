@@ -27,8 +27,9 @@ func tick(damage_resource:DamageResource, health_resource:HealthResource, remain
 	if health_resource.is_dead:
 		return
 	
-	health_resource.add_hp(value)
-	if value < 0.0:
+	if value >= 0.0 || !damage_resource.is_dot_blocked():
+		health_resource.add_hp(value)
+	if value < 0.0 && !damage_resource.is_dot_blocked():
 		# show damage points but as positive numbers
 		damage_resource.receive_points(-value)
 	

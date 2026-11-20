@@ -81,7 +81,7 @@ func process(resource_node:ResourceNode)->void:
 	if _damage_resource == null:
 		failed()
 		return
-	if _damage_resource.can_receive_damage == false || _damage_resource.immune:
+	if _damage_resource.is_blocked():
 		try_again()
 		return
 	

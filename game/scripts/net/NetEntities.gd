@@ -684,7 +684,7 @@ static func apply_hit(actor:Node, amount:float, impulse:Vector2, critical:bool)-
 		return
 	var _damage:DamageResource = _resources.get_resource("damage")
 	var _health:HealthResource = _resources.get_resource("health")
-	if _damage == null || _health == null || !_damage.can_receive_damage || _damage.immune || _health.is_dead || _health.hp <= 0.0:
+	if _damage == null || _health == null || _damage.is_blocked() || _health.is_dead || _health.hp <= 0.0:
 		return
 	var _push:PushResource = _resources.get_resource("push")
 	if _push != null:

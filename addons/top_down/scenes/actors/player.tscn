@@ -39,6 +39,7 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/StuckEffect.gd" id="31_stuck"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/VisualInvulnerability.gd" id="32_82fau"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/PoisonEffect.gd" id="32_poison"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/DashImmunity.gd" id="40_dashimm"]
 [ext_resource type="Script" path="res://game/scripts/meta/MetaStats.gd" id="33_meta"]
 [ext_resource type="Resource" path="res://game/resources/meta_upgrade_resource.tres" id="34_meta"]
 
@@ -424,6 +425,10 @@ hole_trigger = NodePath("../HoleTrigger")
 
 [node name="PoisonEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("32_poison")
+resource_node = NodePath("../ResourceNode")
+
+[node name="DashImmunity" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("40_dashimm")
 resource_node = NodePath("../ResourceNode")
 
 [node name="StuckEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node", "dash_ability")]
