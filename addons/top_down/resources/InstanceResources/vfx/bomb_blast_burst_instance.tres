@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="InstanceResource" load_steps=3 format=3]
+
+[ext_resource type="Resource" uid="uid://d16p36img8x6j" path="res://addons/top_down/resources/RoomResources/front_reference.tres" id="1_ref"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="2_ir"]
+
+[resource]
+resource_name = "Bomb blast burst"
+script = ExtResource("2_ir")
+scene_path = "res://addons/top_down/scenes/vfx/bomb_blast_burst.tscn"
+parent_reference_resource = ExtResource("1_ref")

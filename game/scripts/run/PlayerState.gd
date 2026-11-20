@@ -14,6 +14,7 @@ const HEALTH_PATH:String = TD + "resources/health_resource/player_health.tres"
 const INVENTORY_PATH:String = TD + "resources/ItemCollectionResource/weapon_inventory.tres"
 const UPGRADES_PATH:String = TD + "resources/global_resources/weapon_upgrade_resource.tres"
 const DATABASE_PATH:String = TD + "resources/ItemCollectionResource/weapon_database.tres"
+const ABILITIES_PATH:String = TD + "resources/global_resources/ability_charges.tres"
 ## Run wallet items; boss crystals are meta progress and stay out of it.
 const WALLET_ITEMS:PackedStringArray = ["coin", "meat", "slime"]
 
@@ -30,6 +31,8 @@ var inventory:ItemCollectionResource
 var weapon_levels:WeaponUpgradeResource
 ## Loot item id -> ScoreResource
 var wallet:Dictionary
+## Ability charges / cooldowns
+var abilities:AbilityChargesResource
 
 ## Mirrored from the network for remote players (PlayerNetSync): the room scene
 ## they are in and the name of the weapon in their hands ("" = fists).
@@ -79,6 +82,7 @@ static func create_local(id:String, name:String)->PlayerState:
 	_state.weapon_levels = load(UPGRADES_PATH)
 	for _item:String in WALLET_ITEMS:
 		_state.wallet[_item] = LootItems.counter(_item)
+	_state.abilities = load(ABILITIES_PATH)
 	return _state
 
 ## A co-op teammate: same templates, own copies.
@@ -91,6 +95,7 @@ static func create_remote(id:String, name:String, slot_index:int)->PlayerState:
 	_state.inventory = (load(INVENTORY_PATH) as ItemCollectionResource).duplicate()
 	_state.inventory.list = []
 	_state.weapon_levels = WeaponUpgradeResource.new()
+	_state.abilities = AbilityChargesResource.new()
 	for _item:String in WALLET_ITEMS:
 		var _counter:ScoreResource = (LootItems.counter(_item) as ScoreResource).duplicate()
 		_counter.reset_resource()
@@ -122,6 +127,8 @@ func capture()->PlayerRunData:
 	for _item:String in wallet:
 		var _counter:ScoreResource = wallet[_item]
 		_data.wallet[_item] = {"value": _counter.value, "collected_total": _counter.collected_total}
+	if abilities != null:
+		_data.abilities = abilities.charges.duplicate()
 	return _data
 
 ## Restores everything but hp, which the player node resets on spawn
@@ -141,6 +148,9 @@ func apply(data:PlayerRunData)->void:
 	inventory.set_selected(clampi(data.selected, 0, maxi(_list.size() - 1, 0)))
 	weapon_levels.levels = data.weapon_levels.duplicate()
 	weapon_levels.updated.emit()
+	if abilities != null:
+		abilities.reset()
+		abilities.charges = data.abilities.duplicate()
 	for _item:String in wallet:
 		var _counter:ScoreResource = wallet[_item]
 		var _entry:Dictionary = data.wallet.get(_item, {})
@@ -169,5 +179,7 @@ func reset()->void:
 	downed = false
 	inventory.reset_resource()
 	weapon_levels.reset_resource()
+	if abilities != null:
+		abilities.reset()
 	for _item:String in wallet:
 		(wallet[_item] as ScoreResource).reset_resource()

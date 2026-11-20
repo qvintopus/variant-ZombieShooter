@@ -51,6 +51,10 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/land_dust_instance.tres" id="47_dust"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_fall.tres" id="48_fsnd"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_land.tres" id="49_lsnd"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/AbilityManager.gd" id="50_abm"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/AbilitySlot.gd" id="51_abs"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/abilities/bomb_ability.tres" id="52_bomb"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/ability_charges.tres" id="53_achg"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -464,6 +468,16 @@ sprite = NodePath("../Body/Stretch/Sprite2D")
 squash_node = NodePath("../Body/Stretch")
 text_instance = ExtResource("43_ptext")
 settings = ExtResource("44_dnset")
+
+[node name="AbilityManager" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("50_abm")
+resource_node = NodePath("../ResourceNode")
+pickup_events = ExtResource("42_pev")
+store = ExtResource("53_achg")
+
+[node name="BombSlot" type="Node" parent="AbilityManager"]
+script = ExtResource("51_abs")
+ability = ExtResource("52_bomb")
 
 [node name="StuckEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node", "dash_ability")]
 script = ExtResource("31_stuck")
