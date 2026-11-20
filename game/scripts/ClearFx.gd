@@ -27,6 +27,7 @@ extends Node
 var pending_delay:float
 
 func _ready()->void:
+	add_to_group(&"room_clear_listeners")
 	var _aggregator:ArenaSectionAggregator = get_tree().get_first_node_in_group(&"arena_aggregator")
 	if _aggregator != null:
 		_aggregator.wave_finished.connect(_on_wave_finished)

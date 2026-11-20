@@ -45,6 +45,8 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/StraddleNavigationGetter.gd" id="43_straddle"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/projectiles/web_projectile_instance_resource.tres" id="50_web"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/projectiles/spiderling_projectile_instance_resource.tres" id="51_spiderling"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossDeathFx.gd" id="95_bdfx"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/dead/boss_death_burst_instance.tres" id="96_bdburst"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 script = ExtResource("6_stats")
@@ -260,7 +262,9 @@ libraries/ = SubResource("AnimationLibrary_boss_anim")
 [node name="HoleDeath" parent="." index="10"]
 enabled = false
 
-[node name="ActorDamage" parent="." index="11"]
+[node name="ActorDamage" parent="." index="11" node_paths=PackedStringArray("death_fx")]
+dead_vfx_delay = 1.4
+death_fx = NodePath("../BossDeathFx")
 sound_resource_dead = ExtResource("18_killsnd")
 dead_vfx_instance_resource = ExtResource("19_deadvfx")
 
@@ -279,6 +283,7 @@ collision_mask = 2
 resource_node = NodePath("../ResourceNode")
 
 [node name="ItemDrop" type="Node" parent="." node_paths=PackedStringArray("resource_node", "root_node")]
+delay = 1.4
 script = ExtResource("20_drop")
 resource_node = NodePath("../ResourceNode")
 root_node = NodePath("..")
@@ -378,3 +383,9 @@ axis_multiplication = ExtResource("23_axis")
 shoot_sound = ExtResource("33_throwsnd")
 fixed_distance = 56.0
 active_enemy = NodePath("../../../ActiveEnemy")
+
+[node name="BossDeathFx" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("95_bdfx")
+sprite = NodePath("../Body/Stretch/Sprite2D")
+burst_instance = ExtResource("96_bdburst")
+

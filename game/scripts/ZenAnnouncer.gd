@@ -44,8 +44,11 @@ var _queue:Array[Array] = []
 var _playing:bool
 var _known_weapons:Array[String]
 var _aggregator:ArenaSectionAggregator
+## Extra wait before the next "room cleared" (a boss death burst asks for it).
+var pending_delay:float
 
 func _ready()->void:
+	add_to_group(&"room_clear_listeners")
 	_aggregator = get_tree().get_first_node_in_group(&"arena_aggregator")
 	if _aggregator != null:
 		_aggregator.wave_announced.connect(_on_wave_announced)
@@ -68,7 +71,12 @@ func _on_wave_announced(wave_number:int, enemies:int, is_boss:bool, boss_name:St
 
 func _on_wave_finished(wave_number:int, waves_left:int, section_cleared:bool, sections_left:int)->void:
 	if section_cleared:
-		play(room_cleared_scene, [wave_number, sections_left])
+		var _delay:float = pending_delay
+		pending_delay = 0.0
+		if _delay > 0.0:
+			get_tree().create_timer(_delay, false).timeout.connect(play.bind(room_cleared_scene, [wave_number, sections_left]))
+		else:
+			play(room_cleared_scene, [wave_number, sections_left])
 	else:
 		play(wave_cleared_scene, [wave_number, waves_left])
 
