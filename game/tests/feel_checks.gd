@@ -29,6 +29,7 @@ func _ready()->void:
 		await _check_damage_numbers()
 		await _check_pickups()
 		await _check_hole_fall()
+		await _check_clear_fx()
 	await _check_menus()
 	_finish()
 
@@ -232,3 +233,31 @@ func _check_hole_fall()->void:
 	await _frames(10)
 	check(is_equal_approx(_body.scale.x, 1.0), "body scale restored")
 	_health.hp = _health.max_hp
+
+func _count_type(script_class:Variant)->int:
+	var _n:int = 0
+	for _node:Node in _all(get_tree().root):
+		if is_instance_of(_node, script_class) && _node.is_inside_tree():
+			_n += 1
+	return _n
+
+func _check_clear_fx()->void:
+	var _fx:ClearFx = null
+	for _node:Node in _all(get_tree().root):
+		if _node is ClearFx:
+			_fx = _node
+	check(_fx != null, "room has ClearFx")
+	var _aggregator:ArenaSectionAggregator = get_tree().get_first_node_in_group(&"arena_aggregator")
+	check(_aggregator != null, "room has aggregator")
+	if _fx == null || _aggregator == null:
+		return
+	var _before:int = _count_type(ClearBurst)
+	_aggregator.wave_finished.emit(1, 2, false, 3)
+	await _frames(3)
+	check(_count_type(ClearBurst) > _before, "wave clear bursts")
+	_aggregator.wave_finished.emit(3, 0, true, 2)
+	await _frames(20)
+	check(_fx.blessing != null && _fx.blessing.rect.visible, "room clear shows blessing")
+	await _frames(150)
+	check(!_fx.blessing.rect.visible, "blessing fades out")
+	check(_count_type(ClearBurst) == _before, "bursts return to pool")
