@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="FloatingTextStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/vfx/FloatingTextStyle.gd" id="1_fts"]
+
+[resource]
+resource_name = "Damage text"
+script = ExtResource("1_fts")

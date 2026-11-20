@@ -427,6 +427,9 @@ hole_trigger = NodePath("../HoleTrigger")
 script = ExtResource("32_poison")
 resource_node = NodePath("../ResourceNode")
 
+[node name="DamageDisplay" parent="."]
+is_player = true
+
 [node name="DashImmunity" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("40_dashimm")
 resource_node = NodePath("../ResourceNode")
