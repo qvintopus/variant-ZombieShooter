@@ -50,6 +50,13 @@
 [ext_resource type="PackedScene" path="res://zen/zs_meat_grinder.tscn" id="zen_meat_grinder"]
 [ext_resource type="PackedScene" path="res://zen/zs_weapon_upgrade.tscn" id="zen_weapon_upgrade"]
 [ext_resource type="PackedScene" path="res://zen/zs_workbench_unlocked.tscn" id="zen_workbench_unlocked"]
+[ext_resource type="Script" path="res://game/scripts/ClearFx.gd" id="90_clearfx"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/screen_effects/blessing_overlay.tscn" id="91_bless"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/wave_clear_burst_instance.tres" id="92_wburst"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/room_clear_burst_instance.tres" id="93_rburst"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/enemy_damage_shake.tres" id="94_wshake"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="95_rshake"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/wave_clear_burst.tres" id="96_wsnd"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_pkurn"]
 points = PackedVector2Array(-16, 0, 0, 8, 16, 0, 0, -8)
@@ -213,6 +220,18 @@ game_over_scene_path = "res://addons/top_down/scenes/ui/screens/game_over.tscn"
 overlay_scene = ExtResource("39_zen")
 wave_number_resource = ExtResource("41_wave")
 score_resource = ExtResource("42_score")
+
+[node name="BlessingOverlay" parent="." instance=ExtResource("91_bless")]
+
+[node name="ClearFx" type="Node" parent="." node_paths=PackedStringArray("blessing")]
+script = ExtResource("90_clearfx")
+player_reference = ExtResource("12_wnxyp")
+wave_burst = ExtResource("92_wburst")
+wave_shake = ExtResource("94_wshake")
+wave_sound = ExtResource("96_wsnd")
+room_burst = ExtResource("93_rburst")
+room_shake = ExtResource("95_rshake")
+blessing = NodePath("../BlessingOverlay")
 
 [node name="ZenAnnouncer" type="CanvasLayer" parent="." unique_id=1907755301]
 layer = 3
