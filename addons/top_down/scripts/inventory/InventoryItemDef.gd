@@ -18,6 +18,11 @@ enum Kind { CURRENCY, WEAPON }
 @export var sort_order:int
 ## Keeps its cell even at 0 (coins)
 @export var show_when_zero:bool
+## Run-scoped counter (reset on a run start): the amount is carried home and into
+## the next run (InventoryCarry). Off for meta counters that persist anyway.
+@export var run_scoped:bool = true
+## Moved into the home chest at a run start while the stash lever is on
+@export var auto_stash:bool
 
 func is_infinite()->bool:
 	return stack_size <= 0

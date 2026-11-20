@@ -2,6 +2,7 @@
 
   portal_32x32_strip6.png    frame 0 a dormant stone ring, frames 1-5 its vortex swirling
   loot_box_24x24_strip2.png  frame 0 closed, frame 1 open with the gold showing
+  storage_chest_24x24_strip2.png  home chest: frame 0 shut, frame 1 lid up, dark inside
 
 Standard library only; rerun to regenerate (same pixels every run).
   python3 addons/top_down/assets/images/misc/generate_props.py
@@ -152,6 +153,62 @@ def loot_box_frame(frame):
 	return rows
 
 
+STEEL = [(30, 32, 44, 255), (62, 68, 88, 255), (104, 112, 134, 255), (150, 158, 178, 255)]
+TEAL = (90, 220, 210, 255)
+
+
+def storage_chest_frame(frame):
+	"""Wider steel locker of the home base, wood trim, a teal status light."""
+	rows = blank(BOX, BOX)
+
+	def put(x, y, color):
+		if 0 <= x < BOX and 0 <= y < BOX:
+			rows[y][x] = color
+
+	left, right, top, bottom = 2, 21, 11, 21
+	for y in range(top, bottom + 1):
+		for x in range(left, right + 1):
+			if x in (left, right) or y == bottom:
+				color = OUTLINE
+			elif x in (left + 3, right - 3):
+				color = WOOD[1]
+			elif y == top + 4:
+				color = STEEL[0]
+			else:
+				color = STEEL[2] if x < 13 else STEEL[1]
+			put(x, y, color)
+	# rivets on the trim
+	for x in (left + 3, right - 3):
+		put(x, top + 2, STEEL[3])
+		put(x, bottom - 2, STEEL[3])
+	if frame == 0:
+		for y in range(top - 4, top + 1):
+			for x in range(left, right + 1):
+				inset = max(0, 1 - (y - (top - 4)))
+				if x < left + inset or x > right - inset:
+					continue
+				edge = y == top - 4 or x in (left + inset, right - inset) or y == top
+				put(x, y, OUTLINE if edge else STEEL[3] if y < top - 2 else STEEL[2])
+		for y in range(top - 1, top + 3):
+			for x in range(10, 14):
+				put(x, y, IRON[2] if y == top - 1 else IRON[1])
+		put(11, top + 1, TEAL)
+		put(12, top + 1, TEAL)
+	else:
+		for y in range(top - 9, top - 3):
+			for x in range(left + 1, right):
+				edge = y in (top - 9, top - 4) or x in (left + 1, right - 1)
+				put(x, y, OUTLINE if edge else STEEL[1])
+		for x in range(left + 1, right):
+			put(x, top, OUTLINE)
+		for y in range(top - 3, top + 3):
+			for x in range(left + 1, right):
+				put(x, y, OUTLINE if y == top - 3 else STEEL[0])
+		for x in range(8, 16):
+			put(x, top + 2, TEAL if x % 3 == 0 else STEEL[1])
+	return rows
+
+
 def strip(frames):
 	rows = [[] for _ in frames[0]]
 	for frame in frames:
@@ -163,6 +220,7 @@ def strip(frames):
 def main():
 	write_png(os.path.join(HERE, 'portal_32x32_strip6.png'), strip([portal_frame(i) for i in range(PORTAL_FRAMES)]))
 	write_png(os.path.join(HERE, 'loot_box_24x24_strip2.png'), strip([loot_box_frame(i) for i in range(2)]))
+	write_png(os.path.join(HERE, 'storage_chest_24x24_strip2.png'), strip([storage_chest_frame(i) for i in range(2)]))
 
 
 if __name__ == '__main__':

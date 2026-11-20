@@ -130,6 +130,12 @@
 			"cost": [{"item": "boss_crystal", "amount": 6}], "requires": ["pack_deep_1"],
 			"effects": {"inventory_height": 1}
 		},
+		"stash_lever": {
+			"pos": [4, 2], "icon": "bag",
+			"title": "Stash Lever", "text": "A lever by the home chest: while it's on, a new run puts your meat and slime in the chest.",
+			"cost": [{"item": "boss_crystal", "amount": 3}], "requires": ["pack_deep_2"],
+			"effects": {"stash_lever": 1}
+		},
 
 		"survivor": {
 			"pos": [-2, -2], "icon": "shield", "keystone": true,

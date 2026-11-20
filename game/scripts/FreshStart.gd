@@ -32,6 +32,9 @@ const META_UPGRADES: MetaUpgradeResource = preload("res://game/resources/meta_up
 const HOME_BASE: HomeBaseResource = preload("res://game/resources/home_base_resource.tres")
 const WEAPON_INVENTORY: ItemCollectionResource = preload("res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres")
 const WEAPON_DATABASE: ItemCollectionResource = preload("res://addons/top_down/resources/ItemCollectionResource/weapon_database.tres")
+## Carried currencies (InventoryCarry) are laid out here; the stash lever puts some in the chest.
+const INVENTORY_GRID: InventoryGridResource = preload("res://addons/top_down/resources/global_resources/inventory_grid.tres")
+const CHEST_GRID: InventoryGridResource = preload("res://addons/top_down/resources/global_resources/home_chest_grid.tres")
 
 ## Loot item id -> meta stat giving that many at the start of a run.
 const START_ITEMS: Dictionary = {"coin": "start_coin", "meat": "start_meat", "slime": "start_slime"}
@@ -69,6 +72,7 @@ func _enter_tree() -> void:
 		if resource != null:
 			resource.reset_resource()
 	RunSession.start_new_run()
+	_hand_over_carry()
 
 	for item: String in START_ITEMS:
 		var amount: int = int(META_UPGRADES.stat(START_ITEMS[item]))
@@ -76,6 +80,20 @@ func _enter_tree() -> void:
 			LootItems.counter(item).add(amount)
 
 	_hand_over_loadout()
+
+## What the player held at home / brought from the last extract comes along
+## (a co-op guest plays the host's run with nothing of its own). Used up here:
+## a lost run loses it, an extract brings it home again.
+func _hand_over_carry() -> void:
+	var home: HomeBaseResource = HOME_BASE
+	if Net.is_guest() or not InventoryCarry.has_any(home):
+		return
+	if InventoryCarry.lever_on(home, META_UPGRADES):
+		InventoryCarry.auto_stash(home, CHEST_GRID, WEAPON_DATABASE)
+	InventoryCarry.apply(home, INVENTORY_GRID)
+	home.carried = {}
+	home.carried_layout = PackedStringArray()
+	home.save_resource()
 
 ## Gives the gun brought from the home base; it is used up by this run.
 func _hand_over_loadout() -> void:

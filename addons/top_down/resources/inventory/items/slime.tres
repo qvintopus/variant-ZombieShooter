@@ -17,3 +17,4 @@ stack_size = 999
 counter = ExtResource("3_cnt")
 sort_order = 2
 show_when_zero = false
+auto_stash = true

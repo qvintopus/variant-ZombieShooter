@@ -35,6 +35,7 @@ const STATS:Dictionary = {
 	"guest_electricians": "flag",
 	"inventory_width": "flat",
 	"inventory_height": "flat",
+	"stash_lever": "flag",
 }
 
 ## Frame order of meta_icons_12x12_strip11.png (set by generate_meta_frames.py).

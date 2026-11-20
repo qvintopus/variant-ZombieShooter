@@ -178,6 +178,7 @@ func _stash_weapons() -> void:
 	# backpack weapons (inventory grid) come home too
 	var grid: InventoryGridResource = load("res://addons/top_down/resources/global_resources/inventory_grid.tres")
 	inventory.list.append_array(grid.weapons())
-	if inventory.list.is_empty():
-		return
+	# coins, meat and slime come home too (and into the next run)
+	if not Net.is_guest():
+		InventoryCarry.capture(HOME_BASE, grid)
 	HOME_BASE.stash_weapons(inventory)

@@ -11,7 +11,7 @@
 [ext_resource type="Resource" uid="uid://dsk5usbvnbqi3" path="res://addons/top_down/resources/global_resources/action_resource.tres" id="9_actions"]
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="10_player"]
 
-[node name="InventoryScreen" type="Control" node_paths=PackedStringArray("dim", "panel", "title_label", "quick_row", "grid_container", "info_label", "hint_label", "held_icon")]
+[node name="InventoryScreen" type="Control" node_paths=PackedStringArray("dim", "panel", "title_label", "quick_row", "grid_container", "info_label", "hint_label", "held_icon", "side_panel", "side_title_label", "side_scroll", "side_grid_container")]
 process_mode = 3
 visible = false
 layout_mode = 3
@@ -32,13 +32,17 @@ transition_resource = ExtResource("8_transition")
 action_resource = ExtResource("9_actions")
 player_reference = ExtResource("10_player")
 dim = NodePath("Dim")
-panel = NodePath("Center/Panel")
-title_label = NodePath("Center/Panel/VBox/Title")
-quick_row = NodePath("Center/Panel/VBox/QuickRow")
-grid_container = NodePath("Center/Panel/VBox/Grid")
-info_label = NodePath("Center/Panel/VBox/Info")
-hint_label = NodePath("Center/Panel/VBox/Hint")
+panel = NodePath("Center/Row/Panel")
+title_label = NodePath("Center/Row/Panel/VBox/Title")
+quick_row = NodePath("Center/Row/Panel/VBox/QuickRow")
+grid_container = NodePath("Center/Row/Panel/VBox/Grid")
+info_label = NodePath("Center/Row/Panel/VBox/Info")
+hint_label = NodePath("Center/Row/Panel/VBox/Hint")
 held_icon = NodePath("HeldIcon")
+side_panel = NodePath("Center/Row/ChestPanel")
+side_title_label = NodePath("Center/Row/ChestPanel/VBox/Title")
+side_scroll = NodePath("Center/Row/ChestPanel/VBox/Scroll")
+side_grid_container = NodePath("Center/Row/ChestPanel/VBox/Scroll/Grid")
 
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1
@@ -58,43 +62,76 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Center"]
+[node name="Row" type="HBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Panel" type="PanelContainer" parent="Center/Row"]
 layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel"]
+[node name="VBox" type="VBoxContainer" parent="Center/Row/Panel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Title" type="Label" parent="Center/Panel/VBox"]
+[node name="Title" type="Label" parent="Center/Row/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 2
 text = "INVENTORY"
 horizontal_alignment = 1
 
-[node name="QuickRow" type="HBoxContainer" parent="Center/Panel/VBox"]
+[node name="QuickRow" type="HBoxContainer" parent="Center/Row/Panel/VBox"]
 layout_mode = 2
 alignment = 1
 
-[node name="Separator" type="HSeparator" parent="Center/Panel/VBox"]
+[node name="Separator" type="HSeparator" parent="Center/Row/Panel/VBox"]
 layout_mode = 2
 
-[node name="Grid" type="GridContainer" parent="Center/Panel/VBox"]
+[node name="Grid" type="GridContainer" parent="Center/Row/Panel/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
 columns = 6
 
-[node name="Info" type="Label" parent="Center/Panel/VBox"]
+[node name="Info" type="Label" parent="Center/Row/Panel/VBox"]
 custom_minimum_size = Vector2(0, 9)
 layout_mode = 2
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 2
 horizontal_alignment = 1
 
-[node name="Hint" type="Label" parent="Center/Panel/VBox"]
+[node name="Hint" type="Label" parent="Center/Row/Panel/VBox"]
 layout_mode = 2
-text = "Drag / click: move   Shift: half stack   Right click: quick move   Drop key: drop"
+text = "Drag: move   Shift: half   Right click: quick move   Drop key: drop"
 horizontal_alignment = 1
+
+[node name="ChestPanel" type="PanelContainer" parent="Center/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="VBox" type="VBoxContainer" parent="Center/Row/ChestPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Center/Row/ChestPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+text = "CHEST"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Center/Row/ChestPanel/VBox"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="Grid" type="GridContainer" parent="Center/Row/ChestPanel/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
 
 [node name="HeldIcon" type="TextureRect" parent="."]
 visible = false

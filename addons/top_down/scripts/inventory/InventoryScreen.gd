@@ -5,6 +5,8 @@
 ## the focused weapon, cancel puts back what's held or closes.
 ## Shift held while picking / dragging (or the split action on a pad) takes half
 ## a stack; dropping a stack onto the same item merges it.
+## open_with() shows a second grid beside it (the home chest: scrolls, a few
+## rows visible); Ctrl + click (pad: the drop key) sends a whole stack across.
 ## Solo the world pauses (room PauseProcessingComponent); online it keeps going
 ## and only the player stops (NetPlayers).
 class_name InventoryScreen
@@ -12,6 +14,8 @@ extends Control
 
 signal opened
 signal closed
+
+const GROUP:StringName = &"inventory_screen"
 
 @export var style:InventoryStyle
 @export var grid:InventoryGridResource
@@ -29,6 +33,13 @@ signal closed
 @export var split_key:Key = KEY_SHIFT
 ## Pad: picks up half the focused stack (action name; empty = off)
 @export var split_action:StringName = &"interact"
+## Held while clicking: the whole stack goes to the other inventory (chest open)
+@export var transfer_key:Key = KEY_CTRL
+## Chest rows shown at once (the rest scroll)
+@export_range(1, 16, 1) var side_visible_rows:int = 4
+## Hint line, alone / with the chest beside
+@export_multiline var hint_text:String = "Drag: move   Shift: half   Right click: quick move   Drop key: drop"
+@export_multiline var side_hint_text:String = "Drag: move   Shift: half   Ctrl+click / right click: other side"
 
 @export_group("Nodes")
 @export var dim:ColorRect
@@ -40,21 +51,38 @@ signal closed
 @export var hint_label:Label
 ## Drawn at the focused cell while the pad holds an item
 @export var held_icon:TextureRect
+## Second inventory (the chest), shown by open_with()
+@export var side_panel:PanelContainer
+@export var side_title_label:Label
+@export var side_scroll:ScrollContainer
+@export var side_grid_container:GridContainer
 
 var quick_cells:Array[InventoryCellUI] = []
 var grid_cells:Array[InventoryCellUI] = []
+var side_cells:Array[InventoryCellUI] = []
+## The chest while it's shown (open_with), else null
+var side_grid:InventoryGridResource
 var held:InventoryCellUI
 ## The held item is half its stack
 var held_half:bool
 var _hovered:InventoryCellUI
 var _open_tween:Tween
 
+## The screen in the HUD (null when there's none)
+static func find(tree:SceneTree)->InventoryScreen:
+	return tree.get_first_node_in_group(GROUP) as InventoryScreen if tree != null else null
+
 func _ready()->void:
+	add_to_group(GROUP)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	if side_panel != null:
+		side_panel.visible = false
 	if open_resource != null:
 		open_resource.set_value(false)
 	_apply_style()
+	if hint_label != null:
+		hint_label.text = hint_text
 	_build_quick()
 	_build_grid()
 	if grid != null:
@@ -89,6 +117,10 @@ func _apply_style()->void:
 		_box.set_border_width_all(1)
 		_box.set_content_margin_all(style.panel_padding)
 		panel.add_theme_stylebox_override("panel", _box)
+		if side_panel != null:
+			side_panel.add_theme_stylebox_override("panel", _box)
+	if side_title_label != null:
+		side_title_label.add_theme_font_size_override("font_size", style.title_font_size)
 	if title_label != null:
 		title_label.text = style.title
 		title_label.add_theme_font_size_override("font_size", style.title_font_size)
@@ -98,7 +130,7 @@ func _apply_style()->void:
 	if hint_label != null:
 		hint_label.add_theme_font_size_override("font_size", style.hint_font_size)
 		hint_label.add_theme_color_override("font_color", style.hint_color)
-	for _box_node:Control in [quick_row, grid_container]:
+	for _box_node:Control in [quick_row, grid_container, side_grid_container]:
 		if _box_node != null:
 			_box_node.add_theme_constant_override("separation", style.cell_gap)
 			_box_node.add_theme_constant_override("h_separation", style.cell_gap)
@@ -106,7 +138,7 @@ func _apply_style()->void:
 
 func _new_cell(area:InventoryCellUI.Area, index:int)->InventoryCellUI:
 	var _cell:InventoryCellUI = InventoryCellUI.new()
-	_cell.name = ("Quick%d" if area == InventoryCellUI.Area.QUICK else "Cell%d") % index
+	_cell.name = ("Quick%d" if area == InventoryCellUI.Area.QUICK else "Chest%d" if area == InventoryCellUI.Area.CHEST else "Cell%d") % index
 	_cell.setup(self, area, index)
 	return _cell
 
@@ -138,6 +170,47 @@ func _build_grid()->void:
 		grid_cells.append(_cell)
 	_refresh()
 
+func _build_side()->void:
+	if side_grid_container == null:
+		return
+	if held != null && held.area == InventoryCellUI.Area.CHEST:
+		_cancel_held()
+	if _hovered != null && _hovered.area == InventoryCellUI.Area.CHEST:
+		_hovered = null
+	for _child:Node in side_grid_container.get_children():
+		side_grid_container.remove_child(_child)
+		_child.queue_free()
+	side_cells.clear()
+	if side_grid == null:
+		return
+	side_grid_container.columns = side_grid.width()
+	for _i:int in side_grid.capacity():
+		var _cell:InventoryCellUI = _new_cell(InventoryCellUI.Area.CHEST, _i)
+		side_grid_container.add_child(_cell)
+		side_cells.append(_cell)
+	if side_scroll != null:
+		var _rows:int = mini(side_visible_rows, side_grid.height())
+		side_scroll.custom_minimum_size.y = _rows * style.cell_size.y + maxi(_rows - 1, 0) * style.cell_gap
+		side_scroll.scroll_vertical = 0
+
+func _set_side(value:InventoryGridResource, title:String = "")->void:
+	if side_grid != null:
+		if side_grid.changed_cells.is_connected(_refresh):
+			side_grid.changed_cells.disconnect(_refresh)
+		if side_grid.resized.is_connected(_build_side):
+			side_grid.resized.disconnect(_build_side)
+	side_grid = value
+	if side_grid != null:
+		side_grid.changed_cells.connect(_refresh)
+		side_grid.resized.connect(_build_side)
+	if side_title_label != null:
+		side_title_label.text = title
+	if side_panel != null:
+		side_panel.visible = side_grid != null
+	if hint_label != null:
+		hint_label.text = side_hint_text if side_grid != null else hint_text
+	_build_side()
+
 # --- open / close ------------------------------------------------------------
 
 func _input(event:InputEvent)->void:
@@ -159,7 +232,10 @@ func _input(event:InputEvent)->void:
 			close()
 		get_viewport().set_input_as_handled()
 	elif !action_resource.drop_action.is_empty() && event.is_action_pressed(action_resource.drop_action):
-		if _hovered != null:
+		# with the chest open the drop key sends the stack across instead
+		if _hovered != null && side_grid != null:
+			transfer(_hovered)
+		elif _hovered != null:
 			drop_to_floor(_hovered)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_accept"):
@@ -177,6 +253,10 @@ func _input(event:InputEvent)->void:
 func split_down()->bool:
 	return split_key != KEY_NONE && Input.is_physical_key_pressed(split_key)
 
+## Ctrl (transfer_key) held right now, with a second inventory open
+func transfer_down()->bool:
+	return side_grid != null && transfer_key != KEY_NONE && Input.is_physical_key_pressed(transfer_key)
+
 func can_open()->bool:
 	if pause_resource != null && pause_resource.value:
 		return false
@@ -191,6 +271,13 @@ func can_open()->bool:
 		if _health != null && _health.is_dead:
 			return false
 	return true
+
+## Opens with a second inventory beside the player's (the home chest).
+func open_with(other:InventoryGridResource, title:String = "")->void:
+	if is_open():
+		close()
+	_set_side(other, title)
+	open()
 
 func open()->void:
 	if is_open():
@@ -219,6 +306,8 @@ func close()->void:
 		return
 	_cancel_held()
 	_set_open(false)
+	if side_grid != null:
+		_set_side(null)
 	_play(style.close_sound)
 	closed.emit()
 
@@ -243,11 +332,14 @@ func _refresh()->void:
 			quick_cells[_i].set_selected(_item != null && _i == weapons.selected)
 	if grid != null:
 		for _i:int in grid_cells.size():
-			_show_grid_cell(grid_cells[_i], grid.get_cell(_i))
+			_show_grid_cell(grid, grid_cells[_i], grid.get_cell(_i))
+	if side_grid != null:
+		for _i:int in side_cells.size():
+			_show_grid_cell(side_grid, side_cells[_i], side_grid.get_cell(_i))
 	if _hovered != null && is_instance_valid(_hovered):
 		_update_info(_hovered)
 
-func _show_grid_cell(cell:InventoryCellUI, entry:Variant)->void:
+func _show_grid_cell(source:InventoryGridResource, cell:InventoryCellUI, entry:Variant)->void:
 	if entry == null:
 		cell.show_item(null, "", style.count_color, "")
 		return
@@ -256,12 +348,12 @@ func _show_grid_cell(cell:InventoryCellUI, entry:Variant)->void:
 		var _item:ItemResource = _entry.weapon
 		cell.show_item(_item.icon, "", style.count_color, _level_text(_item))
 		return
-	var _def:InventoryItemDef = grid.database.def(_entry.id) if grid.database != null else null
+	var _def:InventoryItemDef = source.database.def(_entry.id) if source.database != null else null
 	var _n:int = int(_entry.get("n", 0))
 	var _color:Color = style.count_color
 	var _text:String = style.format_amount(_n)
 	if _def != null && !_def.is_infinite():
-		if _n > _def.stack_size:
+		if _n > _def.stack_size && source.counter_backed:
 			_color = style.overflow_color
 			_text += "+"
 		elif _n == _def.stack_size:
@@ -284,8 +376,9 @@ func _update_info(cell:InventoryCellUI)->void:
 	if info_label == null:
 		return
 	info_label.text = describe(cell)
-	if held != null && held_half && grid != null:
-		info_label.text = "Holding %d  -  %s" % [grid.half_of(held.index), info_label.text]
+	var _from:InventoryGridResource = grid_of(held) if held != null else null
+	if held != null && held_half && _from != null:
+		info_label.text = "Holding %d  -  %s" % [_from.half_of(held.index), info_label.text]
 
 func describe(cell:InventoryCellUI)->String:
 	var _weapon:ItemResource = weapon_of(cell)
@@ -298,8 +391,10 @@ func describe(cell:InventoryCellUI)->String:
 		return _text
 	var _def:InventoryItemDef = def_of(cell)
 	if _def != null:
-		var _cells:int = grid.cells_of(_def.id).size()
-		var _text:String = "%s  %d" % [_def.display_name, _def.amount()]
+		var _in:InventoryGridResource = grid_of(cell)
+		var _cells:int = _in.cells_of(_def.id).size()
+		var _total:int = _def.amount() if _in.counter_backed else _in.total_of(_def.id)
+		var _text:String = "%s  %d" % [_def.display_name, _total]
 		if !_def.is_infinite():
 			_text += "  (%d/cell)" % _def.stack_size
 		if _cells > 1:
@@ -309,49 +404,73 @@ func describe(cell:InventoryCellUI)->String:
 
 # --- rules -------------------------------------------------------------------
 
+## The grid a cell shows (null for quick slots)
+func grid_of(cell:InventoryCellUI)->InventoryGridResource:
+	if cell == null:
+		return null
+	match cell.area:
+		InventoryCellUI.Area.GRID:
+			return grid
+		InventoryCellUI.Area.CHEST:
+			return side_grid
+	return null
+
 func weapon_of(cell:InventoryCellUI)->ItemResource:
 	if cell.area == InventoryCellUI.Area.QUICK:
 		return weapons.list[cell.index] if weapons != null && cell.index < weapons.list.size() else null
-	return grid.weapon_at(cell.index) if grid != null else null
+	var _in:InventoryGridResource = grid_of(cell)
+	return _in.weapon_at(cell.index) if _in != null else null
 
 func def_of(cell:InventoryCellUI)->InventoryItemDef:
-	if cell.area != InventoryCellUI.Area.GRID || grid == null || grid.database == null:
+	var _in:InventoryGridResource = grid_of(cell)
+	if _in == null || _in.database == null:
 		return null
-	var _entry:Variant = grid.get_cell(cell.index)
+	var _entry:Variant = _in.get_cell(cell.index)
 	if _entry == null || !(_entry as Dictionary).has("id"):
 		return null
-	return grid.database.def(_entry.id)
+	return _in.database.def(_entry.id)
 
 func has_content(cell:InventoryCellUI)->bool:
 	if cell.area == InventoryCellUI.Area.QUICK:
 		return weapon_of(cell) != null
-	return grid != null && grid.get_cell(cell.index) != null
+	var _in:InventoryGridResource = grid_of(cell)
+	return _in != null && _in.get_cell(cell.index) != null
 
-## Is this a half-stack move (a splittable stack in the grid)?
+## Is this a half-stack move (a splittable stack in a grid)?
 func _is_split(from:InventoryCellUI, half:bool)->bool:
-	if !half || from.area != InventoryCellUI.Area.GRID:
+	if !half || from.area == InventoryCellUI.Area.QUICK:
 		return false
 	var _def:InventoryItemDef = def_of(from)
-	return _def != null && !_def.is_infinite() && grid.amount_at(from.index) >= 2
+	return _def != null && !_def.is_infinite() && grid_of(from).amount_at(from.index) >= 2
 
-## Currencies stay in the grid; weapons go anywhere. Half a stack goes into an
-## empty cell or onto the same item.
+## Currencies stay in the grids (player's or chest); weapons go anywhere. Half
+## a stack goes into an empty cell or onto the same item. Across grids a stack
+## goes into an empty cell or onto the same item (as much as fits).
 func can_place(from:InventoryCellUI, to:InventoryCellUI, half:bool = false)->bool:
 	if from == null || to == null || from == to || !has_content(from):
 		return false
-	if _is_split(from, half):
-		return to.area == InventoryCellUI.Area.GRID && grid.can_split(from.index, to.index)
-	if to.area == InventoryCellUI.Area.GRID:
-		if from.area == InventoryCellUI.Area.GRID:
+	var _q:InventoryCellUI.Area = InventoryCellUI.Area.QUICK
+	if to.area == _q:
+		# onto a quick slot: weapons only
+		if weapon_of(from) == null:
+			return false
+		if from.area == _q:
 			return true
-		# quick slot weapon onto a currency stack: no
-		return grid.get_cell(to.index) == null || grid.weapon_at(to.index) != null
-	# onto a quick slot: weapons only
-	if weapon_of(from) == null:
+		return to.index < weapons.list.size() || weapons.list.size() < weapons.max_items
+	var _to:InventoryGridResource = grid_of(to)
+	if _to == null:
 		return false
-	if from.area == InventoryCellUI.Area.QUICK:
+	if from.area == _q:
+		# quick slot weapon onto a currency stack: no
+		return _to.get_cell(to.index) == null || _to.weapon_at(to.index) != null
+	var _from:InventoryGridResource = grid_of(from)
+	if _from == _to:
+		if _is_split(from, half):
+			return _from.can_split(from.index, to.index)
 		return true
-	return to.index < weapons.list.size() || weapons.list.size() < weapons.max_items
+	if weapon_of(from) != null:
+		return _to.get_cell(to.index) == null || _to.weapon_at(to.index) != null
+	return _from.amount_at(from.index) > 0 && _to.room_at(to.index, _from.get_cell(from.index).id) > 0
 
 func place(from:InventoryCellUI, to:InventoryCellUI, half:bool = false)->bool:
 	if !can_place(from, to, half):
@@ -359,32 +478,87 @@ func place(from:InventoryCellUI, to:InventoryCellUI, half:bool = false)->bool:
 		_play(style.invalid_sound)
 		return false
 	var _q:InventoryCellUI.Area = InventoryCellUI.Area.QUICK
-	if _is_split(from, half):
-		grid.split(from.index, to.index)
-	elif from.area == _q && to.area == _q:
+	var _from:InventoryGridResource = grid_of(from)
+	var _to:InventoryGridResource = grid_of(to)
+	if from.area == _q && to.area == _q:
 		weapons.move(from.index, mini(to.index, weapons.list.size() - 1))
-	elif from.area == InventoryCellUI.Area.GRID && to.area == InventoryCellUI.Area.GRID:
-		grid.move(from.index, to.index)
+	elif _from != null && _from == _to:
+		if _is_split(from, half):
+			_from.split(from.index, to.index)
+		else:
+			_from.move(from.index, to.index)
 	elif from.area == _q:
 		# quick slot -> grid: into the cell, or swap with the weapon there
-		var _there:ItemResource = grid.weapon_at(to.index)
+		var _there:ItemResource = _to.weapon_at(to.index)
 		if _there != null:
-			grid.replace_weapon(to.index, weapons.list[from.index])
+			_to.replace_weapon(to.index, weapons.list[from.index])
 			weapons.replace_at(from.index, _there)
 		else:
 			var _item:ItemResource = weapons.remove_at(from.index)
-			grid.put_weapon(_item, to.index)
-	else:
+			_to.put_weapon(_item, to.index)
+	elif to.area == _q:
 		# grid -> quick slot: swap with what's there, or into the next free slot
-		var _item:ItemResource = grid.weapon_at(from.index)
+		var _item:ItemResource = _from.weapon_at(from.index)
 		if to.index < weapons.list.size():
 			var _old:ItemResource = weapons.replace_at(to.index, _item)
-			grid.replace_weapon(from.index, _old)
+			_from.replace_weapon(from.index, _old)
 		else:
-			grid.take_weapon(from.index)
+			_from.take_weapon(from.index)
 			weapons.append(_item)
+	elif weapon_of(from) != null:
+		# weapon across grids: into the cell, or swap weapons
+		var _item:ItemResource = _from.take_weapon(from.index)
+		var _old:ItemResource = _to.replace_weapon(to.index, _item)
+		if _old != null:
+			_from.put_weapon(_old, from.index)
+	else:
+		# currency across grids: the stack (or half) as far as it fits
+		var _id:StringName = _from.get_cell(from.index).id
+		var _amount:int = _from.half_of(from.index) if _is_split(from, half) else _from.amount_at(from.index)
+		_amount = mini(_amount, _to.room_at(to.index, _id))
+		_to.add_at(to.index, _id, _from.remove_amount(from.index, _amount))
 	_play(style.place_sound)
 	to.pop()
+	_refresh()
+	return true
+
+## Ctrl + click / pad drop key with the chest open: the whole stack to the
+## other inventory (same-item stacks first, then free cells; weapons from the
+## chest go to the grid, else a quick slot).
+func transfer(cell:InventoryCellUI)->bool:
+	if side_grid == null || cell == null || !has_content(cell):
+		return false
+	if held != null:
+		_cancel_held()
+	var _from:InventoryGridResource = grid_of(cell)
+	var _to:InventoryGridResource = grid if cell.area == InventoryCellUI.Area.CHEST else side_grid
+	var _weapon:ItemResource = weapon_of(cell)
+	var _moved:bool = false
+	if _weapon != null:
+		var _free:int = _to.first_free()
+		if _free >= 0:
+			if cell.area == InventoryCellUI.Area.QUICK:
+				weapons.remove_at(cell.index)
+			else:
+				_from.take_weapon(cell.index)
+			_to.put_weapon(_weapon, _free)
+			_moved = true
+		elif cell.area == InventoryCellUI.Area.CHEST && weapons.list.size() < weapons.max_items:
+			_from.take_weapon(cell.index)
+			weapons.append(_weapon)
+			_moved = true
+	else:
+		var _id:StringName = _from.get_cell(cell.index).id
+		var _amount:int = mini(_from.amount_at(cell.index), _to.room_for(_id))
+		if _amount > 0:
+			_to.add_amount(_id, _from.remove_amount(cell.index, _amount))
+			_moved = true
+	if !_moved:
+		cell.flash_invalid()
+		_play(style.invalid_sound)
+		return false
+	_play(style.place_sound)
+	cell.pop()
 	_refresh()
 	return true
 
@@ -407,8 +581,12 @@ func press(cell:InventoryCellUI, half:bool = false)->void:
 	if _from != cell:
 		place(_from, cell, _half)
 
-## Right click: weapon between quick slots and grid in one go.
+## Right click: weapon between quick slots and grid in one go (chest cells:
+## across to the player).
 func quick_move(cell:InventoryCellUI)->void:
+	if cell.area == InventoryCellUI.Area.CHEST:
+		transfer(cell)
+		return
 	var _weapon:ItemResource = weapon_of(cell)
 	if _weapon == null:
 		return
@@ -460,6 +638,8 @@ func drop_to_floor(cell:InventoryCellUI)->bool:
 		weapons.drop()
 		weapons.set_selected(mini(_was, maxi(weapons.list.size() - 1, 0)))
 	else:
+		if cell.area == InventoryCellUI.Area.CHEST:
+			return false
 		var _inventory:PlayerInventory = PlayerInventory.local(get_tree())
 		if _inventory != null:
 			_inventory.drop_weapon(cell.index)
