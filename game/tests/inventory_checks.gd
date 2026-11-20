@@ -19,6 +19,8 @@ func _ready()->void:
 	_check_stack_math()
 	_check_grid_moves()
 	_check_run_data()
+	_check_chest_grid()
+	_check_carry()
 	var _room:Node = (load(ROOM) as PackedScene).instantiate()
 	add_child(_room)
 	await _frames(10)
@@ -54,6 +56,80 @@ func _test_grid()->InventoryGridResource:
 func _set_amount(grid:InventoryGridResource, id:StringName, value:int)->void:
 	grid.database.def(id).counter.value = value
 	grid.relayout()
+
+## A chest grid (not counter-backed) and moving amounts across to a counter-backed one.
+func _check_chest_grid()->void:
+	var _player:InventoryGridResource = _test_grid()
+	var _chest:InventoryGridResource = InventoryGridResource.new()
+	_chest.database = _player.database
+	_chest.counter_backed = false
+	_chest.base_width = 3
+	_chest.base_height = 6
+	_chest.clear()
+	check(_chest.capacity() == 18 && _chest.first_free() == 0, "chest: 18 empty cells, no coin placeholder")
+	check(_chest.add_amount(&"meat", 1500) == 1500 && _chest.cells_of(&"meat").size() == 2 && _chest.total_of(&"meat") == 1500, "chest: 1500 meat in 2 stacks")
+	check(_chest.add_amount(&"coin", 70) == 70 && _chest.add_amount(&"coin", 5) == 75 - 70 && _chest.cells_of(&"coin").size() == 1, "chest: coins in one cell")
+	check(_chest.room_for(&"crystal") == 15 * 99, "chest: room for crystals in free cells")
+	var _full:InventoryGridResource = _chest.duplicate()
+	_full.cells = _chest.cells.duplicate(true)
+	check(_full.add_amount(&"crystal", 99 * 20) == 99 * 15, "chest: adds only what fits")
+	# chest -> player (counter-backed): the counter follows
+	var _meat:ScoreResource = _player.database.def(&"meat").counter
+	var _c:int = _chest.cells_of(&"meat")[0]
+	var _free:int = _player.first_free()
+	check(_player.room_at(_free, &"meat") == 999, "player: room in an empty cell")
+	var _moved:int = _player.add_at(_free, &"meat", _chest.remove_amount(_c, 999))
+	check(_moved == 999 && _meat.value == 999 && _meat.collected_total == 0 && _player.amount_at(_free) == 999, "chest -> player: counter up, not counted as collected")
+	check(_chest.total_of(&"meat") == 501 && _chest.get_cell(_c) == null, "chest: emptied stack freed")
+	check(_player.room_at(_free, &"meat") == 0 && _player.room_at(_free, &"crystal") == 0, "player: full / other-item cell has no room")
+	# player -> chest
+	check(_player.remove_amount(_free, 400) == 400 && _meat.value == 599 && _player.amount_at(_free) == 599, "player -> chest: counter down with the stack")
+	check(_chest.add_amount(&"meat", 400) == 400 && _chest.total_of(&"meat") == 901, "chest: meat merged into its stack")
+	# coins: one cell each side, unlimited
+	var _coin:ScoreResource = _player.database.def(&"coin").counter
+	var _pc:int = _player.cells_of(&"coin")[0]
+	var _empty:int = _player.first_free()
+	check(_player.room_at(_empty, &"coin") >= 75, "player: coins into any cell go onto the coin stack")
+	_player.add_at(_empty, &"coin", _chest.remove_amount(_chest.cells_of(&"coin")[0], 75))
+	check(_coin.value == 75 && Array(_player.cells_of(&"coin")) == [_pc] && _chest.cells_of(&"coin").is_empty(), "coins land on the one coin stack")
+	check(_player.remove_amount(_pc, 75) == 75 && _coin.value == 0 && _player.cells_of(&"coin").size() == 1, "coins out: placeholder cell stays at 0")
+
+## InventoryCarry: run-scoped counters + layout captured, handed back, lever stash.
+func _check_carry()->void:
+	var _grid:InventoryGridResource = _test_grid()
+	var _db:InventoryDatabase = _grid.database
+	_db.def(&"crystal").run_scoped = false
+	_db.def(&"meat").auto_stash = true
+	var _home:HomeBaseResource = HomeBaseResource.new()
+	_home.not_saved = true
+	_set_amount(_grid, &"meat", 1200)
+	_set_amount(_grid, &"coin", 33)
+	_set_amount(_grid, &"crystal", 5)
+	_grid.move(_grid.cells_of(&"meat")[0], 17)
+	_grid.put_weapon(ItemResource.new())
+	InventoryCarry.capture(_home, _grid)
+	check(int(_home.carried.get("meat", 0)) == 1200 && int(_home.carried.get("coin", 0)) == 33 && !_home.carried.has("crystal"), "carry: run-scoped amounts only")
+	check(_home.carried_layout.size() == 18 && _home.carried_layout[17] == "meat:999", "carry: layout kept")
+	var _no_weapons:bool = true
+	for _text:String in _home.carried_layout:
+		_no_weapons = _no_weapons && !_text.begins_with("@")
+	check(_no_weapons, "carry: weapons left out (they go home their own way)")
+	for _id:StringName in [&"meat", &"coin"]:
+		_db.def(_id).counter.reset_resource()
+	_grid.clear()
+	InventoryCarry.apply(_home, _grid)
+	check(_db.def(&"meat").counter.value == 1200 && _db.def(&"coin").counter.value == 33, "carry: amounts back")
+	check(_grid.get_cell(17) != null && _grid.get_cell(17).id == &"meat", "carry: stacks back where they were")
+	# lever: meat into the chest, coins stay carried
+	var _chest:InventoryGridResource = InventoryGridResource.new()
+	_chest.database = _db
+	_chest.counter_backed = false
+	_chest.base_width = 3
+	_chest.base_height = 6
+	check(InventoryCarry.auto_stash(_home, _chest, null) == 1200, "lever: meat stashed")
+	check(!_home.carried.has("meat") && int(_home.carried.get("coin", 0)) == 33 && _home.chest.size() == 18, "lever: coins stay carried, chest saved")
+	var _meta:MetaUpgradeResource = MetaUpgradeResource.new()
+	check(!InventoryCarry.lever_built(_meta) && !InventoryCarry.lever_on(_home, _meta), "lever: not built without the upgrade")
 
 func _check_stack_math()->void:
 	var _grid:InventoryGridResource = _test_grid()

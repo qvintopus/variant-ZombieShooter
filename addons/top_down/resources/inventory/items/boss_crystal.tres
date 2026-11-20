@@ -17,3 +17,4 @@ stack_size = 99
 counter = ExtResource("3_cnt")
 sort_order = 3
 show_when_zero = false
+run_scoped = false

@@ -18,6 +18,9 @@ const WEAPON_PREFIX:String = "@"
 ## Added by meta upgrades (PlayerInventory)
 @export var extra_width:int
 @export var extra_height:int
+## Currency amounts follow their counters (the player's grid). Off: the cells
+## hold the amounts themselves (the home chest).
+@export var counter_backed:bool = true
 
 var cells:Array = []
 
@@ -105,7 +108,7 @@ func cells_of(id:StringName)->Array[int]:
 ## Without room the last stack holds the extra (nothing is ever lost).
 func relayout(emit:bool = true)->void:
 	_ensure()
-	if database != null:
+	if database != null && counter_backed:
 		for _def:InventoryItemDef in database.currencies():
 			_layout_item(_def)
 	if emit:
@@ -184,13 +187,110 @@ func can_accept(id:StringName, amount:int = 1)->bool:
 	if database == null:
 		return true
 	var _def:InventoryItemDef = database.def(id)
-	if _def == null || _def.kind != InventoryItemDef.Kind.CURRENCY || _def.is_infinite():
+	if _def == null || _def.kind != InventoryItemDef.Kind.CURRENCY:
 		return true
+	return room_for(id) >= amount
+
+## Most one cell holds of an item (no limit: a big number)
+const NO_LIMIT:int = 1 << 30
+
+func _cap(def:InventoryItemDef)->int:
+	return NO_LIMIT if def.is_infinite() else def.stack_size
+
+## How much more of `id` fits in total (same-item stacks + free cells).
+func room_for(id:StringName)->int:
+	var _def:InventoryItemDef = database.def(id) if database != null else null
+	if _def == null:
+		return 0
 	_ensure()
-	var _room:int = free_count() * _def.stack_size
+	var _at:Array[int] = cells_of(id)
+	if _def.is_infinite() && (!_at.is_empty() || free_count() > 0):
+		return NO_LIMIT
+	var _room:int = free_count() * _cap(_def)
+	for _i:int in _at:
+		_room += maxi(_cap(_def) - amount_at(_i), 0)
+	return _room
+
+## How much of `id` fits into one cell (empty, or the same item with room).
+## An unlimited item already lying elsewhere goes onto that stack.
+func room_at(index:int, id:StringName)->int:
+	var _def:InventoryItemDef = database.def(id) if database != null else null
+	if _def == null || index < 0 || index >= capacity():
+		return 0
+	_ensure()
+	var _entry:Variant = cells[index]
+	if _entry == null:
+		if _def.is_infinite():
+			var _at:Array[int] = cells_of(id)
+			return NO_LIMIT if _at.is_empty() || _at[0] != index else 0
+		return _cap(_def)
+	if (_entry as Dictionary).get("id") != id:
+		return 0
+	return maxi(_cap(_def) - amount_at(index), 0)
+
+## Takes up to `amount` from a currency stack; returns what was taken.
+## Counter-backed: the counter goes down with it.
+func remove_amount(index:int, amount:int)->int:
+	var _def:InventoryItemDef = _def_at(index)
+	if _def == null || amount <= 0:
+		return 0
+	var _take:int = mini(amount, amount_at(index))
+	if _take <= 0:
+		return 0
+	cells[index]["n"] = amount_at(index) - _take
+	if amount_at(index) <= 0:
+		cells[index] = null
+	if counter_backed && _def.counter != null:
+		_def.counter.spend(mini(_take, _def.counter.value))
+	if counter_backed:
+		relayout()
+	else:
+		changed_cells.emit()
+	return _take
+
+## Puts up to `amount` of `id` into one cell; returns what fit.
+## Counter-backed: the counter goes up with it (not counted as collected).
+func add_at(index:int, id:StringName, amount:int)->int:
+	var _put:int = mini(amount, room_at(index, id))
+	if _put <= 0:
+		return 0
+	var _def:InventoryItemDef = database.def(id)
+	if _def.is_infinite() && !cells_of(id).is_empty():
+		index = cells_of(id)[0]
+	if cells[index] == null:
+		cells[index] = {"id": id, "n": 0}
+	cells[index]["n"] = amount_at(index) + _put
+	if counter_backed && _def.counter != null:
+		_def.counter.refund(_put)
+	if counter_backed:
+		relayout()
+	else:
+		changed_cells.emit()
+	return _put
+
+## Puts up to `amount` of `id` anywhere: same-item stacks first, then free
+## cells. Returns what fit.
+func add_amount(id:StringName, amount:int)->int:
+	_ensure()
+	var _left:int = amount
 	for _i:int in cells_of(id):
-		_room += maxi(_def.stack_size - int(cells[_i].n), 0)
-	return _room >= amount
+		if _left <= 0:
+			break
+		_left -= add_at(_i, id, _left)
+	while _left > 0:
+		var _free:int = first_free()
+		if _free < 0:
+			break
+		var _put:int = add_at(_free, id, _left)
+		if _put <= 0:
+			break
+		_left -= _put
+	return amount - _left
+
+## Total of `id` in the cells
+func total_of(id:StringName)->int:
+	_ensure()
+	return _total(cells_of(id))
 
 func _def_at(index:int)->InventoryItemDef:
 	var _entry:Variant = get_cell(index)

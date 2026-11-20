@@ -3,7 +3,7 @@
 class_name InventoryCellUI
 extends TextureRect
 
-enum Area { QUICK, GRID }
+enum Area { QUICK, GRID, CHEST }
 
 var area:Area
 var index:int
@@ -133,7 +133,7 @@ func _get_drag_data(_at:Vector2)->Variant:
 	_holder.add_child(_preview)
 	if _half && screen._is_split(self, true):
 		var _count:Label = Label.new()
-		_count.text = str(screen.grid.half_of(index))
+		_count.text = str(screen.grid_of(self).half_of(index))
 		_count.position = Vector2(1, -2)
 		_count.add_theme_font_size_override("font_size", screen.style.count_font_size)
 		_count.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -163,7 +163,10 @@ static func _cell_of(data:Variant)->InventoryCellUI:
 func _gui_input(event:InputEvent)->void:
 	var _mouse:InputEventMouseButton = event as InputEventMouseButton
 	if _mouse != null && !_mouse.pressed && !get_viewport().gui_is_dragging():
-		if _mouse.button_index == MOUSE_BUTTON_LEFT:
+		if _mouse.button_index == MOUSE_BUTTON_LEFT && screen.side_grid != null && (_mouse.ctrl_pressed || screen.transfer_down()):
+			screen.transfer(self)
+			accept_event()
+		elif _mouse.button_index == MOUSE_BUTTON_LEFT:
 			screen.press(self, _mouse.shift_pressed || screen.split_down())
 			accept_event()
 		elif _mouse.button_index == MOUSE_BUTTON_RIGHT:

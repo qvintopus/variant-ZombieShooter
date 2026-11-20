@@ -35,6 +35,8 @@
 [ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="32_remaining_wa"]
 [ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="33_game_hud_ove"]
 [ext_resource type="Resource" path="res://game/resources/campaign_resource.tres" id="34_campaign"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/home_chest.tscn" id="96_home_chest"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/stash_lever.tscn" id="97_stash_lever"]
 
 [node name="Room" instance=ExtResource("1_room_templat")]
 
@@ -801,6 +803,12 @@ position = Vector2(64, 656)
 
 [node name="CommsTerminal1" parent="WallLayer_Ysorted" instance=ExtResource("13_comms_termin")]
 position = Vector2(32, 672)
+
+[node name="HomeChest1" parent="WallLayer_Ysorted" instance=ExtResource("96_home_chest")]
+position = Vector2(-32, 704)
+
+[node name="StashLever1" parent="WallLayer_Ysorted" instance=ExtResource("97_stash_lever")]
+position = Vector2(0, 720)
 
 [node name="PlayerSpawner" parent="."]
 position = Vector2(160, 736)
