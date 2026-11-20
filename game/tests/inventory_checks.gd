@@ -110,12 +110,45 @@ func _check_grid_moves()->void:
 	check(_grid.weapon_at(10) == _b, "and after shrinking back")
 	# layout save / load
 	var _layout:PackedStringArray = _grid.save_layout()
-	check(_layout[10] == "@" + _b.resource_name && _layout[4] == "meat", "layout strings")
+	check(_layout[10] == "@" + _b.resource_name && _layout[4] == "meat:7", "layout strings")
 	var _copy:InventoryGridResource = _test_grid()
 	_copy.database = _grid.database
 	_copy.load_layout(_layout, _db)
 	check(_copy.weapon_at(10) == _b && Array(_copy.cells_of(&"meat")) == [4], "layout restored")
 	check(InventoryGridResource.layout_weapons(_layout) == PackedStringArray([_b.resource_name]), "weapons from layout")
+
+	# split / merge
+	var _sg:InventoryGridResource = _test_grid()
+	_set_amount(_sg, &"meat", 501)
+	var _src:int = _sg.cells_of(&"meat")[0]
+	var _dst:int = _sg.first_free()
+	check(_sg.half_of(_src) == 251, "half = bigger half")
+	check(_sg.split(_src, _dst) && _sg.amount_at(_src) == 250 && _sg.amount_at(_dst) == 251, "split half into empty cell")
+	check(_sg.database.def(&"meat").amount() == 501, "split keeps the counter total")
+	_set_amount(_sg, &"meat", 511)
+	check(_sg.amount_at(_src) + _sg.amount_at(_dst) == 511 && _sg.cells_of(&"meat").size() == 2, "pickup tops up split stacks")
+	_set_amount(_sg, &"meat", 300)
+	check(_sg.amount_at(_src) + _sg.amount_at(_dst) == 300, "spending takes from stacks")
+	var _before:int = _sg.amount_at(_src) + _sg.amount_at(_dst)
+	check(_sg.move(_dst, _src) && _sg.cells_of(&"meat").size() == 1 && _sg.amount_at(_src) == _before, "moving onto same item merges")
+	_set_amount(_sg, &"meat", 999)
+	var _one:int = _sg.cells_of(&"meat")[0]
+	var _other:int = _sg.first_free()
+	_sg.split(_one, _other)
+	_sg.split(_other, _one)
+	check(_sg.amount_at(_one) == 999 - 500 + 250 && _sg.amount_at(_other) == 250, "split onto same item")
+	_set_amount(_sg, &"meat", 1500)
+	check(_sg.cells_of(&"meat").size() == 2 && _sg.amount_at(_one) == 999 && _sg.amount_at(_other) == 501, "fills existing stacks before new cells")
+	check(_sg.move(_other, _one) && _sg.amount_at(_one) == 501 && _sg.amount_at(_other) == 999, "merge onto full stack swaps instead")
+	var _coin_at:int = _sg.cells_of(&"coin")[0]
+	_set_amount(_sg, &"coin", 10)
+	check(!_sg.can_split(_coin_at, _sg.first_free()), "coins don't split")
+	check(!_sg.can_split(_one, _coin_at), "can't split onto another item")
+	var _saved:PackedStringArray = _sg.save_layout()
+	var _restored:InventoryGridResource = _test_grid()
+	_restored.database = _sg.database
+	_restored.load_layout(_saved, null)
+	check(_restored.amount_at(_one) == 501 && _restored.amount_at(_other) == 999, "split amounts saved")
 
 	# quick slot helpers keep selected valid
 	var _quick:ItemCollectionResource = ItemCollectionResource.new()
@@ -226,6 +259,20 @@ func _check_screen(room:Node)->void:
 	check(_screen.held == _screen.grid_cells[_coin_cell], "press picks up")
 	_screen.press(_screen.grid_cells[_target])
 	check(_screen.held == null && Array(_screen.grid.cells_of(&"coin")) == [_target], "press places")
+	# shift: half a stack
+	var _meat:ScoreResource = load(TD + "resources/global_resources/meat_resource.tres")
+	_meat.value = 40
+	_meat.updated.emit()
+	var _m:int = _screen.grid.cells_of(&"meat")[0]
+	var _e:int = _screen.grid.first_free()
+	_screen.press(_screen.grid_cells[_m], true)
+	check(_screen.held_half, "half pick")
+	_screen.press(_screen.grid_cells[_e])
+	check(_screen.grid.amount_at(_m) == 20 && _screen.grid.amount_at(_e) == 20, "screen splits half a stack")
+	check(_screen.place(_screen.grid_cells[_e], _screen.grid_cells[_m]) && _screen.grid.amount_at(_m) == 40, "screen merges back")
+	check(!_screen.can_place(_screen.grid_cells[_m], _screen.quick_cells[0], true), "half stack can't go into quick slots")
+	_meat.value = 0
+	_meat.updated.emit()
 	# drop a backpack weapon to the floor
 	var _drop_at:int = _screen.grid.first_free()
 	_screen.grid.put_weapon(_db.list[0], _drop_at)

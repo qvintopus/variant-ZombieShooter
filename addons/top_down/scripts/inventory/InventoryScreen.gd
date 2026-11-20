@@ -3,6 +3,8 @@
 ## drops a weapon on the floor), click = pick / place, right click = quick move.
 ## Pad / keyboard: move the focus, accept = pick / place / swap, drop key drops
 ## the focused weapon, cancel puts back what's held or closes.
+## Shift held while picking / dragging (or the split action on a pad) takes half
+## a stack; dropping a stack onto the same item merges it.
 ## Solo the world pauses (room PauseProcessingComponent); online it keeps going
 ## and only the player stops (NetPlayers).
 class_name InventoryScreen
@@ -23,6 +25,10 @@ signal closed
 @export var player_reference:ReferenceNodeResource
 ## Hidden while the screen is open (no doubled quick slots)
 @export var hud_hotbar:CanvasItem
+## Held while picking up / dragging: take half the stack
+@export var split_key:Key = KEY_SHIFT
+## Pad: picks up half the focused stack (action name; empty = off)
+@export var split_action:StringName = &"interact"
 
 @export_group("Nodes")
 @export var dim:ColorRect
@@ -38,6 +44,8 @@ signal closed
 var quick_cells:Array[InventoryCellUI] = []
 var grid_cells:Array[InventoryCellUI] = []
 var held:InventoryCellUI
+## The held item is half its stack
+var held_half:bool
 var _hovered:InventoryCellUI
 var _open_tween:Tween
 
@@ -157,8 +165,17 @@ func _input(event:InputEvent)->void:
 	elif event.is_action_pressed("ui_accept"):
 		var _focus:InventoryCellUI = get_viewport().gui_get_focus_owner() as InventoryCellUI
 		if _focus != null:
-			press(_focus)
+			press(_focus, split_down())
 			get_viewport().set_input_as_handled()
+	elif !split_action.is_empty() && InputMap.has_action(split_action) && event.is_action_pressed(split_action):
+		var _focus:InventoryCellUI = get_viewport().gui_get_focus_owner() as InventoryCellUI
+		if _focus != null:
+			press(_focus, true)
+			get_viewport().set_input_as_handled()
+
+## Shift (split_key) held right now
+func split_down()->bool:
+	return split_key != KEY_NONE && Input.is_physical_key_pressed(split_key)
 
 func can_open()->bool:
 	if pause_resource != null && pause_resource.value:
@@ -267,6 +284,8 @@ func _update_info(cell:InventoryCellUI)->void:
 	if info_label == null:
 		return
 	info_label.text = describe(cell)
+	if held != null && held_half && grid != null:
+		info_label.text = "Holding %d  -  %s" % [grid.half_of(held.index), info_label.text]
 
 func describe(cell:InventoryCellUI)->String:
 	var _weapon:ItemResource = weapon_of(cell)
@@ -308,10 +327,20 @@ func has_content(cell:InventoryCellUI)->bool:
 		return weapon_of(cell) != null
 	return grid != null && grid.get_cell(cell.index) != null
 
-## Currencies stay in the grid; weapons go anywhere.
-func can_place(from:InventoryCellUI, to:InventoryCellUI)->bool:
+## Is this a half-stack move (a splittable stack in the grid)?
+func _is_split(from:InventoryCellUI, half:bool)->bool:
+	if !half || from.area != InventoryCellUI.Area.GRID:
+		return false
+	var _def:InventoryItemDef = def_of(from)
+	return _def != null && !_def.is_infinite() && grid.amount_at(from.index) >= 2
+
+## Currencies stay in the grid; weapons go anywhere. Half a stack goes into an
+## empty cell or onto the same item.
+func can_place(from:InventoryCellUI, to:InventoryCellUI, half:bool = false)->bool:
 	if from == null || to == null || from == to || !has_content(from):
 		return false
+	if _is_split(from, half):
+		return to.area == InventoryCellUI.Area.GRID && grid.can_split(from.index, to.index)
 	if to.area == InventoryCellUI.Area.GRID:
 		if from.area == InventoryCellUI.Area.GRID:
 			return true
@@ -324,13 +353,15 @@ func can_place(from:InventoryCellUI, to:InventoryCellUI)->bool:
 		return true
 	return to.index < weapons.list.size() || weapons.list.size() < weapons.max_items
 
-func place(from:InventoryCellUI, to:InventoryCellUI)->bool:
-	if !can_place(from, to):
+func place(from:InventoryCellUI, to:InventoryCellUI, half:bool = false)->bool:
+	if !can_place(from, to, half):
 		to.flash_invalid()
 		_play(style.invalid_sound)
 		return false
 	var _q:InventoryCellUI.Area = InventoryCellUI.Area.QUICK
-	if from.area == _q && to.area == _q:
+	if _is_split(from, half):
+		grid.split(from.index, to.index)
+	elif from.area == _q && to.area == _q:
 		weapons.move(from.index, mini(to.index, weapons.list.size() - 1))
 	elif from.area == InventoryCellUI.Area.GRID && to.area == InventoryCellUI.Area.GRID:
 		grid.move(from.index, to.index)
@@ -357,20 +388,24 @@ func place(from:InventoryCellUI, to:InventoryCellUI)->bool:
 	_refresh()
 	return true
 
-## Pad / click: pick up, then place / swap on the next press.
-func press(cell:InventoryCellUI)->void:
+## Pad / click: pick up (half the stack with `half`), then place / swap /
+## merge on the next press.
+func press(cell:InventoryCellUI, half:bool = false)->void:
 	if held == null:
 		if !has_content(cell):
 			return
 		held = cell
+		held_half = _is_split(cell, half)
 		cell.set_held(true)
 		_play(style.pick_sound)
 		_place_held_icon(cell)
+		_update_info(cell)
 		return
 	var _from:InventoryCellUI = held
+	var _half:bool = held_half
 	_cancel_held()
 	if _from != cell:
-		place(_from, cell)
+		place(_from, cell, _half)
 
 ## Right click: weapon between quick slots and grid in one go.
 func quick_move(cell:InventoryCellUI)->void:
@@ -398,6 +433,7 @@ func _cancel_held()->void:
 	if held != null && is_instance_valid(held):
 		held.set_held(false)
 	held = null
+	held_half = false
 	if held_icon != null:
 		held_icon.visible = false
 
