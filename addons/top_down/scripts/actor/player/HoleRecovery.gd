@@ -10,7 +10,7 @@ extends Node
 ## Damage applied when stepping on a hole
 @export var hole_damage:int = 10
 
-## Optional fall animation; damage lands when the player is back up
+## Optional fall animation; damage lands at its hit_moment (default: smallest, at the bottom)
 @export var hole_fall:HoleFall
 
 var health_resource:HealthResource
