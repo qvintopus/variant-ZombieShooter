@@ -20,12 +20,21 @@ extends Node
 ## (NetPlayers stops just the local player instead).
 @export var keep_running_online:bool
 
+## More flags that pause the same way (e.g. the inventory screen)
+@export var extra_pause:Array[BoolResource]
+
 func _ready()->void:
 	bool_resource.updated.connect(pause_changed)
+	for _flag:BoolResource in extra_pause:
+		if _flag != null && !_flag.updated.is_connected(pause_changed):
+			_flag.updated.connect(pause_changed)
 	pause_changed()
 
 func pause_changed()->void:
 	var _is_paused:bool = bool_resource.value
+	for _flag:BoolResource in extra_pause:
+		if _flag != null && _flag.value:
+			_is_paused = true
 	if keep_running_online && Net.is_online():
 		_is_paused = false
 	for node:Node in paused_nodes:

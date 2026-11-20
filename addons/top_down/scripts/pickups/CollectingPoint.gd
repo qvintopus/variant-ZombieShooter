@@ -50,6 +50,8 @@ func _ready() -> void:
 
 func _init_area()->void:
 	if magnet != null && magnet.enabled:
+		if magnet.item_id.is_empty():
+			magnet.item_id = item_id
 		if !magnet.reached_local_player.is_connected(_on_finished):
 			magnet.reached_local_player.connect(_on_finished)
 		magnet.start()
@@ -89,7 +91,7 @@ func _on_reference_update()->void:
 
 func _on_body_enter(_body:Node2D)->void:
 	# only this machine's player collects here (co-op teammates collect on their own machine)
-	if _body != player_reference.node:
+	if _body != player_reference.node || !PlayerInventory.accepts(get_tree(), item_id):
 		area.body_entered.connect(_on_body_enter, CONNECT_ONE_SHOT)
 		return
 	area.collision_mask = 0
@@ -109,6 +111,13 @@ func _tween_target_position(t:float, from:Vector2)->void:
 	moved_node.global_position = from.lerp(player_reference.node.global_position, t)
 
 func _on_finished()->void:
+	# the inventory filled up on the way in: it stays out here
+	if !PlayerInventory.accepts(get_tree(), item_id):
+		if magnet != null && magnet.enabled:
+			magnet.start()
+		else:
+			_init_area()
+		return
 	if magnet != null:
 		magnet.stop()
 	if pickup_events != null:

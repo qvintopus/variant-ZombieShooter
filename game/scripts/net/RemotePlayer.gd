@@ -16,7 +16,7 @@ const PLAYER_SCENE:String = "res://addons/top_down/scenes/actors/player.tscn"
 ## Nodes that only make sense for the player at this keyboard.
 const LOCAL_ONLY:PackedStringArray = [
 	"PlayerInput", "DebugInput", "ReferencePlayer", "PlayerJuice", "ResetHealth",
-	"CameraPositionSetter", "MetaStats",
+	"CameraPositionSetter", "MetaStats", "PlayerInventory",
 ]
 var state:PlayerState
 ## The teammate's reported positions, played back a little behind (smooth

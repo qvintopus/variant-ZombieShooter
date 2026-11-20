@@ -15,6 +15,7 @@ const INVENTORY_PATH:String = TD + "resources/ItemCollectionResource/weapon_inve
 const UPGRADES_PATH:String = TD + "resources/global_resources/weapon_upgrade_resource.tres"
 const DATABASE_PATH:String = TD + "resources/ItemCollectionResource/weapon_database.tres"
 const ABILITIES_PATH:String = TD + "resources/global_resources/ability_charges.tres"
+const GRID_PATH:String = TD + "resources/global_resources/inventory_grid.tres"
 ## Run wallet items; boss crystals are meta progress and stay out of it.
 const WALLET_ITEMS:PackedStringArray = ["coin", "meat", "slime"]
 
@@ -33,6 +34,8 @@ var weapon_levels:WeaponUpgradeResource
 var wallet:Dictionary
 ## Ability charges / cooldowns
 var abilities:AbilityChargesResource
+## Inventory cell grid (currency stacks + backpack weapons)
+var grid:InventoryGridResource
 
 ## Mirrored from the network for remote players (PlayerNetSync): the room scene
 ## they are in and the name of the weapon in their hands ("" = fists).
@@ -83,6 +86,7 @@ static func create_local(id:String, name:String)->PlayerState:
 	for _item:String in WALLET_ITEMS:
 		_state.wallet[_item] = LootItems.counter(_item)
 	_state.abilities = load(ABILITIES_PATH)
+	_state.grid = load(GRID_PATH)
 	return _state
 
 ## A co-op teammate: same templates, own copies.
@@ -96,6 +100,8 @@ static func create_remote(id:String, name:String, slot_index:int)->PlayerState:
 	_state.inventory.list = []
 	_state.weapon_levels = WeaponUpgradeResource.new()
 	_state.abilities = AbilityChargesResource.new()
+	# layout only (no database): a teammate's counters aren't ours
+	_state.grid = InventoryGridResource.new()
 	for _item:String in WALLET_ITEMS:
 		var _counter:ScoreResource = (LootItems.counter(_item) as ScoreResource).duplicate()
 		_counter.reset_resource()
@@ -129,6 +135,8 @@ func capture()->PlayerRunData:
 		_data.wallet[_item] = {"value": _counter.value, "collected_total": _counter.collected_total}
 	if abilities != null:
 		_data.abilities = abilities.charges.duplicate()
+	if grid != null:
+		_data.inventory = grid.save_layout()
 	return _data
 
 ## Restores everything but hp, which the player node resets on spawn
@@ -157,6 +165,8 @@ func apply(data:PlayerRunData)->void:
 		_counter.value = int(_entry.get("value", 0))
 		_counter.collected_total = int(_entry.get("collected_total", 0))
 		_counter.updated.emit()
+	if grid != null:
+		grid.load_layout(data.inventory, _database)
 
 ## Name of the weapon in hand ("" = fists), read from the inventory.
 func active_weapon_name()->String:
@@ -183,3 +193,5 @@ func reset()->void:
 		abilities.reset()
 	for _item:String in wallet:
 		(wallet[_item] as ScoreResource).reset_resource()
+	if grid != null:
+		grid.clear()

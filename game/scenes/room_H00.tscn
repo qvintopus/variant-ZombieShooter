@@ -24,6 +24,7 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/slime_resource.tres" id="22_slime_resour"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/weapon_upgrade_resource.tres" id="23_weapon_upgra"]
 [ext_resource type="Resource" uid="uid://btej3lqnjytbl" path="res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres" id="24_weapon_inven"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="95_inv_grid"]
 [ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="25_room_state_r"]
 [ext_resource type="Resource" path="res://game/resources/home_base_resource.tres" id="26_home_base_re"]
 [ext_resource type="Resource" uid="uid://bytbvhnnajqxd" path="res://addons/top_down/resources/ItemCollectionResource/weapon_database.tres" id="27_weapon_datab"]
@@ -825,7 +826,7 @@ text = "NEW GAME+"
 script = ExtResource("17_HomeBase")
 player_reference = ExtResource("18_player_refer")
 scene_transition_resource = ExtResource("19_scene_transi")
-run_resources = Array[Resource]([ExtResource("20_score_resour"), ExtResource("21_meat_resourc"), ExtResource("22_slime_resour"), ExtResource("23_weapon_upgra"), ExtResource("24_weapon_inven"), ExtResource("25_room_state_r")])
+run_resources = Array[Resource]([ExtResource("20_score_resour"), ExtResource("21_meat_resourc"), ExtResource("22_slime_resour"), ExtResource("23_weapon_upgra"), ExtResource("24_weapon_inven"), ExtResource("95_inv_grid"), ExtResource("25_room_state_r")])
 home_base_resource = ExtResource("26_home_base_re")
 weapon_inventory = ExtResource("24_weapon_inven")
 weapon_database = ExtResource("27_weapon_datab")

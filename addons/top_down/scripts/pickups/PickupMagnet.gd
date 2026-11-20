@@ -19,6 +19,10 @@ signal reached_local_player
 @export var axis_multiplication:Vector2Resource
 ## Teammate copies pull too
 @export var remote_group:StringName = &"remote_player"
+## Asks PlayerInventory whether this fits; a full inventory doesn't pull it in
+@export var item_id:StringName
+## Seconds between inventory room checks
+@export var room_check_interval:float = 0.25
 
 @export_group("Editor")
 @export var show_radius_in_editor:bool = true
@@ -26,6 +30,8 @@ signal reached_local_player
 var velocity:Vector2
 var attracted:bool
 var active:bool
+var _room:bool = true
+var _room_check_left:float
 
 func _ready()->void:
 	set_physics_process(false)
@@ -37,6 +43,8 @@ func _ready()->void:
 func start()->void:
 	velocity = Vector2.ZERO
 	attracted = false
+	_room = true
+	_room_check_left = 0.0
 	active = enabled && preset != null
 	set_physics_process(active)
 
@@ -56,7 +64,7 @@ func _nearest_target()->Node2D:
 	var _best:Node2D = null
 	var _best_d:float = INF
 	var _candidates:Array = get_tree().get_nodes_in_group(remote_group)
-	if player_reference != null && is_instance_valid(player_reference.node):
+	if player_reference != null && is_instance_valid(player_reference.node) && _room:
 		_candidates.append(player_reference.node)
 	for _node:Node in _candidates:
 		var _body:Node2D = _node as Node2D
@@ -71,6 +79,7 @@ func _nearest_target()->Node2D:
 func _physics_process(delta:float)->void:
 	if Engine.is_editor_hint() || !active:
 		return
+	_check_room(delta)
 	var _target:Node2D = _nearest_target()
 	var _to:Vector2 = Vector2.ZERO
 	var _dist:float = INF
@@ -93,6 +102,23 @@ func _physics_process(delta:float)->void:
 	if _target != null && player_reference != null && _target == player_reference.node && _dist <= preset.collect_radius:
 		stop()
 		reached_local_player.emit()
+
+## The local player only pulls (and collects) what still fits its inventory.
+func _check_room(delta:float)->void:
+	if item_id.is_empty():
+		return
+	_room_check_left -= delta
+	if _room_check_left > 0.0:
+		return
+	_room_check_left = room_check_interval
+	var _had:bool = _room
+	_room = PlayerInventory.accepts(get_tree(), item_id)
+	if _had && !_room && player_reference != null && is_instance_valid(player_reference.node):
+		var _near:float = _flat((player_reference.node as Node2D).global_position - moved_node.global_position).length()
+		if _near < preset.radius:
+			var _inv:PlayerInventory = PlayerInventory.local(get_tree())
+			if _inv != null:
+				_inv.reject(item_id)
 
 func _draw()->void:
 	if !Engine.is_editor_hint() || !show_radius_in_editor || preset == null:

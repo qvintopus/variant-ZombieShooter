@@ -17,6 +17,8 @@
 [ext_resource type="PackedScene" uid="uid://cfaobhr3r5ymj" path="res://addons/top_down/scenes/arena/enemy_manager.tscn" id="12_iiw1i"]
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="12_wnxyp"]
 [ext_resource type="Resource" uid="uid://ini50pn76erv" path="res://addons/top_down/resources/global_resources/pause_resource.tres" id="14_6pg65"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_open.tres" id="14_invopen"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/BoolResource.gd" id="14_boolscr"]
 [ext_resource type="Resource" uid="uid://ceuk0khv7rbvr" path="res://addons/top_down/resources/InstanceResources/actors/player_instance_resource.tres" id="14_bk0b2"]
 [ext_resource type="Resource" uid="uid://c5cbxaiec2jk1" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="15_j5kfh"]
 [ext_resource type="Script" uid="uid://cuv10g46asj42" path="res://addons/top_down/scripts/game/MusicSetter.gd" id="16_7p4gu"]
@@ -192,6 +194,7 @@ bool_resource = ExtResource("14_6pg65")
 paused_nodes = [NodePath("..")]
 paused_state = 4
 keep_running_online = true
+extra_pause = Array[ExtResource("14_boolscr")]([ExtResource("14_invopen")])
 
 [node name="TransitionProcessingComponent" type="Node" parent="." unique_id=2114243555 node_paths=PackedStringArray("paused_nodes")]
 script = ExtResource("18_igxve")

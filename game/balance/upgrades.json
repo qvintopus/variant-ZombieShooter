@@ -9,6 +9,8 @@
 		{"text": "VITALITY", "pos": [0, -3.75]},
 		{"text": "OFFENSE", "pos": [3, -0.75]},
 		{"text": "MOBILITY", "pos": [-3, -0.75]},
+		{"text": "STORAGE", "pos": [-2.5, 2.75]},
+		{"text": "STORAGE", "pos": [2.5, 2.75]},
 		{"text": "FORTUNE", "pos": [0, 3.75]},
 		{"text": "FRENZY", "pos": [2, -0.75], "tree": "horde"},
 		{"text": "TWINS", "pos": [-1, -0.75], "tree": "horde"},
@@ -102,6 +104,31 @@
 			"title": "Hoarder", "text": "Start each run with {start_coin} coins, {start_meat} meat and {start_slime} slime.",
 			"cost": [{"item": "boss_crystal", "amount": 3}], "requires": ["pocket_meat", "pocket_slime"],
 			"effects": {"start_coin": 10, "start_meat": 5, "start_slime": 3}
+		},
+
+		"pack_wide_1": {
+			"pos": [-2, 2], "icon": "bag",
+			"title": "Wide Pack I", "text": "{inventory_width} inventory column.",
+			"cost": [{"item": "boss_crystal", "amount": 2}], "requires": ["pocket_meat"],
+			"effects": {"inventory_width": 1}
+		},
+		"pack_wide_2": {
+			"pos": [-3, 2], "icon": "bag",
+			"title": "Wide Pack II", "text": "{inventory_width} inventory column.",
+			"cost": [{"item": "boss_crystal", "amount": 4}], "requires": ["pack_wide_1"],
+			"effects": {"inventory_width": 1}
+		},
+		"pack_deep_1": {
+			"pos": [2, 2], "icon": "bag",
+			"title": "Deep Pack I", "text": "{inventory_height} inventory row.",
+			"cost": [{"item": "boss_crystal", "amount": 3}], "requires": ["pocket_slime"],
+			"effects": {"inventory_height": 1}
+		},
+		"pack_deep_2": {
+			"pos": [3, 2], "icon": "bag",
+			"title": "Deep Pack II", "text": "{inventory_height} inventory row.",
+			"cost": [{"item": "boss_crystal", "amount": 6}], "requires": ["pack_deep_1"],
+			"effects": {"inventory_height": 1}
 		},
 
 		"survivor": {

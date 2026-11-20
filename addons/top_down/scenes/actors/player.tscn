@@ -55,6 +55,8 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/abilities/AbilitySlot.gd" id="51_abs"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/abilities/bomb_ability.tres" id="52_bomb"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/ability_charges.tres" id="53_achg"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/PlayerInventory.gd" id="60_pinv"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="61_grid"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -491,6 +493,15 @@ meta_upgrade_resource = ExtResource("34_meta")
 dash_ability = NodePath("../DashAbility")
 damage_cooldown = NodePath("../DamageCooldown")
 weapon_manager = NodePath("../WeaponManager")
+
+[node name="PlayerInventory" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("60_pinv")
+grid = ExtResource("61_grid")
+resource_node = NodePath("../ResourceNode")
+meta_upgrade_resource = ExtResource("34_meta")
+item_pickup_instance_resource = ExtResource("19_pbauh")
+text_instance = ExtResource("43_ptext")
+settings = ExtResource("44_dnset")
 
 [node name="VisualInvulnerability" type="Node" parent="." index="25" node_paths=PackedStringArray("resource_node", "animation_player")]
 script = ExtResource("32_82fau")
