@@ -33,6 +33,8 @@ var immune:bool
 ## Set by DashImmunity while dashing: no hit lands. Own flag so the writers of
 ## `immune` and `can_receive_damage` don't clear it.
 var dash_immune:bool
+## Set by HoleFall while falling into a hole and climbing back out.
+var fall_immune:bool
 ## With dash_immune: damage-over-time ticks (acid, poison, status) skip too.
 var dash_blocks_dot:bool = true
 
@@ -43,11 +45,11 @@ static var points_hook:Callable
 
 ## True when a hit must not land (hit cooldown, co-op immune, dashing).
 func is_blocked()->bool:
-	return !can_receive_damage || immune || dash_immune
+	return !can_receive_damage || immune || dash_immune || fall_immune
 
 ## True when a damage-over-time tick must be skipped (immune or dashing).
 func is_dot_blocked()->bool:
-	return immune || (dash_immune && dash_blocks_dot)
+	return immune || fall_immune || (dash_immune && dash_blocks_dot)
 
 func set_can_receive_damage(value:bool)->void:
 	can_receive_damage = value
