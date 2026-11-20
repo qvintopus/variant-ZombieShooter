@@ -125,23 +125,35 @@ func flash_invalid()->void:
 func _get_drag_data(_at:Vector2)->Variant:
 	if is_empty() || !screen.is_open():
 		return null
+	var _half:bool = screen.split_down()
 	var _preview:TextureRect = TextureRect.new()
 	_preview.texture = icon_rect.texture
 	_preview.position = -icon_rect.texture.get_size() * 0.5
 	var _holder:Control = Control.new()
 	_holder.add_child(_preview)
+	if _half && screen._is_split(self, true):
+		var _count:Label = Label.new()
+		_count.text = str(screen.grid.half_of(index))
+		_count.position = Vector2(1, -2)
+		_count.add_theme_font_size_override("font_size", screen.style.count_font_size)
+		_count.add_theme_color_override("font_outline_color", Color.BLACK)
+		_count.add_theme_constant_override("outline_size", 2)
+		_holder.add_child(_count)
 	set_drag_preview(_holder)
 	screen.on_drag_started(self)
-	return {"inventory_cell": self}
+	return {"inventory_cell": self, "half": _half}
 
 func _can_drop_data(_at:Vector2, data:Variant)->bool:
 	var _from:InventoryCellUI = _cell_of(data)
-	return _from != null && screen.can_place(_from, self)
+	return _from != null && screen.can_place(_from, self, _half_of(data))
 
 func _drop_data(_at:Vector2, data:Variant)->void:
 	var _from:InventoryCellUI = _cell_of(data)
 	if _from != null:
-		screen.place(_from, self)
+		screen.place(_from, self, _half_of(data))
+
+static func _half_of(data:Variant)->bool:
+	return typeof(data) == TYPE_DICTIONARY && bool((data as Dictionary).get("half", false))
 
 static func _cell_of(data:Variant)->InventoryCellUI:
 	if typeof(data) != TYPE_DICTIONARY:
@@ -152,7 +164,7 @@ func _gui_input(event:InputEvent)->void:
 	var _mouse:InputEventMouseButton = event as InputEventMouseButton
 	if _mouse != null && !_mouse.pressed && !get_viewport().gui_is_dragging():
 		if _mouse.button_index == MOUSE_BUTTON_LEFT:
-			screen.press(self)
+			screen.press(self, _mouse.shift_pressed || screen.split_down())
 			accept_event()
 		elif _mouse.button_index == MOUSE_BUTTON_RIGHT:
 			screen.quick_move(self)

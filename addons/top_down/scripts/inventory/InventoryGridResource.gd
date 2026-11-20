@@ -99,8 +99,9 @@ func cells_of(id:StringName)->Array[int]:
 			_out.append(_i)
 	return _out
 
-## Currency stacks follow their counters: as many cells as the amount needs
-## (new ones in the first free cells), full stacks first, the rest in the last.
+## Currency stacks follow their counters. Each stack keeps its own amount (so
+## stacks can be split); a counter going up fills stacks that have room, then
+## new ones in the first free cells; going down empties the last stacks first.
 ## Without room the last stack holds the extra (nothing is ever lost).
 func relayout(emit:bool = true)->void:
 	_ensure()
@@ -110,45 +111,150 @@ func relayout(emit:bool = true)->void:
 	if emit:
 		changed_cells.emit()
 
+func amount_at(index:int)->int:
+	var _entry:Variant = get_cell(index)
+	return int((_entry as Dictionary).get("n", 0)) if _entry != null else 0
+
+func _total(at:Array[int])->int:
+	var _sum:int = 0
+	for _i:int in at:
+		_sum += int(cells[_i].n)
+	return _sum
+
 func _layout_item(def:InventoryItemDef)->void:
-	var _value:int = def.amount()
-	var _need:int = def.stacks_for(_value)
+	var _value:int = maxi(def.amount(), 0)
 	var _at:Array[int] = cells_of(def.id)
-	while _at.size() > _need:
-		cells[_at.pop_back()] = null
-	while _at.size() < _need:
+	if def.is_infinite():
+		# one cell holds it all
+		while _at.size() > 1:
+			cells[_at.pop_back()] = null
+		if _at.is_empty() && def.stacks_for(_value) > 0:
+			var _free:int = first_free()
+			if _free >= 0:
+				cells[_free] = {"id": def.id, "n": 0}
+				_at.append(_free)
+		if !_at.is_empty():
+			if def.stacks_for(_value) == 0:
+				cells[_at[0]] = null
+			else:
+				cells[_at[0]]["n"] = _value
+		return
+	var _diff:int = _value - _total(_at)
+	# more: top up stacks with room, then new stacks
+	for _i:int in _at:
+		if _diff <= 0:
+			break
+		var _room:int = maxi(def.stack_size - int(cells[_i].n), 0)
+		var _add:int = mini(_room, _diff)
+		cells[_i]["n"] = int(cells[_i].n) + _add
+		_diff -= _add
+	while _diff > 0:
 		var _free:int = first_free()
 		if _free < 0:
 			break
-		cells[_free] = {"id": def.id, "n": 0}
+		var _add:int = mini(_diff, def.stack_size)
+		cells[_free] = {"id": def.id, "n": _add}
 		_at.append(_free)
-	_at.sort()
-	var _left:int = _value
-	for _k:int in _at.size():
-		var _n:int = _left if def.is_infinite() || _k == _at.size() - 1 else mini(_left, def.stack_size)
-		cells[_at[_k]]["n"] = maxi(_n, 0)
-		_left -= _n
+		_diff -= _add
+	if _diff > 0 && !_at.is_empty():
+		var _last:int = _at.max()
+		cells[_last]["n"] = int(cells[_last].n) + _diff
+		_diff = 0
+	# less: take from the last stacks first
+	while _diff < 0 && !_at.is_empty():
+		var _i:int = _at.max()
+		var _take:int = mini(int(cells[_i].n), -_diff)
+		cells[_i]["n"] = int(cells[_i].n) - _take
+		_diff += _take
+		if int(cells[_i].n) <= 0:
+			cells[_i] = null
+			_at.erase(_i)
+	# empty stacks left from older layouts
+	for _i:int in _at.duplicate():
+		if int(cells[_i].n) <= 0:
+			cells[_i] = null
+			_at.erase(_i)
+	if _at.is_empty() && def.show_when_zero:
+		var _free:int = first_free()
+		if _free >= 0:
+			cells[_free] = {"id": def.id, "n": 0}
 
 ## Room for `amount` more of `id`? Unknown ids and unlimited stacks always fit.
 func can_accept(id:StringName, amount:int = 1)->bool:
 	if database == null:
 		return true
 	var _def:InventoryItemDef = database.def(id)
-	if _def == null || _def.kind != InventoryItemDef.Kind.CURRENCY:
+	if _def == null || _def.kind != InventoryItemDef.Kind.CURRENCY || _def.is_infinite():
 		return true
 	_ensure()
-	return _def.stacks_for(_def.amount() + amount) <= cells_of(id).size() + free_count()
+	var _room:int = free_count() * _def.stack_size
+	for _i:int in cells_of(id):
+		_room += maxi(_def.stack_size - int(cells[_i].n), 0)
+	return _room >= amount
 
-## Swaps two cells. False when nothing moved.
+func _def_at(index:int)->InventoryItemDef:
+	var _entry:Variant = get_cell(index)
+	if _entry == null || !(_entry as Dictionary).has("id") || database == null:
+		return null
+	return database.def(_entry.id)
+
+## Moves a cell onto another: the same item merges (up to a full stack, the
+## rest stays), anything else swaps. False when nothing moved.
 func move(from:int, to:int)->bool:
 	_ensure()
 	if from == to || from < 0 || to < 0 || from >= cells.size() || to >= cells.size() || cells[from] == null:
 		return false
+	var _def:InventoryItemDef = _def_at(from)
+	if _def != null && !_def.is_infinite() && _def_at(to) == _def:
+		var _room:int = maxi(_def.stack_size - amount_at(to), 0)
+		if _room > 0:
+			_shift(from, to, mini(_room, amount_at(from)))
+			changed_cells.emit()
+			return true
 	var _tmp:Variant = cells[to]
 	cells[to] = cells[from]
 	cells[from] = _tmp
 	relayout()
 	return true
+
+## How much of a stack a split takes (the bigger half).
+func half_of(index:int)->int:
+	return ceili(amount_at(index) / 2.0)
+
+## Can `from` be split onto `to` (empty cell or the same item with room)?
+func can_split(from:int, to:int)->bool:
+	var _def:InventoryItemDef = _def_at(from)
+	if _def == null || _def.is_infinite() || from == to || amount_at(from) < 2:
+		return false
+	var _target:Variant = get_cell(to)
+	if _target == null:
+		return to >= 0 && to < cells.size()
+	return _def_at(to) == _def && amount_at(to) < _def.stack_size
+
+## Moves `amount` (default: half) of a stack into an empty cell or onto the
+## same item. False when nothing moved.
+func split(from:int, to:int, amount:int = -1)->bool:
+	_ensure()
+	if !can_split(from, to):
+		return false
+	var _def:InventoryItemDef = _def_at(from)
+	if amount < 0:
+		amount = half_of(from)
+	amount = mini(amount, amount_at(from))
+	if cells[to] == null:
+		cells[to] = {"id": _def.id, "n": 0}
+	amount = mini(amount, maxi(_def.stack_size - amount_at(to), 0))
+	if amount <= 0:
+		return false
+	_shift(from, to, amount)
+	changed_cells.emit()
+	return true
+
+func _shift(from:int, to:int, amount:int)->void:
+	cells[to]["n"] = amount_at(to) + amount
+	cells[from]["n"] = amount_at(from) - amount
+	if amount_at(from) <= 0:
+		cells[from] = null
 
 ## Weapon into a cell (first free by default). False when there's no room.
 func put_weapon(item:ItemResource, cell:int = -1)->bool:
@@ -204,7 +310,7 @@ func clear_weapons()->void:
 			cells[_i] = null
 	changed_cells.emit()
 
-## Saved form: one string per cell ("" empty, item id, or "@WeaponName").
+## Saved form: one string per cell ("" empty, "id:amount", or "@WeaponName").
 func save_layout()->PackedStringArray:
 	_ensure()
 	var _out:PackedStringArray = []
@@ -214,7 +320,7 @@ func save_layout()->PackedStringArray:
 		elif (_entry as Dictionary).has("weapon"):
 			_out.append(WEAPON_PREFIX + (_entry.weapon as ItemResource).resource_name)
 		else:
-			_out.append(String(_entry.id))
+			_out.append("%s:%d" % [_entry.id, int(_entry.get("n", 0))])
 	return _out
 
 ## Restores a saved layout; weapons are looked up by name, cells that don't
@@ -230,8 +336,10 @@ func load_layout(layout:PackedStringArray, weapon_database:ItemCollectionResourc
 			var _item:ItemResource = HomeBaseResource.find_item(weapon_database, _text.substr(1)) if weapon_database != null else null
 			if _item != null:
 				_entry = {"weapon": _item}
-		elif !_text.is_empty() && database != null && database.def(StringName(_text)) != null:
-			_entry = {"id": StringName(_text), "n": 0}
+		elif !_text.is_empty() && database != null:
+			var _parts:PackedStringArray = _text.split(":")
+			if database.def(StringName(_parts[0])) != null:
+				_entry = {"id": StringName(_parts[0]), "n": maxi(_parts[1].to_int(), 0) if _parts.size() > 1 else 0}
 		if _entry == null:
 			continue
 		if _i < cells.size():
