@@ -46,6 +46,11 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="42_pev"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/pickup_text_instance_resource.tres" id="43_ptext"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="44_dnset"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/HoleFall.gd" id="45_hfall"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/hole_fall/fall_default.tres" id="46_hfp"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/land_dust_instance.tres" id="47_dust"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_fall.tres" id="48_fsnd"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_land.tres" id="49_lsnd"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -421,11 +426,25 @@ script = ExtResource("28_ww0nn")
 obstacle_tilemap_reference = ExtResource("29_4dv8f")
 actor = NodePath("..")
 
-[node name="HoleRecovery" type="Node" parent="." index="24" node_paths=PackedStringArray("safe_tile_tracker", "resource_node", "hole_trigger")]
+[node name="HoleRecovery" type="Node" parent="." index="24" node_paths=PackedStringArray("safe_tile_tracker", "resource_node", "hole_trigger", "hole_fall")]
 script = ExtResource("30_n8poo")
 safe_tile_tracker = NodePath("../SafeTileTracker")
 resource_node = NodePath("../ResourceNode")
 hole_trigger = NodePath("../HoleTrigger")
+hole_fall = NodePath("../HoleFall")
+
+[node name="HoleFall" type="Node" parent="." node_paths=PackedStringArray("resource_node", "safe_tile_tracker", "player_input", "visual_node", "tint_node", "shadow_node")]
+script = ExtResource("45_hfall")
+preset = ExtResource("46_hfp")
+resource_node = NodePath("../ResourceNode")
+safe_tile_tracker = NodePath("../SafeTileTracker")
+player_input = NodePath("../PlayerInput")
+visual_node = NodePath("../Body")
+tint_node = NodePath("../Body/Stretch/Sprite2D")
+shadow_node = NodePath("../Shadow")
+land_dust = ExtResource("47_dust")
+fall_sound = ExtResource("48_fsnd")
+land_sound = ExtResource("49_lsnd")
 
 [node name="PoisonEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("32_poison")

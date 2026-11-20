@@ -8,6 +8,7 @@ const ROOM:String = "res://game/scenes/room_A02.tscn"
 var failures:int = 0
 var checks:int = 0
 var player:Node2D
+var spawn_pos:Vector2
 
 func check(condition:bool, label:String)->void:
 	checks += 1
@@ -22,9 +23,12 @@ func _ready()->void:
 	player = (load(TD + "resources/ReferenceNodeResources/player_reference.tres") as ReferenceNodeResource).node
 	check(player != null, "room has player")
 	if player != null:
+		spawn_pos = player.global_position
+	if player != null:
 		await _check_dash_immunity()
 		await _check_damage_numbers()
 		await _check_pickups()
+		await _check_hole_fall()
 	await _check_menus()
 	_finish()
 
@@ -167,17 +171,64 @@ func _check_pickups()->void:
 	await _frames(30)
 	check(_far.is_inside_tree() && !_far.get_node("PickupMagnet").attracted, "coin out of range stays")
 	# kiting: player moves away faster than max speed -> coin loses it
-	var _kite:Node2D = await _spawn_coin(player.global_position + Vector2(40, 0))
-	var _km:PickupMagnet = _kite.get_node("PickupMagnet")
+	var _kite_res:InstanceResource = load(TD + "resources/InstanceResources/pickups/coin_instance_resource.tres")
+	var _kite:Node2D = _kite_res.instance(func (n:Node2D)->void: n.global_position = player.global_position + Vector2(-28, 0))
+	var _km:PickupMagnet = null
 	var _ever:bool = false
-	for i:int in 120:
-		player.global_position += Vector2(-1.5, 0)
+	for i:int in 60:
 		await get_tree().physics_frame
-		_ever = _ever || _km.attracted
+		if _km == null && _kite.is_inside_tree():
+			_km = _kite.get_node("PickupMagnet")
+		if _km != null && _km.attracted:
+			_ever = true
+			break
+	for i:int in 120:
+		player.global_position += Vector2(1.5, 0)
+		await get_tree().physics_frame
 	check(_ever, "kite coin attracted")
 	check(_kite.is_inside_tree() && !_km.attracted, "running away from a coin loses it")
 	check(_km.velocity.length() <= _km.preset.max_speed + 0.01, "coin speed capped")
 	_far.get_node("PoolNode").pool_return()
 	_kite.get_node("PoolNode").pool_return()
+	player.global_position = spawn_pos
 	if _mover != null:
 		_mover.process_mode = Node.PROCESS_MODE_INHERIT
+
+func _check_hole_fall()->void:
+	var _fall:HoleFall = player.get_node_or_null("HoleFall")
+	var _recovery:HoleRecovery = player.get_node_or_null("HoleRecovery")
+	check(_fall != null && _recovery != null && _recovery.hole_fall == _fall, "player has HoleFall wired to HoleRecovery")
+	if _fall == null:
+		return
+	var _res:ResourceNode = player.get_node("ResourceNode")
+	var _health:HealthResource = _res.get_resource("health")
+	var _damage:DamageResource = _res.get_resource("damage")
+	player.global_position = spawn_pos
+	for i:int in 120:
+		if !_fall.falling:
+			break
+		await get_tree().physics_frame
+	await _frames(40)
+	_damage.set_can_receive_damage(true)
+	_health.hp = _health.max_hp
+	var _safe:Vector2 = player.global_position
+	player.global_position += Vector2(10, 0)
+	_recovery._on_hole_touched()
+	check(_fall.falling && _damage.fall_immune, "falling and immune")
+	check(!player.get_node("PlayerInput").is_physics_processing(), "input locked while falling")
+	_recovery._on_hole_touched()
+	await _frames(12)
+	var _body:Node2D = player.get_node("Body")
+	check(_body.scale.x < 0.9, "body shrinks while sinking")
+	check(_health.hp == _health.max_hp, "no damage before landing")
+	for i:int in 90:
+		await get_tree().physics_frame
+		if !_fall.falling:
+			break
+	check(!_fall.falling && !_damage.fall_immune, "fall ends")
+	check(player.global_position.distance_to(_safe) < 16.0, "lands near the safe spot (%s vs %s)" % [player.global_position, _safe])
+	check(_health.hp == _health.max_hp - _recovery.hole_damage, "hole damage once on landing")
+	check(player.get_node("PlayerInput").is_physics_processing(), "input back after landing")
+	await _frames(10)
+	check(is_equal_approx(_body.scale.x, 1.0), "body scale restored")
+	_health.hp = _health.max_hp
