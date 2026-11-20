@@ -172,6 +172,13 @@ theme_override_font_sizes/font_size = 8
 text = "Ability"
 vertical_alignment = 1
 
+[node name="LabelInventory" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer"]
+custom_minimum_size = Vector2(60, 16)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Inventory"
+vertical_alignment = 1
+
 [node name="LabelPause" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer" unique_id=977188758]
 custom_minimum_size = Vector2(60, 16)
 layout_mode = 2
@@ -305,6 +312,13 @@ focus_neighbor_right = NodePath("../../VBoxContainer3/ButtonAbility1Gp")
 texture_normal = null
 action_name = &"ability_1"
 event_variable = &"ability_1_kb"
+
+[node name="ButtonInventoryKb" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer2" instance=ExtResource("2_lok53")]
+layout_mode = 2
+focus_neighbor_right = NodePath("../../VBoxContainer3/ButtonInventoryGp")
+texture_normal = null
+action_name = &"inventory"
+event_variable = &"inventory_kb"
 
 [node name="ButtonPauseKb" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer2" unique_id=660191312 instance=ExtResource("2_lok53")]
 layout_mode = 2
@@ -441,6 +455,14 @@ focus_neighbor_left = NodePath("../../VBoxContainer2/ButtonAbility1Kb")
 texture_normal = null
 action_name = &"ability_1"
 event_variable = &"ability_1_gp"
+type = 1
+
+[node name="ButtonInventoryGp" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer3" instance=ExtResource("2_lok53")]
+layout_mode = 2
+focus_neighbor_left = NodePath("../../VBoxContainer2/ButtonInventoryKb")
+texture_normal = null
+action_name = &"inventory"
+event_variable = &"inventory_gp"
 type = 1
 
 [node name="ButtonPauseGp" parent="MarginContainer/VBoxContainer/ScrollContainer/HBoxContainer/Player1/VBoxContainer3" unique_id=2135493764 instance=ExtResource("2_lok53")]

@@ -11,6 +11,7 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/slime_resource.tres" id="9_slime_resour"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/weapon_upgrade_resource.tres" id="10_weapon_upgra"]
 [ext_resource type="Resource" uid="uid://btej3lqnjytbl" path="res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres" id="11_weapon_inven"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="95_inv_grid"]
 [ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="12_room_state_r"]
 [ext_resource type="Script" uid="uid://dnnatgkr4qvoh" path="res://game/scripts/FreshStart.gd" id="13_FreshStart"]
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="14_player_refer"]
@@ -258,7 +259,7 @@ script = ExtResource("13_FreshStart")
 player_reference = ExtResource("14_player_refer")
 scene_transition_resource = ExtResource("15_scene_transi")
 campaign_resource = ExtResource("16_campaign_res")
-run_resources = Array[Resource]([ExtResource("7_score_resour"), ExtResource("8_meat_resourc"), ExtResource("9_slime_resour"), ExtResource("10_weapon_upgra"), ExtResource("11_weapon_inven"), ExtResource("12_room_state_r")])
+run_resources = Array[Resource]([ExtResource("7_score_resour"), ExtResource("8_meat_resourc"), ExtResource("9_slime_resour"), ExtResource("10_weapon_upgra"), ExtResource("11_weapon_inven"), ExtResource("95_inv_grid"), ExtResource("12_room_state_r")])
 
 [node name="StartingWeapon" type="Node2D" parent="." node_paths=PackedStringArray("exit_nodes", "position_nodes")]
 script = ExtResource("17_StartingWeap")

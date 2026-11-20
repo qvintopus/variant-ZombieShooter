@@ -21,6 +21,7 @@ const PLAYER_INSTANCE_PATH:String = TD + "resources/InstanceResources/actors/pla
 const TRANSITION_PATH:String = TD + "resources/global_resources/scene_transition_resource.tres"
 const TRANSITION_BOOL_PATH:String = TD + "resources/global_resources/transition_bool_resource.tres"
 const PAUSE_PATH:String = TD + "resources/global_resources/pause_resource.tres"
+const INVENTORY_OPEN_PATH:String = TD + "resources/global_resources/inventory_open.tres"
 const DATABASE_PATH:String = TD + "resources/ItemCollectionResource/weapon_database.tres"
 const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 const HOME_BASE_PATH:String = "res://game/resources/home_base_resource.tres"
@@ -39,6 +40,7 @@ var player_reference:ReferenceNodeResource
 var scene_transition:SceneTransitionResource
 var transition_bool:BoolResource
 var pause_resource:BoolResource
+var inventory_open:BoolResource
 
 ## slot -> RemotePlayer puppet node (the player body)
 var puppets:Dictionary = {}
@@ -80,6 +82,8 @@ func _ready()->void:
 	transition_bool = load(TRANSITION_BOOL_PATH)
 	pause_resource = load(PAUSE_PATH)
 	pause_resource.updated.connect(_on_pause_changed)
+	inventory_open = load(INVENTORY_OPEN_PATH)
+	inventory_open.updated.connect(_on_pause_changed)
 	var _net:Node = get_parent()
 	_net.roster_changed.connect(_on_roster_changed)
 	_net.session_ended.connect(_on_session_ended)
@@ -537,12 +541,13 @@ func reclaim_weapons(state:PlayerState)->void:
 	var _at:Vector2 = _puppet.global_position if _puppet != null && is_instance_valid(_puppet) else current_home().water_gun_spot.global_position
 	var _database:ItemCollectionResource = load(DATABASE_PATH)
 	var _i:int = 0
-	for _name:String in state.guest_run_data.weapons:
+	for _name:String in state.guest_run_data.all_weapons():
 		var _item:ItemResource = HomeBaseResource.find_item(_database, _name)
 		if _item != null:
 			Net.entities.drop_item(_item, _at + Vector2(6.0 * _i, 0.0))
 			_i += 1
 	state.guest_run_data.weapons = PackedStringArray()
+	state.guest_run_data.inventory = PackedStringArray()
 
 ## Host leaving its home base for a mission: weapons guests here hold beyond the
 ## one in hand (that one goes along).
@@ -555,6 +560,7 @@ func guest_spare_weapons()->PackedStringArray:
 		for _i:int in _weapons.size():
 			if _i != clampi(_state.guest_run_data.selected, 0, _weapons.size() - 1):
 				_names.append(_weapons[_i])
+		_names.append_array(InventoryGridResource.layout_weapons(_state.guest_run_data.inventory))
 	return _names
 
 # --- Co-op checkpoint ------------------------------------------------------------
@@ -779,7 +785,7 @@ func send_ghost_rewards()->void:
 		return
 	for _state:PlayerState in RunSession.players.all():
 		if _state.ghost && _state.parked && _state.guest_run_data != null:
-			_ghost_rewards.rpc_id(_state.peer_id, _state.guest_run_data.weapons)
+			_ghost_rewards.rpc_id(_state.peer_id, _state.guest_run_data.all_weapons().slice(0, PlayerRunData.MAX_WEAPONS))
 
 @rpc("authority", "call_remote", "reliable")
 func _ghost_rewards(weapons:PackedStringArray)->void:
@@ -819,7 +825,7 @@ func _on_pause_changed()->void:
 	var _input:Node = _body.get_node_or_null("PlayerInput") if _body != null else null
 	if _input == null:
 		return
-	if !pause_resource.value:
+	if !pause_resource.value && !inventory_open.value:
 		_input.set_enabled(true)
 		return
 	if !net().is_online():

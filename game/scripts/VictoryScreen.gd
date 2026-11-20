@@ -173,7 +173,11 @@ func _stash_weapons() -> void:
 	# a ghost-tier co-op guest keeps nothing (GuestTier)
 	if !GuestTier.keeps_loot():
 		return
-	var inventory: ItemCollectionResource = WEAPON_INVENTORY
+	var inventory: ItemCollectionResource = ItemCollectionResource.new()
+	inventory.list = WEAPON_INVENTORY.list.duplicate()
+	# backpack weapons (inventory grid) come home too
+	var grid: InventoryGridResource = load("res://addons/top_down/resources/global_resources/inventory_grid.tres")
+	inventory.list.append_array(grid.weapons())
 	if inventory.list.is_empty():
 		return
 	HOME_BASE.stash_weapons(inventory)

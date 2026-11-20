@@ -19,6 +19,7 @@ const RUN_RESOURCE_PATHS:PackedStringArray = [
 	TD + "resources/global_resources/slime_resource.tres",
 	TD + "resources/global_resources/weapon_upgrade_resource.tres",
 	TD + "resources/ItemCollectionResource/weapon_inventory.tres",
+	TD + "resources/global_resources/inventory_grid.tres",
 	TD + "resources/global_resources/room_state_resource.tres",
 ]
 ## Shared run state stored in every checkpoint. New state: one script here.

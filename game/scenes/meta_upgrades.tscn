@@ -10,7 +10,7 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/sounds/interact_denied.tres" id="8_denied"]
 [ext_resource type="Resource" uid="uid://b1hy8aowwa5hq" path="res://addons/top_down/resources/sounds/menu_back.tres" id="9_back"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/game/MusicSetter.gd" id="10_music"]
-[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/gui/meta_icons_12x12_strip10.png" id="11_icons"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/gui/meta_icons_12x12_strip11.png" id="11_icons"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
 content_margin_left = 6.0

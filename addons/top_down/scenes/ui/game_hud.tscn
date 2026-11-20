@@ -31,6 +31,8 @@
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="52_pref"]
 [ext_resource type="Resource" uid="uid://dsk5usbvnbqi3" path="res://addons/top_down/resources/global_resources/action_resource.tres" id="53_act"]
 
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/ui/inventory/inventory_screen.tscn" id="60_inv"]
+
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bpmqm"]
 
 [node name="GameHud" type="CanvasLayer" unique_id=2049231566]
@@ -342,3 +344,6 @@ offset_bottom = 16.0
 expand_mode = 2
 stretch_mode = 4
 flip_h = true
+
+[node name="InventoryScreen" parent="." node_paths=PackedStringArray("hud_hotbar") instance=ExtResource("60_inv")]
+hud_hotbar = NodePath("../WeaponInventory")
