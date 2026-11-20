@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="InventoryItemDef" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="InventoryItemDef" format=3 uid="uid://cp7icrw6swof4"]
 
-[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryItemDef.gd" id="1_def"]
-[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/items/meat_8x8_strip3.png" id="2_img"]
+[ext_resource type="Script" uid="uid://dr1eavhl3dc0s" path="res://addons/top_down/scripts/inventory/InventoryItemDef.gd" id="1_def"]
+[ext_resource type="Texture2D" uid="uid://charsjkd21pf8" path="res://addons/top_down/assets/images/items/meat_8x8_strip3.png" id="2_img"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/meat_resource.tres" id="3_cnt"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_icon"]
@@ -13,8 +13,6 @@ script = ExtResource("1_def")
 id = &"meat"
 display_name = "Meat Chunks"
 icon = SubResource("AtlasTexture_icon")
-stack_size = 999
 counter = ExtResource("3_cnt")
 sort_order = 1
-show_when_zero = false
 auto_stash = true

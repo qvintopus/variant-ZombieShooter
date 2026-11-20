@@ -2,6 +2,15 @@
 
 [ext_resource type="Script" uid="uid://dejsgrsf4wniy" path="res://addons/top_down/scripts/input/ActionResource.gd" id="2_l8ve6"]
 
+[sub_resource type="InputEventJoypadMotion" id="InputEventJoypadMotion_ability1"]
+axis = 4
+axis_value = 1.0
+
+[sub_resource type="InputEventKey" id="InputEventKey_ability1"]
+device = -1
+physical_keycode = 81
+unicode = 113
+
 [sub_resource type="InputEventJoypadMotion" id="InputEventJoypadMotion_ugoik"]
 axis = 5
 axis_value = 1.0
@@ -42,22 +51,6 @@ device = -1
 physical_keycode = 83
 unicode = 115
 
-[sub_resource type="InputEventKey" id="InputEventKey_ability1"]
-device = -1
-physical_keycode = 81
-unicode = 113
-
-[sub_resource type="InputEventJoypadMotion" id="InputEventJoypadMotion_ability1"]
-axis = 4
-axis_value = 1.0
-
-[sub_resource type="InputEventKey" id="InputEventKey_inventory"]
-device = -1
-physical_keycode = 4194306
-
-[sub_resource type="InputEventJoypadButton" id="InputEventJoypadButton_inventory"]
-button_index = 4
-
 [sub_resource type="InputEventJoypadButton" id="InputEventJoypadButton_drop"]
 button_index = 3
 
@@ -71,6 +64,13 @@ button_index = 2
 [sub_resource type="InputEventKey" id="InputEventKey_interact"]
 device = -1
 physical_keycode = 69
+
+[sub_resource type="InputEventJoypadButton" id="InputEventJoypadButton_inventory"]
+button_index = 4
+
+[sub_resource type="InputEventKey" id="InputEventKey_inventory"]
+device = -1
+physical_keycode = 4194306
 
 [sub_resource type="InputEventJoypadMotion" id="InputEventJoypadMotion_58jlk"]
 axis_value = -1.0

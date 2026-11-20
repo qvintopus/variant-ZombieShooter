@@ -96,17 +96,21 @@ func _ready()->void:
 		[{"drop": "coin", "amount": 5, "weight": 1}, "zs_slot_coins.tscn", ["5"]],
 		[{"drop": "weapon", "weight": 1}, "zs_slot_jackpot.tscn", []],
 	]
+	var _punch:CameraPunch = _room.get_node("CameraPunch")
 	var _dropped_weapons:Array[ItemResource] = []
 	_slot.paid_out.connect(func (_drop:String, _amount:int, weapon:ItemResource)->void: _dropped_weapons.append(weapon))
 	for _case:Array in _cases:
 		_slot.payouts = [_case[0]]
 		zen_played.clear()
+		var _punches:int = _punch.played
 		await _press_interact()
 		await get_tree().create_timer(1.3).timeout
 		# the jackpot names whichever weapon the random pick dropped
 		var _args:Array = _case[2] if _case[0].drop != "weapon" else [_announcer.weapon_name(_dropped_weapons.back())]
 		check(_case[0].drop != "weapon" || _dropped_weapons.back() != null, "slot dropped a weapon")
 		check_zen(_case[1], _args, "slot %s zen" % _case[0].drop)
+		var _want:CameraPunchPreset = null if _case[0].drop == "nothing" else _punch.jackpot if _case[0].drop == "weapon" else _punch.spin
+		check(_punch.played == _punches + (0 if _want == null else 1) && (_want == null || _punch.last_preset == _want), "slot %s camera punch" % _case[0].drop)
 
 	_finish()
 
