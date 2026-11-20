@@ -3,8 +3,8 @@
 ## the rooms keep working as they do around a host's player: the spawner carries
 ## it through doors, player_reference points at it, and nothing else changes.
 ##
-## Here it only follows the party leader (the active guest with the lowest slot
-## in this room) and never dies, unless the whole party is down (wipe()).
+## Here it only follows the party leader (the main player, else the active guest
+## with the lowest slot in this room) and never dies, unless the whole party is down (wipe()).
 class_name ServerAnchor
 extends Node
 
@@ -46,16 +46,21 @@ func _physics_process(_delta:float)->void:
 	if _leader != null:
 		body().global_position = _leader.global_position
 
-## The active guest with the lowest slot whose copy is in this room.
+## The main player when it is active with its copy in this room, else the
+## active guest with the lowest slot whose copy is.
 static func leader()->Node2D:
 	var _slots:Array = Net.players.puppets.keys()
 	_slots.sort()
+	var _first:Node2D = null
 	for _slot:int in _slots:
 		var _state:PlayerState = RunSession.players.get_state(_slot)
 		var _puppet:Node2D = Net.players.puppets[_slot]
 		if _state != null && _state.is_active() && is_instance_valid(_puppet) && _puppet.is_inside_tree():
-			return _puppet
-	return null
+			if _state.main:
+				return _puppet
+			if _first == null:
+				_first = _puppet
+	return _first
 
 ## The whole party is down: the run ends here as it does for a host.
 func wipe()->void:

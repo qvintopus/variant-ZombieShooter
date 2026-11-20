@@ -146,13 +146,24 @@ func _dress_local()->void:
 		var _visual:Node2D = _body.get_node_or_null("Body")
 		if _visual != null:
 			_visual.modulate.a = GuestTier.alpha(_local)
-	if _body == null || (_body == _dressed_body && _slot == _dressed_slot):
-		return
-	_dressed_body = _body
-	_dressed_slot = _slot
-	PlayerSkin.apply(_body, _slot)
+	if _body != null && (_body != _dressed_body || _slot != _dressed_slot || PlayerSkin.outdated(_body, _local)):
+		_dressed_body = _body
+		_dressed_slot = _slot
+		PlayerSkin.apply(_body, _local)
+	# a teammate became (or stopped being) the dedicated server's main player
+	for _puppet_slot:int in puppets:
+		if !is_instance_valid(puppets[_puppet_slot]):
+			continue   # freed: dropped below this frame
+		var _state:PlayerState = RunSession.players.get_state(_puppet_slot)
+		if _state != null && PlayerSkin.outdated(puppets[_puppet_slot], _state):
+			PlayerSkin.apply(puppets[_puppet_slot], _state)
 
 # --- Rooms --------------------------------------------------------------------
+
+## The current scene is already known (hosting from the title: being on it isn't
+## arriving at it, which would end the session; the next scene is then the party's room).
+func mark_scene_seen()->void:
+	_scene = get_tree().current_scene
 
 func _watch_scene()->void:
 	var _now:Node = get_tree().current_scene
@@ -377,6 +388,10 @@ func _player_update(data:Array)->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || _state.ghost || !_valid_update(data):
 		return
+	# moving, aiming, down or waiting at a door: not idle (Net idle kick)
+	if (data[2] as Vector2) != Vector2.ZERO || (data[3] as Vector2) != _state.last_aim || data[7] || data[9]:
+		_state.idle_time = 0.0
+	_state.last_aim = data[3]
 	apply_update(_state, data)
 
 func _sender_state()->PlayerState:
@@ -620,6 +635,7 @@ func _going_ghost(parked:bool, data:Dictionary)->void:
 		return
 	reclaim_weapons(_state)
 	var _parsed:PlayerRunData = PlayerRunData.from_dict(data) if parked else null
+	_state.idle_time = 0.0   # a ghost's idle time is how long it's away
 	_state.ghost = true
 	_state.waiting = false
 	_state.ghost_room = ""
@@ -683,6 +699,7 @@ func _ghost_return()->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || !_state.ghost:
 		return
+	_state.idle_time = 0.0
 	_state.ghost = false
 	_state.ghost_room = ""
 	_remove_puppet(_state.slot)
@@ -744,7 +761,7 @@ func _ghost_rewards(weapons:PackedStringArray)->void:
 	if !net().is_ghost() || weapons.size() > PlayerRunData.MAX_WEAPONS:
 		return
 	# a ghost-tier guest keeps nothing from the host's run (GuestTier)
-	if !RunSession.local_player().electrician:
+	if !GuestTier.full(RunSession.local_player()):
 		return
 	var _database:ItemCollectionResource = load(DATABASE_PATH)
 	var _carried:ItemCollectionResource = ItemCollectionResource.new()

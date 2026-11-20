@@ -3,7 +3,8 @@
 ## victory, boss crystals collected in the session are taken back when it ends).
 ## An electrician brings its loot home like the host does. A guest is an
 ## electrician when the host owns Electrician Bay (CO-OP tree) or the guest
-## printed an electrician shell (Robot Printer, ShellPrinter).
+## printed an electrician shell (Robot Printer, ShellPrinter). A dedicated server's
+## main player (the plumber, PlayerState.main) is never a ghost, upgrades or not.
 ##
 ## The host decides at the handshake (Net._hello); the tier travels in the roster.
 ## On missions both tiers look the same.
@@ -36,10 +37,15 @@ static func has_shell()->bool:
 static func decide(guest_has_shell:bool)->bool:
 	return host_grants_electricians() || guest_has_shell
 
-## Guest, joined (or back from its own home base) with this tier.
+## Plays at the full tier: an electrician, or the dedicated server's main player.
+static func full(state:PlayerState)->bool:
+	return state != null && (state.electrician || state.main)
+
+## Guest, joined (or back from its own home base) with this tier. Call it again
+## when the tier or the main seat changes.
 static func enter(electrician:bool)->void:
 	RunSession.local_player().electrician = electrician
-	if electrician:
+	if full(RunSession.local_player()):
 		_release()
 		return
 	var _crystals:ScoreResource = load(CRYSTALS_PATH)
@@ -64,11 +70,11 @@ static func _release()->void:
 
 ## A ghost-tier guest's victory weapons don't join its stash.
 static func keeps_loot()->bool:
-	return !Net.is_guest() || RunSession.local_player().electrician
+	return !Net.is_guest() || full(RunSession.local_player())
 
 ## How solid a player is drawn: ghost-tier guests are faint in the host's home base.
 static func alpha(state:PlayerState)->float:
-	if state == null || state.slot == 0 || state.electrician || state.hidden:
+	if state == null || state.slot == 0 || full(state) || state.hidden:
 		return 1.0
 	if !Net.is_online():
 		return 1.0

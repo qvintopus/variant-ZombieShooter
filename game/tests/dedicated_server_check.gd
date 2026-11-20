@@ -4,7 +4,14 @@
 ## row), counts only real players for scaling, and that the hidden player is
 ## invisible, untouchable, never hurt and kept on the player; that walking onto
 ## the exit gate takes the server (and so us) to the mission; and that the
-## server's saves land in its own folder.
+## server's saves land in its own folder. Then drives its console (stdin):
+## players, status, kick usage, an unknown command, and stop, which saves the run,
+## tells us and quits. The same commands over the control channel (--control: the
+## launcher menu's way in): the token, info, players. Also the console's vlan_auto
+## plumbing (paths, result line). The main player: we join first, so we wear the
+## plumber; "main free" / "main <slot>" hand it over, and leaving mid-run parks
+## our run; we were the only player, so the seat is freed and we get it again as
+## the first to rejoin.
 ##   Godot --headless --path . res://game/tests/dedicated_server_check.tscn
 extends Node
 
@@ -57,7 +64,10 @@ func _run()->void:
 	check(Net.players.puppets.is_empty(), "player: no copy of the server's player in the room")
 	var _panel:PartyPanel = _find(get_tree().root, func (n:Node)->bool: return n is PartyPanel) as PartyPanel
 	check(_panel == null || _panel.rows.is_empty(), "player: no party panel row for the server")
-	check((_body().get_node("Body/Stretch/Sprite2D") as Sprite2D).texture == PlayerSkin.GUEST_TEXTURE, "player: wears the electrician (no visible host)")
+	check(RunSession.local_player().main, "player: the first to join is the main player")
+	check(_texture() == PlayerSkin.HOST_TEXTURE, "player: the main player wears the plumber")
+	check(!RunSession.local_player().electrician && GuestTier.full(RunSession.local_player()) && GuestTier.keeps_loot() && GuestTier.alpha(RunSession.local_player()) == 1.0, "player: the main player is never a ghost, without an upgrade too")
+	check(!(load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, "player: the main player keeps its crystals")
 
 	# the hidden player sits on us and is untouchable
 	_body().global_position += Vector2(24, 8)
@@ -80,7 +90,86 @@ func _run()->void:
 
 	check(FileAccess.file_exists(_save_dir.path_join("Profile.tres")), "server: saves in its own folder")
 	check(!FileAccess.file_exists("user://Profile_server.tres"), "server: nothing extra in the user folder")
+
+	# the console
+	_say("players")
+	check(await _wait(func ()->bool: return _read().contains(" * slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), 5.0), "console: players lists us, as the main player")
+	_say("status")
+	check(await _wait(func ()->bool: return _read().contains("room room_N00, 1 player(s)"), 5.0), "console: status shows the room and players")
+	_say("kick")
+	check(await _wait(func ()->bool: return _read().contains("usage: kick <slot>"), 5.0), "console: kick without a slot shows its usage")
+	_say("frobnicate")
+	check(await _wait(func ()->bool: return _read().contains("unknown command 'frobnicate'"), 5.0), "console: unknown commands are named")
+	# the control channel (the launcher menu)
+	var _control:Dictionary = _read_control()
+	check(int(_control.get("pid", "0")) > 0 && int(_control.get("control_port", "0")) > 0 && str(_control.get("token", "")).length() == 32, "control: file with pid, port and token (%s)" % _control.keys())
+	var _reply:String = await _request(_control, "info")
+	check(_reply.contains("INFO room=room_N00 players=1 ") && _reply.contains("port=%d" % PORT) && _reply.contains("name=Server"), "control: info answered (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "players")
+	check(_reply.contains("slot %d  %s" % [RunSession.players.local_slot, RunSession.local_player().display_name]), "control: players answered")
+	_reply = await _request({"control_port": _control.get("control_port", "0"), "token": "nope"}, "stop")
+	check(_reply.contains("bad token") && OS.is_process_running(_server.pid), "control: a wrong token is refused")
+
+	# the main player
+	var _slot:int = RunSession.players.local_slot
+	var _me:String = RunSession.local_player().display_name
+	_reply = await _request(_control, "main")
+	check(_reply.contains("main player (plumber): %s, slot %d" % [_me, _slot]) && _reply.contains("mode first"), "main: names us (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "info")
+	check(_reply.contains("main=first:%d " % _slot), "main: in info (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "main free")
+	check(await _wait(func ()->bool: return !RunSession.local_player().main && _texture() == PlayerSkin.GUEST_TEXTURE, 5.0), "main free: we're an electrician now")
+	check(await _wait(func ()->bool: return !GuestTier.keeps_loot() && (load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, 5.0), "main free: a ghost again (no upgrade)")
+	check(_reply.contains("nobody yet"), "main free: nobody has it (%s)" % _reply.strip_edges())
+	_reply = await _request(_control, "main %d" % _slot)
+	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main <slot>: the plumber again")
+	check(await _wait(func ()->bool: return GuestTier.keeps_loot() && !(load(GuestTier.CRYSTALS_PATH) as ScoreResource).not_saved, 5.0), "main <slot>: full tier again")
+	_reply = await _request(_control, "main 7")
+	check(_reply.contains("usage: main <slot>"), "main: an empty slot is refused")
+	_reply = await _request(_control, "main mode sideways")
+	check(_reply.contains("usage: main mode"), "main mode: only first or local")
+	# leave mid-run: our run waits; nobody else is on, so the seat is free again
+	Net.players.leaving_by_choice = true
+	Net.leave()
+	var _freed:bool = false
+	for _try:int in 20:
+		await _frames(15)
+		_reply = await _request(_control, "info")
+		if _reply.contains("main=first:- "):
+			_freed = true
+			break
+	check(_freed, "main: freed once everyone has left (%s)" % _reply.strip_edges())
+	check(await _wait(func ()->bool: return Net.state == Net.State.OFFLINE && _body() != null, 10.0), "player: left")
+	check(await _wait(func ()->bool: return _field("room") == HOME, 15.0), "server: nobody left mid-run, back home with the run kept")
+	_err = Net.join("127.0.0.1:%d" % PORT)
+	check(_err == OK && await _wait(func ()->bool: return Net.is_guest() && _body() != null && _current() == HOME, 20.0), "player: rejoined")
+	check(await _wait(func ()->bool: return RunSession.local_player().main && _texture() == PlayerSkin.HOST_TEXTURE, 5.0), "main: ours again, the first to rejoin")
+	_control = _read_control()
+	var _ended:Array = []
+	Net.session_ended.connect(func (reason:String)->void: _ended.append(reason), CONNECT_ONE_SHOT)
+	_say("stop")
+	check(await _wait(func ()->bool: return !OS.is_process_running(_server.pid), 15.0), "console: stop quits the server")
+	# (back home after our leave: the run was checkpointed then, nothing new to save now)
+	check(_read().contains("ServerConsole [INFO]: stopping"), "console: stop said so")
+	check(!FileAccess.file_exists(_save_dir + ".control"), "control: file removed on stop")
+	check(FileAccess.file_exists(_save_dir.path_join(RunSave.file_name + ".tres")), "console: the run checkpoint is in the server's folder")
+	check(_ended.size() == 1 && _ended[0] == "The server stopped", "player: told the server stopped (%s)" % [_ended])
+
+	# vlan_auto plumbing (no tunnel is made)
+	var _result:Dictionary = ServerConsole.parse_result("text\nZSVLAN role=host state=up code=zsi1.QUJD= guests=2:online\n")
+	check(_result.get("role") == "host" && _result.get("code") == "zsi1.QUJD=" && _result.get("guests") == "2:online", "vlan: result line parsed (%s)" % _result)
+	_result = ServerConsole.parse_result("ZSVLAN role=host state=added slot=3 name=Big%20Bob%2520 online=yes\n")
+	check(_result.get("name") == "Big Bob%20" && _result.get("slot") == "3", "vlan: names in a result line unescaped (%s)" % _result)
+	check(ServerConsole.parse_result("no result here").is_empty(), "vlan: no result line, no result")
+	var _command:Array = ServerConsole.vlan_command(["host", "add", "zsr1.x"])
+	check(_command.size() == 2 && _command[0] == "bash" && str(_command[1][0]).ends_with("tools/vlan/vlan_auto.sh") && _command[1][-1] == "--machine", "vlan: runs tools/vlan/vlan_auto.sh --machine (%s)" % [_command])
 	_finish()
+
+## A line into the server's console.
+func _say(line:String)->void:
+	var _pipe:FileAccess = _server.get("stdio")
+	_pipe.store_string(line + "\n")
+	_pipe.flush()
 
 func _finish()->void:
 	Net.players.leaving_by_choice = true
@@ -110,9 +199,40 @@ static func _remove_dir(path:String)->void:
 
 func _spawn_server()->Dictionary:
 	var _log:String = ProjectSettings.globalize_path("user://dedicated_server_%d.log" % Time.get_ticks_msec())
-	var _cmd:String = "exec '%s' --headless --path '%s' -- --server --port %d --save-dir '%s' --status 0.5 > '%s' 2>&1" % [
-		OS.get_executable_path(), ProjectSettings.globalize_path("res://"), PORT, _save_dir, _log]
-	return {"pid": OS.create_process("/bin/sh", ["-c", _cmd]), "log": _log}
+	var _cmd:String = "exec '%s' --headless --path '%s' -- --server --port %d --save-dir '%s' --status 0.5 --control '%s' > '%s' 2>&1" % [
+		OS.get_executable_path(), ProjectSettings.globalize_path("res://"), PORT, _save_dir, _save_dir + ".control", _log]
+	var _process:Dictionary = OS.execute_with_pipe("/bin/sh", ["-c", _cmd], false)
+	return {"pid": _process.get("pid", -1), "stdio": _process.get("stdio"), "log": _log}
+
+## The control file's key=value lines.
+func _read_control()->Dictionary:
+	var _out:Dictionary = {}
+	for _line:String in FileAccess.get_file_as_string(_save_dir + ".control").split("\n", false):
+		_out[_line.get_slice("=", 0)] = _line.substr(_line.find("=") + 1)
+	return _out
+
+## One control request, the way tools/server.sh sends it; "" on no answer.
+func _request(control:Dictionary, command:String)->String:
+	var _peer:StreamPeerTCP = StreamPeerTCP.new()
+	if _peer.connect_to_host("127.0.0.1", int(control.get("control_port", "0"))) != OK:
+		return ""
+	var _text:String = ""
+	var _sent:bool = false
+	var _left:float = 5.0
+	while _left > 0.0:
+		_peer.poll()
+		var _status:int = _peer.get_status()
+		if _status == StreamPeerTCP.STATUS_CONNECTED:
+			if !_sent:
+				_peer.put_data(("TOKEN %s\n%s\n" % [control.get("token", ""), command]).to_utf8_buffer())
+				_sent = true
+			if _peer.get_available_bytes() > 0:
+				_text += _peer.get_utf8_string(_peer.get_available_bytes())
+		elif _status != StreamPeerTCP.STATUS_CONNECTING:
+			break
+		await get_tree().process_frame
+		_left -= get_process_delta_time()
+	return _text
 
 func _read()->String:
 	return FileAccess.get_file_as_string(_server.log) if FileAccess.file_exists(_server.get("log", "")) else ""
@@ -133,6 +253,10 @@ func _field(key:String)->String:
 
 func _body()->Node2D:
 	return Net.players.local_body()
+
+func _texture()->Texture2D:
+	var _body_now:Node2D = _body()
+	return (_body_now.get_node("Body/Stretch/Sprite2D") as Sprite2D).texture if _body_now != null else null
 
 func _current()->String:
 	var _scene:Node = get_tree().current_scene

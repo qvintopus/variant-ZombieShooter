@@ -1,6 +1,3 @@
 #!/usr/bin/env bash
-# Guest side on Linux: remove everything vlan_connect.sh made (NM connection, ufw rules it added, keys/state). See README.md.
-set -uo pipefail
-. "$(dirname "$0")/lib.sh"
-STATE=$STATE_GUEST
-teardown
+# Old name, kept as an alias: vlan_auto.sh stop (removes everything zs-vlan made on this PC). See README.md.
+exec "$(dirname "$0")/vlan_auto.sh" stop "$@"

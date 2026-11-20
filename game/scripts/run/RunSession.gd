@@ -53,6 +53,7 @@ func _ready()->void:
 	profile = PlayerProfile.new()
 	profile.load_resource()
 	profile.ensure_id()
+	profile.refresh_default()
 	players.add(PlayerState.create_local(profile.profile_id, profile.display_name))
 	var _room_state:RoomStateResource = load(ROOM_STATE_PATH)
 	_room_state.updated.connect(queue_checkpoint)
@@ -61,8 +62,10 @@ func _ready()->void:
 
 func _notification(what:int)->void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		checkpoint()
-		get_tree().quit()
+		# a server or the virtual LAN still up on this PC: ask first (QuitPrompt)
+		QuitPrompt.request(func ()->void:
+			checkpoint()
+			get_tree().quit())
 
 func local_player()->PlayerState:
 	return players.local()

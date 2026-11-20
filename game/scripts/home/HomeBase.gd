@@ -213,7 +213,7 @@ func lend_to_host()->void:
 		return
 	save_state()
 	var _first:ItemResource = weapon_inventory.list[clampi(weapon_inventory.selected, 0, weapon_inventory.list.size() - 1)] if !weapon_inventory.list.is_empty() else null
-	if _first != null && RunSession.local_player().electrician:
+	if _first != null && GuestTier.full(RunSession.local_player()):
 		var _stash:PackedStringArray = home_base_resource.stash_inventory
 		var _at:int = _stash.find(_first.resource_name)
 		if _at >= 0:
