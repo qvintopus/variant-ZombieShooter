@@ -9,10 +9,12 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/pickups/EffectConsume.gd" id="6_t3qtp"]
 [ext_resource type="Resource" uid="uid://ctthh78bun1bh" path="res://addons/top_down/resources/sounds/health_pickup.tres" id="7_hgu74"]
 [ext_resource type="Script" path="res://game/scripts/balance/BalanceBinding.gd" id="balance_binding"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="92_pev"]
 
 [sub_resource type="Resource" id="Resource_1euvd"]
 script = ExtResource("3_7bghr")
 value = 10.0
+pickup_events = ExtResource("92_pev")
 transmission_name = &"health"
 state = -1
 valid = true

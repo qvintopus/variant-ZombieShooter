@@ -82,6 +82,22 @@ func play_managed()->void:
 	if played_hook.is_valid():
 		played_hook.call(self)
 
+## Plays through SoundManager at a given pitch (skips the pitch_add logic).
+## `jitter`: random +- share added to the pitch.
+func play_pitched(pitch_value:float, jitter:float = 0.02)->void:
+	var _saved_min:float = pitch_min
+	var _saved_max:float = pitch_max
+	var _saved_add:float = pitch_add
+	pitch_min = pitch_value * (1.0 - jitter)
+	pitch_max = pitch_value * (1.0 + jitter)
+	pitch_add = 0.0
+	# force the random branch of get_pitch()
+	last_play_time = -INF
+	play_managed()
+	pitch_min = _saved_min
+	pitch_max = _saved_max
+	pitch_add = _saved_add
+
 ## Stops sound
 func stop()->void:
 	if sound_player == null:

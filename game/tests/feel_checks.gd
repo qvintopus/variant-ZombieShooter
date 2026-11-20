@@ -24,6 +24,7 @@ func _ready()->void:
 	if player != null:
 		await _check_dash_immunity()
 		await _check_damage_numbers()
+		await _check_pickups()
 	await _check_menus()
 	_finish()
 
@@ -131,3 +132,52 @@ func _check_menus()->void:
 		check(_label != null && _label.text.begins_with("Enemy numbers"), "gameplay labels refreshed in " + _path)
 		_scene.queue_free()
 		await _frames(2)
+
+func _spawn_coin(at:Vector2)->Node2D:
+	var _res:InstanceResource = load(TD + "resources/InstanceResources/pickups/coin_instance_resource.tres")
+	var _coin:Node2D = _res.instance(func (n:Node2D)->void: n.global_position = at)
+	await _frames(25)
+	return _coin
+
+func _check_pickups()->void:
+	var _coins:ScoreResource = load(TD + "resources/global_resources/score_resource.tres")
+	var _events:PickupEvents = load(TD + "resources/global_resources/pickup_events.tres")
+	var _juice:PickupJuice = player.get_node_or_null("PickupJuice")
+	check(_juice != null && _events.sound_owner == _juice, "player PickupJuice owns pickup sounds")
+	var _got:Array = []
+	_events.collected.connect(func (id:StringName, _a:int, _p:Vector2, _s:SoundResource, _l:String)->void: _got.append(id))
+	var _mover:Node = player.get_node_or_null("PlayerInput")
+	if _mover != null:
+		_mover.process_mode = Node.PROCESS_MODE_DISABLED
+	# far coin: pulled in and collected
+	var _start:int = _coins.value
+	player.global_position = player.global_position
+	var _coin:Node2D = await _spawn_coin(player.global_position + Vector2(30, 0))
+	var _magnet:PickupMagnet = _coin.get_node("PickupMagnet")
+	check(_magnet.active, "coin magnet active after spawn")
+	for i:int in 120:
+		await get_tree().physics_frame
+		if !_coin.is_inside_tree():
+			break
+	check(!_coin.is_inside_tree() && _coins.value == _start + 1, "magnet pulls coin in and collects it")
+	check(_got.has(&"coin"), "pickup event fired")
+	check(_juice.streak >= 1, "pickup streak counted")
+	# out of range: stays
+	var _far:Node2D = await _spawn_coin(player.global_position + Vector2(120, 0))
+	await _frames(30)
+	check(_far.is_inside_tree() && !_far.get_node("PickupMagnet").attracted, "coin out of range stays")
+	# kiting: player moves away faster than max speed -> coin loses it
+	var _kite:Node2D = await _spawn_coin(player.global_position + Vector2(40, 0))
+	var _km:PickupMagnet = _kite.get_node("PickupMagnet")
+	var _ever:bool = false
+	for i:int in 120:
+		player.global_position += Vector2(-1.5, 0)
+		await get_tree().physics_frame
+		_ever = _ever || _km.attracted
+	check(_ever, "kite coin attracted")
+	check(_kite.is_inside_tree() && !_km.attracted, "running away from a coin loses it")
+	check(_km.velocity.length() <= _km.preset.max_speed + 0.01, "coin speed capped")
+	_far.get_node("PoolNode").pool_return()
+	_kite.get_node("PoolNode").pool_return()
+	if _mover != null:
+		_mover.process_mode = Node.PROCESS_MODE_INHERIT

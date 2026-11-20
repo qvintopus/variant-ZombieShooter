@@ -9,6 +9,9 @@
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="5_lp18v"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/sounds/meat_pickup.tres" id="6_87rvl"]
 [ext_resource type="Resource" uid="uid://dedx0gi4fowby" path="res://addons/top_down/resources/global_resources/axis_multiplication_resource.tres" id="8_q73te"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/pickups/PickupMagnet.gd" id="90_mag"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/pickups/magnet_default.tres" id="91_magp"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="92_pev"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6f5a1"]
 size = Vector2(32, 16)
@@ -93,7 +96,7 @@ autoplay = "idle"
 [node name="PoolNode" type="Node" parent="."]
 script = ExtResource("3_b48eg")
 
-[node name="CollectingPoint" type="Node" parent="." node_paths=PackedStringArray("moved_node", "area", "collision_shape", "pool_node")]
+[node name="CollectingPoint" type="Node" parent="." node_paths=PackedStringArray("moved_node", "area", "collision_shape", "pool_node", "magnet")]
 script = ExtResource("4_rl642")
 moved_node = NodePath("..")
 collision_mask = 2
@@ -105,3 +108,13 @@ player_reference = ExtResource("5_lp18v")
 sound_collect = ExtResource("6_87rvl")
 axis_multiplication = ExtResource("8_q73te")
 spawn_radius = 16.0
+magnet = NodePath("../PickupMagnet")
+item_id = &"meat"
+pickup_events = ExtResource("92_pev")
+
+[node name="PickupMagnet" type="Node2D" parent="." node_paths=PackedStringArray("moved_node")]
+script = ExtResource("90_mag")
+preset = ExtResource("91_magp")
+moved_node = NodePath("..")
+player_reference = ExtResource("5_lp18v")
+axis_multiplication = ExtResource("8_q73te")

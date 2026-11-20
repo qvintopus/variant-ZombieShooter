@@ -89,6 +89,7 @@ func _ready()->void:
 	var _revive:ReviveAssist = ReviveAssist.new()
 	_revive.name = "ReviveAssist"
 	add_child(_revive)
+	PlayerFx.send_hook = send_fx
 
 func net()->Node:
 	return get_parent()
@@ -352,6 +353,30 @@ func show_note(text:String)->void:
 		if is_instance_valid(_layer):
 			_layer.queue_free()
 	)
+
+# --- Player effects (PlayerFx) -----------------------------------------------------
+
+## Effect kinds a teammate copy may replay.
+const FX_KINDS:Array[StringName] = [&"pickup", &"fall"]
+const MAX_FX_ARGS:int = 8
+
+## The local player played a visual effect: its copies elsewhere replay it.
+func send_fx(kind:StringName, args:Array)->void:
+	if !net().is_online() || net().is_ghost() || local_body() == null:
+		return
+	_player_fx.rpc(kind, args)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _player_fx(kind:StringName, args:Array)->void:
+	if !FX_KINDS.has(kind) || args.size() > MAX_FX_ARGS:
+		return
+	var _state:PlayerState = _sender_state()
+	if _state == null:
+		return
+	var _puppet:Node = puppets.get(_state.slot)
+	if _puppet == null || !is_instance_valid(_puppet) || !_puppet.is_inside_tree():
+		return
+	PlayerFx.dispatch(_puppet, kind, args)
 
 # --- Player updates -------------------------------------------------------------
 
