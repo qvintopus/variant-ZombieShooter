@@ -8,6 +8,8 @@ signal action_pressed
 signal action_2_pressed
 signal switch_weapon(dir:int)
 signal drop_weapon
+## Ability slot button pressed (slot 0 = ability_1)
+signal ability_pressed(slot:int)
 
 ## Used for movement direction
 @export var axis:Vector2
@@ -17,6 +19,9 @@ signal drop_weapon
 
 ## Used for shooting or interaction
 @export var action_2:bool
+
+## Ability slot 0 held
+@export var ability_1:bool
 
 ## Used for aiming attacks
 @export var aim_direction:Vector2
@@ -56,3 +61,8 @@ func set_switch_weapon(dir:int)->void:
 
 func set_drop_weapon()->void:
 	drop_weapon.emit()
+
+func set_ability_1(value:bool)->void:
+	if value && !ability_1:
+		ability_pressed.emit(0)
+	ability_1 = value

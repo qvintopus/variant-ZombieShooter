@@ -30,6 +30,7 @@ func _ready()->void:
 		await _check_pickups()
 		await _check_hole_fall()
 		await _check_clear_fx()
+		await _check_abilities()
 	await _check_menus()
 	_finish()
 
@@ -261,3 +262,85 @@ func _check_clear_fx()->void:
 	await _frames(150)
 	check(!_fx.blessing.rect.visible, "blessing fades out")
 	check(_count_type(ClearBurst) == _before, "bursts return to pool")
+
+func _make_slot(path:String)->AbilitySlot:
+	var _slot:AbilitySlot = AbilitySlot.new()
+	_slot.ability = load(TD + "resources/abilities/" + path)
+	_slot.reset_state()
+	return _slot
+
+func _check_abilities()->void:
+	player.global_position = spawn_pos
+	await _frames(5)
+	var _manager:AbilityManager = player.get_node_or_null("AbilityManager")
+	check(_manager != null && _manager.slot(0) != null, "player has AbilityManager with slot 0")
+	if _manager == null:
+		return
+	var _bomb:AbilitySlot = _manager.slot(0)
+	check(_bomb.ability.id == &"bomb" && _bomb.can_use(), "bomb ready")
+	# place an enemy next to the player and bomb it
+	var _res:InstanceResource = load(TD + "resources/InstanceResources/actors/slime_small_instance_resource.tres")
+	var _enemy:Node2D = _res.instance(func (n:Node2D)->void: n.global_position = spawn_pos + Vector2(14, 0))
+	await _frames(10)
+	var _enemy_health:HealthResource = _enemy.get_node("ResourceNode").get_resource("health")
+	var _enemy_start:float = _enemy_health.hp
+	var _input:InputResource = player.get_node("ResourceNode").get_resource("input")
+	_input.set_aim_direction(Vector2.RIGHT)
+	_input.ability_pressed.emit(0)
+	check(!_bomb.can_use() && _bomb.cooldown_left > 5.0, "bomb used, on cooldown")
+	await _frames(2)
+	var _found:Bomb = null
+	for _node:Node in _all(get_tree().root):
+		if _node is Bomb && _node.is_inside_tree():
+			_found = _node
+	check(_found != null, "bomb dropped")
+	await _frames(100)
+	check(_enemy_health.is_dead || _enemy_health.hp < _enemy_start, "bomb damages a nearby enemy (%s -> %s)" % [_enemy_start, _enemy_health.hp])
+	check(_found == null || !_found.is_inside_tree(), "bomb gone after exploding")
+	check(_bomb.cooldown_left > 0.0, "bomb's own hit doesn't refill it")
+	if is_instance_valid(_enemy) && _enemy.is_inside_tree() && !_enemy_health.is_dead:
+		_enemy_health.insta_kill() if _enemy_health.has_method(&"insta_kill") else null
+	# store keeps cooldown between rooms
+	var _store:AbilityChargesResource = _manager.store
+	check(_store != null && float(_store.cooldowns.get("bomb", 0.0)) > 0.0, "cooldown kept in store")
+
+	# refill rules on detached slots
+	var _kill:AbilitySlot = _make_slot("example_consumable_kill.tres")
+	check(_kill.is_consumable() && _kill.charges == 3, "consumable starts with charges")
+	_kill.ability.effect = null
+	_kill.charges = 1
+	_kill.on_trigger(AbilityResource.Refill.KILL)
+	check(_kill.charges == 2, "kill adds a charge")
+	_kill.on_trigger(AbilityResource.Refill.DAMAGE_DEALT)
+	check(_kill.charges == 2, "damage doesn't refill a kill ability")
+	_kill.ability = load(TD + "resources/abilities/example_consumable_kill.tres")
+	var _dmg:AbilitySlot = _make_slot("example_cooldown_damage.tres")
+	_dmg.cooldown_left = 5.0
+	_dmg.on_trigger(AbilityResource.Refill.DAMAGE_DEALT)
+	check(is_equal_approx(_dmg.cooldown_left, 4.5), "damage takes time off cooldown")
+	_dmg.on_trigger(AbilityResource.Refill.DAMAGE_DEALT)
+	check(is_equal_approx(_dmg.cooldown_left, 4.5), "refill_cooldown blocks rapid refills")
+	var _full:AbilitySlot = _make_slot("example_cooldown_health_full.tres")
+	_full.cooldown_left = 9.0
+	_full.on_trigger(AbilityResource.Refill.HEALTH_AT_FULL)
+	check(_full.cooldown_left == 0.0, "health at full resets cooldown")
+	var _coin:AbilitySlot = _make_slot("example_cooldown_coin.tres")
+	_coin.cooldown_left = 3.0
+	_coin.on_trigger(AbilityResource.Refill.COIN_PICKUP)
+	check(is_equal_approx(_coin.cooldown_left, 2.0), "coin takes a second off")
+	for _s:AbilitySlot in [_kill, _dmg, _full, _coin]:
+		_s.free()
+	# run data roundtrip
+	var _data:PlayerRunData = PlayerRunData.new()
+	_data.abilities = {"x": 2}
+	var _back:PlayerRunData = PlayerRunData.from_dict(_data.to_dict())
+	check(_back != null && _back.abilities.get("x") == 2, "run data keeps ability charges")
+	var _bad:Dictionary = _data.to_dict()
+	_bad["abilities"] = {"x": "lots"}
+	check(PlayerRunData.from_dict(_bad) == null, "bad ability data rejected")
+	# HUD
+	var _hud:AbilitySlotUI = null
+	for _node:Node in _all(get_tree().root):
+		if _node is AbilitySlotUI:
+			_hud = _node
+	check(_hud != null && _hud.visible && _hud.pie.value > 0.0, "HUD shows bomb cooldown")
