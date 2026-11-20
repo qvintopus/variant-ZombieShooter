@@ -59,6 +59,11 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/enemy_damage_shake.tres" id="94_wshake"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="95_rshake"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/sounds/wave_clear_burst.tres" id="96_wsnd"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/game/CameraPunch.gd" id="97_punch"]
+[ext_resource type="Resource" uid="uid://c5igju2sl4cdg" path="res://addons/top_down/resources/CameraResources/camera_reference.tres" id="98_camref"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_chest.tres" id="99_pchest"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_jackpot.tres" id="99_pjack"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_spin.tres" id="99_pspin"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_pkurn"]
 points = PackedVector2Array(-16, 0, 0, 8, 16, 0, 0, -8)
@@ -235,6 +240,13 @@ wave_sound = ExtResource("96_wsnd")
 room_burst = ExtResource("93_rburst")
 room_shake = ExtResource("95_rshake")
 blessing = NodePath("../BlessingOverlay")
+
+[node name="CameraPunch" type="Node" parent="."]
+script = ExtResource("97_punch")
+camera_reference = ExtResource("98_camref")
+chest = ExtResource("99_pchest")
+jackpot = ExtResource("99_pjack")
+spin = ExtResource("99_pspin")
 
 [node name="ZenAnnouncer" type="CanvasLayer" parent="." unique_id=1907755301]
 layer = 3
