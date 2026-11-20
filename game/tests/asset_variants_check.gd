@@ -254,8 +254,12 @@ func _check_death(actor_file:String, dead_file:String, position:Vector2)->void:
 	var _actor_resource:InstanceResource = load(ACTORS + actor_file)
 	var _actor:Node2D = _actor_resource.instance(func (inst:Node2D)->void: inst.global_position = position)
 	await _frames(3)
+	# bosses burst into light first; their corpse comes after dead_vfx_delay
+	var _delay:float = float(_actor.get_node("ActorDamage").get("dead_vfx_delay"))
 	(_actor.get_node("ResourceNode").get_resource("health") as HealthResource).insta_kill()
 	await _frames(3)
+	if _delay > 0.0:
+		await get_tree().create_timer(_delay + 0.1).timeout
 	var _corpses:Array[Node] = _find_scene(get_tree().root, DEAD + dead_file)
 	check(!_corpses.is_empty(), "%s leaves %s" % [actor_file, dead_file])
 	for _corpse:Node in _corpses:

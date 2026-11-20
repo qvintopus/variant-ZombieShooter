@@ -31,6 +31,7 @@ func _ready()->void:
 		await _check_hole_fall()
 		await _check_clear_fx()
 		await _check_abilities()
+		await _check_boss_death()
 	await _check_menus()
 	_finish()
 
@@ -344,3 +345,34 @@ func _check_abilities()->void:
 		if _node is AbilitySlotUI:
 			_hud = _node
 	check(_hud != null && _hud.visible && _hud.pie.value > 0.0, "HUD shows bomb cooldown")
+
+func _check_boss_death()->void:
+	var _res:InstanceResource = load(TD + "resources/InstanceResources/actors/giant_zombie_instance_resource.tres") if ResourceLoader.exists(TD + "resources/InstanceResources/actors/giant_zombie_instance_resource.tres") else null
+	var _boss:Node2D = null
+	if _res != null:
+		_boss = _res.instance(func (n:Node2D)->void: n.global_position = spawn_pos + Vector2(60, 0))
+	else:
+		_boss = (load(TD + "scenes/actors/giant_zombie_boss.tscn") as PackedScene).instantiate()
+		_boss.global_position = spawn_pos + Vector2(60, 0)
+		get_tree().current_scene.add_child(_boss) if get_tree().current_scene != null else add_child(_boss)
+	await _frames(10)
+	var _fx:BossDeathFx = _boss.get_node_or_null("BossDeathFx")
+	check(_fx != null && _fx.sprite != null, "boss has BossDeathFx with sprite")
+	var _clear:ClearFx = null
+	for _node:Node in _all(get_tree().root):
+		if _node is ClearFx:
+			_clear = _node
+	var _health:HealthResource = _boss.get_node("ResourceNode").get_resource("health")
+	_health.add_hp(-_health.hp - 1.0)
+	await _frames(3)
+	check(_count_type(BossDeathBurst) == 1, "boss death burst plays")
+	check(_clear == null || _clear.pending_delay > 0.0, "room clear held for the burst")
+	var _burst:BossDeathBurst = null
+	for _node:Node in _all(get_tree().root):
+		if _node is BossDeathBurst && _node.is_inside_tree():
+			_burst = _node
+	check(_burst != null && _burst.body.texture != null, "burst copies the boss sprite")
+	await _frames(140)
+	check(_count_type(BossDeathBurst) == 0, "burst ends")
+	if _clear != null:
+		_clear.pending_delay = 0.0

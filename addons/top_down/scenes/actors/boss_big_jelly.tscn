@@ -47,6 +47,8 @@
 [ext_resource type="Resource" uid="uid://st0m3unxtv15" path="res://addons/top_down/resources/global_resources/difficulty_resource.tres" id="45_diff"]
 [ext_resource type="Script" path="res://game/scripts/balance/BalanceBinding.gd" id="balance_binding"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="90_dnset"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossDeathFx.gd" id="95_bdfx"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/dead/boss_death_burst_instance.tres" id="96_bdburst"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -386,7 +388,9 @@ script = ExtResource("17_qsvhk")
 resource_node = NodePath("../ResourceNode")
 flip_node = NodePath("../Body")
 
-[node name="ActorDamage" type="Node" parent="." node_paths=PackedStringArray("resource_node", "sprite_flip", "flash_animation_player")]
+[node name="ActorDamage" type="Node" parent="." node_paths=PackedStringArray("resource_node", "sprite_flip", "flash_animation_player", "death_fx")]
+dead_vfx_delay = 1.4
+death_fx = NodePath("../BossDeathFx")
 script = ExtResource("21_rucre")
 resource_node = NodePath("../ResourceNode")
 sprite_flip = NodePath("../SpriteFlip")
@@ -397,6 +401,7 @@ sound_resource_dead = ExtResource("18_mui2p")
 dead_vfx_instance_resource = ExtResource("32_jbh10")
 
 [node name="ItemDrop" type="Node" parent="." node_paths=PackedStringArray("resource_node", "root_node")]
+delay = 1.4
 script = ExtResource("23_s56vy")
 resource_node = NodePath("../ResourceNode")
 root_node = NodePath("..")
@@ -471,3 +476,9 @@ difficulty_resource = ExtResource("45_diff")
 
 [node name="BalanceBinding" type="Node" parent="."]
 script = ExtResource("balance_binding")
+
+[node name="BossDeathFx" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("95_bdfx")
+sprite = NodePath("../Body/JellyStretch/Stretch/Sprite2D")
+burst_instance = ExtResource("96_bdburst")
+
