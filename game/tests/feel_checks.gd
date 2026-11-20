@@ -23,6 +23,8 @@ func _ready()->void:
 	check(player != null, "room has player")
 	if player != null:
 		await _check_dash_immunity()
+		await _check_damage_numbers()
+	await _check_menus()
 	_finish()
 
 func _finish()->void:
@@ -70,3 +72,62 @@ func _check_dash_immunity()->void:
 	check(_health.hp < _start, "hit after dash damages")
 	_health.hp = _health.max_hp
 	await _frames(40)
+
+func _count_texts()->int:
+	var _n:int = 0
+	for _node:Node in get_tree().get_nodes_in_group(&"__none__"):
+		_n += 1
+	for _node:Node in _all(get_tree().root):
+		if _node is FloatingText && _node.is_inside_tree():
+			_n += 1
+	return _n
+
+func _all(node:Node)->Array[Node]:
+	var _list:Array[Node] = [node]
+	for _child:Node in node.get_children():
+		_list.append_array(_all(_child))
+	return _list
+
+func _check_damage_numbers()->void:
+	var _settings:DamageNumbersSettings = load(TD + "resources/global_resources/damage_numbers_settings.tres")
+	var _display:DamageDisplay = player.get_node("DamageDisplay")
+	check(_display.is_player && _display.settings == _settings, "player DamageDisplay is player + has settings")
+	check(_settings.color_presets.size() == 2, "two color presets")
+	var _damage:DamageResource = player.get_node("ResourceNode").get_resource("damage")
+	await _frames(70)
+	var _before:int = _count_texts()
+	_settings.set_show_player(false)
+	_damage.receive_points(3.0)
+	await _frames(2)
+	check(_count_texts() == _before, "player numbers hidden when off")
+	_settings.set_show_player(true)
+	_damage.receive_points(3.0)
+	await _frames(2)
+	check(_count_texts() == _before + 1, "player number shown when on")
+	var _text:FloatingText = null
+	for _node:Node in _all(get_tree().root):
+		if _node is FloatingText && _node.is_inside_tree():
+			_text = _node
+	check(_text != null && _text.label.get_theme_color(&"font_color") == _settings.colors().player, "player number uses player color")
+	var _size:int = _settings.font_size()
+	_settings.cycle_size()
+	check(_settings.font_size() != _size, "size cycles")
+	_settings.reset_resource()
+	var _saved:DamageNumbersSettings = _settings.prepare_save()
+	_saved.show_enemy = false
+	_saved.preset_index = 1
+	_settings.prepare_load(_saved)
+	check(!_settings.show_enemy && _settings.colors().preset_name == "Vivid", "settings load")
+	_settings.reset_resource()
+
+func _check_menus()->void:
+	for _path:String in [TD + "scenes/ui/screens/pause.tscn", TD + "scenes/ui/screens/title.tscn"]:
+		var _scene:Node = (load(_path) as PackedScene).instantiate()
+		add_child(_scene)
+		await _frames(2)
+		var _menu:Node = _scene.get_node_or_null("MarginContainer/Control/Body/GameplayMenu")
+		check(_menu != null, "gameplay menu in " + _path)
+		var _label:Label = _scene.get_node_or_null("MarginContainer/Control/Body/GameplayMenu/EnemyNumbers/Label")
+		check(_label != null && _label.text.begins_with("Enemy numbers"), "gameplay labels refreshed in " + _path)
+		_scene.queue_free()
+		await _frames(2)

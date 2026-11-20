@@ -1,12 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://cub8dbj1w1gk"]
+[gd_scene load_steps=4 format=3 uid="uid://cub8dbj1w1gk"]
 
-[ext_resource type="Script" path="res://addons/top_down/scripts/damage/DamagePoints.gd" id="1_tj76g"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/vfx/FloatingText.gd" id="1_ft"]
 [ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/PoolNode.gd" id="2_hgvc1"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/floating_text/damage_text_style.tres" id="3_style"]
 
 [node name="Damagepoints" type="Node2D" node_paths=PackedStringArray("label", "pool_node")]
-script = ExtResource("1_tj76g")
+z_index = 10
+script = ExtResource("1_ft")
 label = NodePath("Label")
 pool_node = NodePath("PoolNode")
+style = ExtResource("3_style")
 
 [node name="Label" type="Label" parent="."]
 anchors_preset = 8
