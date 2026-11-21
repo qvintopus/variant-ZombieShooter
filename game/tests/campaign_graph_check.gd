@@ -165,6 +165,11 @@ func _check_preview(creator:MapCreator, graph:CampaignGraph)->void:
 	check(_preview.visible && !graph._graph.visible, "Preview swaps the view")
 	check(_preview.rooms.size() == graph._nodes.size(), "preview has every shown room (%d)" % _preview.rooms.size())
 	check(!_preview.links.is_empty(), "preview draws links")
+	var _portal_links:Array = _preview.links.filter(func (l:Dictionary)->bool: return l.kind == &"portal")
+	check(!_portal_links.is_empty(), "portals get their own links (%d)" % _portal_links.size())
+	graph._portal_links.button_pressed = false
+	check(!_preview.show_portal_links, "the Portal links toggle hides them")
+	graph._portal_links.button_pressed = true
 	var _overlaps:int = 0
 	var _cells:Dictionary = {}
 	for _key:String in _preview.rooms:
@@ -202,6 +207,15 @@ func _check_preview(creator:MapCreator, graph:CampaignGraph)->void:
 	_layouts.C = _square("C", Vector2i.ZERO)
 	_offsets = CampaignPreview.layout_rooms(_layouts, "A", 3)
 	check(_offsets.C.y >= 10, "unlinked room goes below (%s)" % _offsets.C)
+	# portals never place rooms: C reached only by a portal still lines up below
+	var _portal:LayoutEntity = LayoutEntity.make(&"portal", Vector2i(9, 9))
+	_portal.props = {"room": "room_C", "tag": "pc", "connect_tag": ""}
+	_a.entities.append(_portal)
+	check(!CampaignPreview.stairs_between(_layouts, "A", "C") && !CampaignPreview.neighbours(_layouts, "A").has("C"), "a portal isn't a stairs link")
+	_offsets = CampaignPreview.layout_rooms(_layouts, "A", 3)
+	check(_offsets.C.y >= 10, "portal-only room still goes below (%s)" % _offsets.C)
+	_portal.props.room = "room_B"
+	check(CampaignPreview.ends(_a, "A", _b, "B") == Vector2(9, 4), "portals don't move the stairs spot")
 
 func _square(key:String, origin:Vector2i)->RoomLayoutResource:
 	var _layout:RoomLayoutResource = RoomLayoutResource.new()

@@ -1,7 +1,9 @@
 ## Campaign graph's Preview view: every room of the campaign drawn with its floor tiles,
 ## placed next to the rooms it links to on the side its stairs are (layout_rooms). Wheel
 ## zooms, drag pans, click selects, double click opens, hover shows the room's details.
-## Positions are computed each time (nothing saved).
+## Positions are computed each time (nothing saved). Only stairs place rooms: portals
+## jump anywhere, so a room reached only by portals lines up below. Portals show as dots
+## named with their target room, with thin optional link lines (show_portal_links).
 class_name CampaignPreview
 extends Control
 
@@ -18,6 +20,9 @@ signal room_activated(key:String)
 ## Cells between a room's stairs and the linked room's.
 @export var gap_cells:int = 3
 @export var background_color:Color = Color(0.08, 0.08, 0.1)
+## Thin lines from portals to their target rooms (the dots and names always show).
+@export var show_portal_links:bool = true
+@export var portal_link_width:float = 1.0
 @export var min_zoom:float = 0.03
 @export var max_zoom:float = 2.0
 
@@ -76,10 +81,20 @@ func show_rooms(keys:Array, start:String, tints:Dictionary)->void:
 		for _b:String in neighbours(_layouts, _a):
 			if _a < _b:
 				links.append({
-					"a": _a, "b": _b, "kind": link_kind(_layouts, _a, _b),
+					"a": _a, "b": _b, "kind": &"door",
 					"from": cell_px(Vector2(_offsets[_a]) + ends(_layouts[_a], _a, _layouts[_b], _b)),
 					"to": cell_px(Vector2(_offsets[_b]) + ends(_layouts[_b], _b, _layouts[_a], _a)),
 				})
+		# one thin line per portal, to the portal it arrives at (else the room's centre)
+		for _entity:LayoutEntity in _layouts[_a].entities:
+			var _b:String = _target(_entity)
+			if _entity.item_id != &"portal" || !_layouts.has(_b) || _b == _a:
+				continue
+			links.append({
+				"a": _a, "b": _b, "kind": &"portal",
+				"from": cell_px(Vector2(_offsets[_a]) + Vector2(_entity.cell)),
+				"to": cell_px(Vector2(_offsets[_b]) + _arrival(_layouts[_b], String(_entity.props.get("connect_tag", "")))),
+			})
 	_canvas.queue_redraw()
 	_overlay.queue_redraw()
 	fit()
@@ -87,6 +102,10 @@ func show_rooms(keys:Array, start:String, tints:Dictionary)->void:
 func set_dimmed(keys:Dictionary)->void:
 	dimmed = keys
 	_canvas.queue_redraw()
+	_overlay.queue_redraw()
+
+func set_show_portal_links(on:bool)->void:
+	show_portal_links = on
 	_overlay.queue_redraw()
 
 func set_selected(key:String)->void:
@@ -135,49 +154,47 @@ static func center_of(layout:RoomLayoutResource)->Vector2:
 static func _target(entity:LayoutEntity)->String:
 	return String(entity.props.get("room", "")).trim_prefix("room_")
 
-## Rooms in `layouts` that `key` links to or that link to it: door links first, by key.
+## Rooms in `layouts` joined to `key` by stairs (either way), by key.
 static func neighbours(layouts:Dictionary, key:String)->Array[String]:
-	var _doors:Array[String] = []
-	var _others:Array[String] = []
+	var _out:Array[String] = []
 	for _other:String in layouts:
-		if _other == key:
-			continue
-		var _kind:StringName = link_kind(layouts, key, _other)
-		if _kind == &"door":
-			_doors.append(_other)
-		elif _kind != &"":
-			_others.append(_other)
-	_doors.sort()
-	_others.sort()
-	return _doors + _others
+		if _other != key && stairs_between(layouts, key, _other):
+			_out.append(_other)
+	_out.sort()
+	return _out
 
-## &"door" when a door joins a and b (either way), &"portal" for only portals, else &"".
-static func link_kind(layouts:Dictionary, a:String, b:String)->StringName:
-	var _kind:StringName = &""
+## A door of a leads to b or one of b leads to a.
+static func stairs_between(layouts:Dictionary, a:String, b:String)->bool:
 	for _pair:Array in [[a, b], [b, a]]:
 		for _entity:LayoutEntity in layouts[_pair[0]].entities:
-			if _target(_entity) == _pair[1] && _entity.item_id in [&"door", &"portal"]:
-				if _entity.item_id == &"door":
-					return &"door"
-				_kind = &"portal"
-	return _kind
+			if _entity.item_id == &"door" && _target(_entity) == _pair[1]:
+				return true
+	return false
 
-## Where room `a` meets room `b` (cell): the mean of a's stairs / portals leading to b
-## (several stairs side by side count as one spot); else of a's exits that b's links
-## arrive at; else a's floor centre.
+## Cell of the exit tagged `tag` in a room, else its floor centre.
+static func _arrival(layout:RoomLayoutResource, tag:String)->Vector2:
+	if !tag.is_empty():
+		for _entity:LayoutEntity in layout.entities:
+			if String(_entity.props.get("tag", "")) == tag:
+				return Vector2(_entity.cell)
+	return center_of(layout)
+
+## Where room `a` meets room `b` (cell): the mean of a's stairs leading to b (several
+## stairs side by side count as one spot); else of a's stairs that b's stairs arrive at;
+## else a's floor centre. Portals never count.
 static func ends(a:RoomLayoutResource, a_key:String, b:RoomLayoutResource, b_key:String)->Vector2:
 	var _cells:Array[Vector2i] = []
 	for _entity:LayoutEntity in a.entities:
-		if _target(_entity) == b_key && _entity.item_id in [&"door", &"portal"]:
+		if _target(_entity) == b_key && _entity.item_id == &"door":
 			_cells.append(_entity.cell)
 	if _cells.is_empty():
 		var _tags:Array[String] = []
 		for _entity:LayoutEntity in b.entities:
-			if _target(_entity) == a_key:
+			if _target(_entity) == a_key && _entity.item_id == &"door":
 				_tags.append(String(_entity.props.get("connect_tag", "")))
 		for _entity:LayoutEntity in a.entities:
 			var _tag:String = String(_entity.props.get("tag", ""))
-			if _entity.item_id in [&"door", &"portal"] && !_tag.is_empty() && _tags.has(_tag):
+			if _entity.item_id == &"door" && !_tag.is_empty() && _tags.has(_tag):
 				_cells.append(_entity.cell)
 	if _cells.is_empty():
 		return center_of(a)
@@ -365,19 +382,24 @@ func _draw_overlay()->void:
 	var _font:Font = get_theme_default_font()
 	for _link:Dictionary in links:
 		var _faded:bool = dimmed.has(_link.a) && dimmed.has(_link.b)
-		var _color:Color = door_color if _link.kind == &"door" else portal_color
-		_color.a = dim_alpha if _faded else 0.9
 		if _link.kind == &"door":
+			var _color:Color = door_color
+			_color.a = dim_alpha if _faded else 0.9
 			_overlay.draw_line(to_screen(_link.from), to_screen(_link.to), _color, 2.0)
-		else:
-			_overlay.draw_dashed_line(to_screen(_link.from), to_screen(_link.to), _color, 2.0, 5.0)
+		elif show_portal_links:
+			var _color:Color = portal_color
+			_color.a = dim_alpha if _faded else 0.5
+			_overlay.draw_dashed_line(to_screen(_link.from), to_screen(_link.to), _color, portal_link_width, 4.0)
 	for _key:String in rooms:
 		var _room:Dictionary = rooms[_key]
 		var _alpha:float = dim_alpha if dimmed.has(_key) else 1.0
 		for _exit:Dictionary in _room.exits:
 			var _color:Color = door_color if _exit.kind == &"door" else portal_color
 			_color.a = _alpha
-			_overlay.draw_circle(to_screen(_room.offset + _exit.pos), 3.0, _color)
+			var _spot:Vector2 = to_screen(_room.offset + _exit.pos)
+			_overlay.draw_circle(_spot, 3.0, _color)
+			if _exit.kind == &"portal" && !String(_exit.to).is_empty():
+				_overlay.draw_string(_font, _spot + Vector2(4, -3), "> " + String(_exit.to), HORIZONTAL_ALIGNMENT_LEFT, -1, label_size - 1, _color)
 		if _key == selected:
 			var _r:Rect2 = Rect2(to_screen(_room.offset + _room.rect.position), _room.rect.size * _canvas.scale.x)
 			_overlay.draw_rect(_r, selected_color, false, 2.0)
