@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BoolResource" format=3]
+
+[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/BoolResource.gd" id="1_bool"]
+
+[resource]
+resource_name = "Map creator editing"
+script = ExtResource("1_bool")

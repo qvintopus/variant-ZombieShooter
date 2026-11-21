@@ -64,6 +64,10 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_chest.tres" id="99_pchest"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_jackpot.tres" id="99_pjack"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_spin.tres" id="99_pspin"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/core/MapCreatorHook.gd" id="mc_hook"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="mc_settings"]
+[ext_resource type="PackedScene" path="res://addons/map_creator/scenes/map_creator.tscn" id="mc_scene"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/editing_flag.tres" id="mc_editing"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_pkurn"]
 points = PackedVector2Array(-16, 0, 0, 8, 16, 0, 0, -8)
@@ -199,7 +203,7 @@ bool_resource = ExtResource("14_6pg65")
 paused_nodes = [NodePath("..")]
 paused_state = 4
 keep_running_online = true
-extra_pause = Array[ExtResource("14_boolscr")]([ExtResource("14_invopen")])
+extra_pause = Array[ExtResource("14_boolscr")]([ExtResource("14_invopen"), ExtResource("mc_editing")])
 
 [node name="TransitionProcessingComponent" type="Node" parent="." unique_id=2114243555 node_paths=PackedStringArray("paused_nodes")]
 script = ExtResource("18_igxve")
@@ -278,3 +282,8 @@ workbench_unlocked_scene = ExtResource("zen_workbench_unlocked")
 
 [node name="DebugDraw" type="Node2D" parent="." unique_id=638060485]
 script = ExtResource("26_l7fet")
+
+[node name="MapCreatorHook" type="Node" parent="."]
+script = ExtResource("mc_hook")
+settings = ExtResource("mc_settings")
+creator_scene = ExtResource("mc_scene")
