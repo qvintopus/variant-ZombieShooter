@@ -22,12 +22,20 @@ signal inspected_changed(entity:LayoutEntity)
 signal radial_requested(screen_position:Vector2, slices:Array)
 ## Topbar Rooms / Tab: open the room browser.
 signal browse_requested
+## Open / close the campaign graph.
+signal graph_requested
+## A one-line text question (MapPrompt): answer(text) runs on OK.
+signal prompt_requested(title:String, initial:String, answer:Callable)
+## The workspace (active mod) changed.
+signal workspace_changed
 
-enum Tool { PAINT, ERASE, SELECT, MOVE }
-enum Brush { ONE, THREE, RECT }
+enum Tool { PAINT, ERASE, SELECT, MOVE, FILL, PICK }
+enum Brush { ONE, THREE, RECT, LINE }
 
 @export var catalog:MapCatalog
 @export var baker:LayoutBaker
+## Mods: the workspace is the active mod (null = base game only).
+@export var mod_state:MapModState
 @export var settings:MapCreatorSettings
 @export var preset:MapCreatorPreset
 ## Pauses the room while editing (in the room's PauseProcessingComponent extra_pause).
@@ -58,6 +66,12 @@ var hover_cell:Vector2i
 var hover_valid:bool
 ## Live entity nodes of the edited layout.
 var entities:LiveEntities
+## New / duplicate / rename / delete / import (RoomBrowser).
+var rooms:RoomManager
+## Fill, line, mirror, scatter, clipboard, stamps.
+var tools:MapTools
+## Props the eyedropper picked up, used by the next placements of that item.
+var picked_props:Dictionary = {}
 ## Entity open in the inspector.
 var inspected:LayoutEntity
 ## Entities edited together with `inspected` (same item, from a selection).
@@ -79,6 +93,8 @@ var _discard_until:float
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	selection = MapSelection.new(self)
+	rooms = RoomManager.new(self)
+	tools = MapTools.new(self)
 	if room == null:
 		room = get_parent() as Node2D
 	floor_layer = room.get_node("Background/FloorLayer")
@@ -87,8 +103,8 @@ func _ready()->void:
 	key = room_key(room)
 	if baker != null && baker.layouts.is_empty():
 		baker.load_layouts()
-	if baker != null && !key.is_empty() && ResourceLoader.exists(baker.layout_path(key)):
-		var _source:RoomLayoutResource = ResourceLoader.load(baker.layout_path(key), "", ResourceLoader.CACHE_MODE_REPLACE)
+	var _source:RoomLayoutResource = _load_source(key)
+	if _source != null:
 		layout = _source.clone()
 		entities = LiveEntities.new(self)
 		entities.claim(layout)
@@ -109,8 +125,35 @@ static func room_key(node:Node)->String:
 	var _id:String = String(_controller.get(&"room_id")) if _controller != null else node.scene_file_path.get_file().get_basename()
 	return _id.trim_prefix("room_")
 
+## The layout `room_key` is edited from: the workspace mod's copy, else the built-in one.
+func _load_source(room_key:String)->RoomLayoutResource:
+	if baker == null || room_key.is_empty():
+		return null
+	if mod_state != null && mod_state.is_active():
+		var _info:MapModInfo = mod_state.active_mod()
+		if _info != null && _info.has_room(room_key):
+			return mod_state.read_layout(_info, room_key, catalog)
+	if ResourceLoader.exists(baker.layout_path(room_key)):
+		return ResourceLoader.load(baker.layout_path(room_key), "", ResourceLoader.CACHE_MODE_REPLACE)
+	return baker.layouts.get(room_key, null)
+
 func can_edit()->bool:
 	return layout != null
+
+## Saving goes to the workspace mod, or to the project's res:// files when running from
+## the Godot editor without one.
+func writable()->bool:
+	return (mod_state != null && mod_state.is_active()) || OS.has_feature("editor")
+
+func workspace_name()->String:
+	if mod_state == null || !mod_state.is_active():
+		return "Game"
+	var _info:MapModInfo = mod_state.active_mod()
+	return _info.name if _info != null else mod_state.active
+
+## Room scene a key loads in the current workspace.
+func scene_of(room_key:String)->String:
+	return mod_state.scene_for(room_key) if mod_state != null else baker.scene_path(room_key)
 
 # --- mode / tool / item ---------------------------------------------------------------
 
@@ -145,7 +188,8 @@ func select_category(value:MapCatalogCategory)->void:
 
 func select_item(value:MapCatalogItem)->void:
 	item = value
-	if tool != Tool.PAINT && tool != Tool.ERASE:
+	picked_props.clear()
+	if tool != Tool.PAINT && tool != Tool.ERASE && tool != Tool.FILL:
 		set_tool(Tool.PAINT)
 	item_changed.emit()
 
@@ -176,6 +220,8 @@ func brush_cells(cell:Vector2i)->Array[Vector2i]:
 			for _y:int in range(-1, 2):
 				for _x:int in range(-1, 2):
 					_cells.append(cell + Vector2i(_x, _y))
+		Brush.LINE:
+			_cells.append_array(MapTools.line(_rect_from if _stroking else cell, cell))
 		Brush.RECT:
 			var _from:Vector2i = _rect_from if _stroking else cell
 			var _min:Vector2i = _from.min(cell)
@@ -196,7 +242,7 @@ func _unhandled_input(event:InputEvent)->void:
 		return
 	if event is InputEventMouseMotion:
 		_update_hover()
-		if _stroking && brush != Brush.RECT:
+		if _stroking && !_dragged_brush():
 			_apply_brush(hover_cell)
 		return
 	if !(event is InputEventMouseButton):
@@ -217,9 +263,21 @@ func _unhandled_input(event:InputEvent)->void:
 	else:
 		_left_released()
 
+## Rect and line brushes paint on release.
+func _dragged_brush()->bool:
+	return brush == Brush.RECT || brush == Brush.LINE
+
 func _left_pressed(ctrl:bool)->void:
 	if !moving.is_empty():
 		confirm_move(hover_cell)
+		return
+	if Input.is_key_pressed(KEY_ALT) || tool == Tool.PICK:
+		pick_at(hover_cell)
+		return
+	if tool == Tool.FILL:
+		if !selection.is_empty():
+			selection.clear()
+		tools.fill(hover_cell, item)
 		return
 	if ctrl:
 		box_from = hover_cell
@@ -253,7 +311,7 @@ func _left_released()->void:
 			# a click without dragging: keep following the cursor until the next click
 			moving.drag = false
 	elif _stroking:
-		if brush == Brush.RECT:
+		if _dragged_brush():
 			_apply_brush(hover_cell)
 		end_stroke()
 
@@ -307,6 +365,16 @@ func _handle_key(event:InputEventKey)->bool:
 	if event.keycode == KEY_DELETE && !selection.is_empty():
 		remove_entries(selection.entries())
 		return true
+	if event.ctrl_pressed && event.shift_pressed && SHIFT_KEYS.has(event.keycode):
+		shift_room(SHIFT_KEYS[event.keycode])
+		return true
+	if event.ctrl_pressed && event.keycode == KEY_C && !event.shift_pressed:
+		tools.copy_selection()
+		return true
+	if event.ctrl_pressed && event.keycode == KEY_V:
+		if settings == null || !tools.paste(settings.clipboard):
+			message.emit("Clipboard is empty: select, then Ctrl+C")
+		return true
 	if event.ctrl_pressed && event.keycode == KEY_D && !selection.is_empty():
 		begin_move(selection.entries(), true)
 		return true
@@ -325,6 +393,14 @@ func _handle_key(event:InputEventKey)->bool:
 	var _key:Key = event.keycode
 	if _key == preset.key_browse:
 		browse_requested.emit()
+	elif _key == preset.key_graph:
+		graph_requested.emit()
+	elif _key == preset.key_fill:
+		set_tool(Tool.FILL)
+	elif _key == preset.key_pick:
+		set_tool(Tool.PICK)
+	elif _key == preset.key_line:
+		set_brush(Brush.LINE)
 	elif _key == preset.key_clean:
 		clean()
 	elif _key == preset.key_paint:
@@ -346,6 +422,33 @@ func _handle_key(event:InputEventKey)->bool:
 		select_category(catalog.categories[_index])
 	return true
 
+## Ctrl+Shift+arrow: room shift direction (cells, screen-ish: the iso axes).
+const SHIFT_KEYS:Dictionary = {KEY_RIGHT: Vector2i(1, 0), KEY_LEFT: Vector2i(-1, 0), KEY_DOWN: Vector2i(0, 1), KEY_UP: Vector2i(0, -1)}
+
+## Moves everything in the room (floor, overrides, entities, patches) by `offset` cells.
+func shift_room(offset:Vector2i)->void:
+	edit(func ()->void:
+		var _floor:Dictionary[Vector2i, Vector3i] = {}
+		for _cell:Vector2i in layout.floor:
+			_floor[_cell + offset] = layout.floor[_cell]
+		layout.floor = _floor
+		for _field:StringName in [&"wall_overrides", &"hole_overrides"]:
+			var _from:Dictionary = layout.get(_field)
+			var _to:Dictionary[Vector2i, bool] = {}
+			for _cell:Vector2i in _from:
+				_to[_cell + offset] = _from[_cell]
+			layout.set(_field, _to)
+		for _entity:LayoutEntity in layout.entities:
+			_entity.cell += offset
+		for _patch:Array in layout.patches:
+			if _patch.size() == 5:
+				_patch[0] += offset.x
+				_patch[1] += offset.y
+				_patch[2] += offset.x
+				_patch[3] += offset.y
+		selection.clear(), true)
+	message.emit("Room shifted by %s" % offset)
+
 func _update_hover()->void:
 	if overlay == null:
 		return
@@ -361,7 +464,7 @@ func begin_stroke(cell:Vector2i)->void:
 	_stroke_before = layout.clone()
 	_stroking = true
 	_rect_from = cell
-	if brush != Brush.RECT:
+	if !_dragged_brush():
 		_apply_brush(cell)
 
 func end_stroke()->void:
@@ -374,11 +477,29 @@ func end_stroke()->void:
 		clean(false)
 
 func _apply_brush(cell:Vector2i)->void:
-	for _cell:Vector2i in brush_cells(cell):
-		if tool == Tool.ERASE:
-			erase_at(_cell, item)
-		else:
-			paint_at(_cell, item)
+	for _brush_cell:Vector2i in brush_cells(cell):
+		for _cell:Vector2i in tools.mirrored(_brush_cell):
+			if tool == Tool.ERASE:
+				erase_at(_cell, item)
+			else:
+				paint_at(_cell, tools.pick_variant(item))
+
+## Eyedropper: the top thing on a cell becomes the brush (an entity's props too).
+func pick_at(cell:Vector2i)->void:
+	var _type:StringName = selection.type_at(cell)
+	var _picked:MapCatalogItem = catalog.item(_type) if !_type.is_empty() else null
+	if _picked == null:
+		message.emit("Nothing to pick here")
+		return
+	if tool != Tool.PAINT:
+		set_tool(Tool.PAINT)
+	if catalog.category_of(_picked.id) != null:
+		select_category(catalog.category_of(_picked.id))
+	select_item(_picked)
+	var _entity:LayoutEntity = layout.entity_at(cell) if layout != null else null
+	if _entity != null && _entity.item_id == _picked.id && _picked.bake != MapCatalogItem.Bake.DOOR && _picked.bake != MapCatalogItem.Bake.PORTAL:
+		picked_props = _entity.props.duplicate(true)
+	message.emit("Picked %s" % _picked.display_name)
 
 ## Paints `with` at a cell into the layout and onto the live layers (raw until Clean).
 func paint_at(cell:Vector2i, with:MapCatalogItem)->void:
@@ -423,6 +544,8 @@ func paint_at(cell:Vector2i, with:MapCatalogItem)->void:
 ## this room as the target for doors and portals (edit them in the inspector).
 func new_props(with:MapCatalogItem)->Dictionary:
 	var _props:Dictionary = with.defaults.duplicate(true)
+	if with == item && !picked_props.is_empty():
+		_props.merge(picked_props.duplicate(true), true)
 	if with.bake == MapCatalogItem.Bake.DOOR || with.bake == MapCatalogItem.Bake.PORTAL:
 		var _n:int = layout.entities_of(with.id).size() + 1
 		_props.merge({"tag": "%s_%s%d" % [key.to_lower(), with.id, _n], "connect_tag": "unset", "room": "room_" + key}, false)
@@ -624,22 +747,38 @@ func save()->bool:
 	if !can_edit():
 		message.emit("No layout for this room: it's a hand-made scene.")
 		return false
+	if !writable():
+		# a built-in room in an exported game: save it into a (new) mod
+		prompt_requested.emit("Save into a new mod named", "my_rooms", func (text:String)->void:
+			if create_mod(text, false):
+				save())
+		return false
 	var _saved:RoomLayoutResource = layout.clone()
-	if baker.save_layout(_saved) != OK:
-		message.emit("Can't write %s" % baker.layout_path(key))
-		return false
-	baker.problems = 0
-	var _ctx:Dictionary = baker.bake(_saved)
-	if baker.has_method(&"write_balance"):
-		baker.call(&"write_balance")
+	baker.reset_problems()
+	var _ctx:Dictionary
+	if mod_state != null && mod_state.is_active():
+		var _info:MapModInfo = mod_state.active_mod()
+		if _info == null || mod_state.write_layout(_info, _saved) != OK:
+			message.emit("Can't write the mod layout of room_%s" % key)
+			return false
+		baker.layouts[key] = _saved
+		_ctx = mod_state.bake_room(_info, _saved, baker)
+	else:
+		if baker.save_layout(_saved) != OK:
+			message.emit("Can't write %s" % baker.layout_path(key))
+			return false
+		_ctx = baker.bake(_saved)
+		if baker.has_method(&"write_balance"):
+			baker.call(&"write_balance")
+		# the next visit loads the new scene, not the cached one
+		if !_ctx.is_empty():
+			ResourceLoader.load(baker.scene_path(key), "", ResourceLoader.CACHE_MODE_REPLACE)
 	if _ctx.is_empty():
-		message.emit("Bake failed: %s" % baker.scene_path(key))
+		message.emit("Bake failed: room_%s" % key)
 		return false
-	# the next visit loads the new scene, not the cached one
-	ResourceLoader.load(baker.scene_path(key), "", ResourceLoader.CACHE_MODE_REPLACE)
 	dirty = false
 	dirty_changed.emit()
-	message.emit("Saved room_%s%s" % [key, "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
+	message.emit("Saved room_%s to %s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
 	return true
 
 # --- selection operations ---------------------------------------------------------------
@@ -929,15 +1068,70 @@ func switch_room(to_key:String)->bool:
 		_discard_until = _now + 3.0
 		message.emit("Unsaved changes: Save (Ctrl+S), or switch again to drop them")
 		return false
-	var _path:String = baker.scene_path(to_key)
+	var _path:String = scene_of(to_key)
 	if !ResourceLoader.exists(_path):
 		message.emit("No scene %s" % _path)
 		return false
+	_go(_path)
+	return true
+
+# --- workspaces (mods) --------------------------------------------------------------------
+
+## Makes mod `id` ("" = the base game) the workspace and reloads this room from it.
+## Unsaved edits need a second call within 3 s to drop, like a room switch.
+func set_workspace(id:String, reload:bool = true)->bool:
+	if mod_state == null || id == mod_state.active:
+		return false
+	if id.is_empty() && !OS.has_feature("editor"):
+		message.emit("The base game is read-only here: pick a mod")
+		return false
+	var _now:float = Time.get_ticks_msec() / 1000.0
+	if reload && dirty && _now > _discard_until:
+		_discard_until = _now + 3.0
+		message.emit("Unsaved changes: Save (Ctrl+S), or pick again to drop them")
+		return false
+	if !mod_state.activate(id, baker):
+		message.emit("No mod '%s'" % id)
+		return false
+	for _problem:String in mod_state.take_problems():
+		push_warning("map creator: " + _problem)
+	workspace_changed.emit()
+	message.emit("Workspace: %s" % workspace_name())
+	if reload:
+		dirty = false
+		_go(scene_of(key))
+	return true
+
+## New mod from a display name (id: its letters/digits); becomes the workspace.
+func create_mod(display_name:String, reload:bool = true)->bool:
+	if mod_state == null:
+		return false
+	var _id:String = LayoutCodec.safe_id(display_name.strip_edges().replace(" ", "_").to_lower(), 32)
+	if _id.is_empty():
+		message.emit("A mod name needs letters or digits")
+		return false
+	if mod_state.mod(_id) == null && mod_state.create_mod(_id, LayoutCodec.safe_text(display_name)) == null:
+		message.emit("Can't create mod '%s'" % _id)
+		return false
+	return set_workspace(_id, reload) || mod_state.active == _id
+
+func open_mods_folder()->void:
+	if mod_state != null:
+		OS.shell_open(mod_state.mods_folder())
+
+## Reloads into `path` keeping the editing state (workspace change, self switch).
+func _go(path:String)->void:
+	if !ResourceLoader.exists(path):
+		message.emit("No scene %s" % path)
+		return
+	var _net:Node = get_node_or_null(^"/root/Net")
+	if _net != null && _net.call(&"is_online"):
+		message.emit("Room switching is off in co-op")
+		return
 	if settings != null:
 		settings.resume_editing = editing
 	set_editing(false)
 	if scene_transition_resource != null && player_reference != null && player_reference.node != null:
-		scene_transition_resource.set_next_scene(_path, switch_entry_tag)
+		scene_transition_resource.set_next_scene(path, switch_entry_tag)
 	else:
-		get_tree().change_scene_to_file(_path)
-	return true
+		get_tree().change_scene_to_file(path)

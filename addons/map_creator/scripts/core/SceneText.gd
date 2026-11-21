@@ -51,7 +51,8 @@ func _props_text(props:Dictionary)->String:
 	return _text
 
 func text()->String:
-	var _parts:PackedStringArray = ["[gd_scene format=4 uid=\"%s\"]\n" % uid, "\n".join(_ext_lines) + "\n"]
+	var _head:String = "[gd_scene format=4 uid=\"%s\"]\n" % uid if !uid.is_empty() else "[gd_scene format=4]\n"
+	var _parts:PackedStringArray = [_head, "\n".join(_ext_lines) + "\n"]
 	for _line:String in _sub_lines:
 		_parts.append(_line)
 	for _line:String in _node_lines:

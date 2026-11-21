@@ -15,6 +15,8 @@ signal recent_changed
 @export var show_grid:bool = true
 ## Set by a room switch from Edit mode: the next room's editor starts editing. Not saved.
 var resume_editing:bool
+## Ctrl+C payload (MapTools), kept across room switches. Not saved.
+var clipboard:Array = []
 
 func set_admin_enabled(value:bool)->void:
 	admin_enabled = value

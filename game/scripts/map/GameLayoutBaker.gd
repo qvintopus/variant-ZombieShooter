@@ -14,8 +14,8 @@ var _balance:Dictionary
 ## Room key -> balance.json "rooms" entry, written by write_balance().
 var _entries:Dictionary = {}
 
-func bake(layout:RoomLayoutResource)->Dictionary:
-	var _ctx:Dictionary = super.bake(layout)
+func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
+	var _ctx:Dictionary = super.bake(layout, target_dir)
 	if layout.writes_balance && !_ctx.is_empty():
 		var _entry:Dictionary = _balance_entry(_ctx.path, layout, _ctx.spawns)
 		if !_entry.is_empty():
@@ -42,7 +42,7 @@ func _validate(layout:RoomLayoutResource)->void:
 			for _other:LayoutEntity in _target.entities_of(&"portal"):
 				_tags.append(_other.props.get("tag", ""))
 		if !_tags.has(_portal.props.get("connect_tag", "")):
-			problem("%s: portal at %s arrives at '%s', which %s doesn't have" % [_key, _portal.cell, _portal.props.get("connect_tag", ""), _room])
+			problem("%s: portal at %s arrives at '%s', which %s doesn't have" % [_key, _portal.cell, _portal.props.get("connect_tag", ""), _room], _portal.cell)
 
 func _bake_extras(out:SceneText, layout:RoomLayoutResource, ctx:Dictionary)->void:
 	if layout.start:
@@ -146,6 +146,15 @@ func _balance_entry(path:String, layout:RoomLayoutResource, spawns:Dictionary)->
 		_points[_name] = {"max_simultaneous": spawns[_name].max_simultaneous}
 	return {"scene": path, "sections": _sections, "spawn_points": _points, "loot_multiplier": 1.0}
 
+## The balance "rooms" entries baked since the last write/take, keyed room_<key>
+## (a mod keeps them next to its cached scenes instead of in balance.json).
+func take_entries()->Dictionary:
+	var _taken:Dictionary = {}
+	for _key:String in _entries:
+		_taken["room_" + _key] = _entries[_key]
+	_entries.clear()
+	return _taken
+
 ## Replaces (or appends) only the baked rooms' entries in balance.json, keeping the
 ## rest of the file as it is written.
 func write_balance()->void:
@@ -173,6 +182,26 @@ func write_balance()->void:
 	_file.store_string("\n".join(_lines))
 	_file.close()
 	_entries.clear()
+	_balance = {}
+
+## Drops room_<key>'s entry from balance.json (a deleted room).
+func remove_balance(key:String)->void:
+	_entries.erase(key)
+	var _lines:PackedStringArray = FileAccess.get_file_as_string(balance_path).split("\n")
+	var _start:int = _lines.find("\t\t\"room_%s\": {" % key)
+	var _rooms_at:int = _lines.find("\t\"rooms\": {")
+	if _start == -1 || _rooms_at == -1:
+		return
+	var _end:int = _start
+	while _lines[_end] != "\t\t}" && _lines[_end] != "\t\t},":
+		_end += 1
+	for i:int in _end - _start + 1:
+		_lines.remove_at(_start)
+	var _last:int = _block_close(_lines, _rooms_at) - 1
+	_lines[_last] = _lines[_last].trim_suffix(",")
+	var _file:FileAccess = FileAccess.open(balance_path, FileAccess.WRITE)
+	_file.store_string("\n".join(_lines))
+	_file.close()
 	_balance = {}
 
 ## Line of the "}" closing the top-level block that opens at `start`.

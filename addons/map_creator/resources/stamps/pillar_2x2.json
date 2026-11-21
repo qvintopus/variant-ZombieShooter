@@ -1,0 +1,4 @@
+[
+	{"type": "wall", "cell": [0, 0]}, {"type": "wall", "cell": [1, 0]},
+	{"type": "wall", "cell": [0, 1]}, {"type": "wall", "cell": [1, 1]}
+]

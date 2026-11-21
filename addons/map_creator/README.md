@@ -88,3 +88,25 @@ hole brings back the room look's floor. With **Auto** on, every stroke is cleane
 Saving writes into `res://`, so it only works when running from the project, not from an
 export. Hotkeys, colors and UI size are in `resources/presets/default_preset.tres`.
 `game/tests/map_creator_snapshot.tscn` saves a screenshot of the editor UI.
+
+## Mods (workspaces)
+- Mod = folder `user://mods/<id>/`: `mod.json` (name, author, version, description, campaigns) + `layouts/room_<key>.json`. Share by copying the folder (topbar workspace menu > Open mods folder).
+- Mods hold JSON only, never .tres/.tscn (those can carry scripts). `LayoutCodec` checks items/props against the catalog, keeps strings to safe chars, bounds cells.
+- `MapModState` (`resources/settings/mod_state.tres`): active mod; bakes its rooms into `user://map_creator/cache/<id>/` (rebakes on JSON/game version change); balance entries go to the `Balance` autoload (`register_rooms`).
+- Baked doors/portals always link `res://game/scenes/room_<key>.tscn`; `Transition.change_scene` resolves through the mod state, so a mod room with a built-in key overrides it and new keys just work.
+- Workspace menu (topbar): Game (project files, only when run from Godot) or a mod. Saving a built-in room in a mod copies it into the mod. In an exported game, Save on a built-in room asks for a new mod name.
+- Runs remember their mod (`RunSave.mod_id`); Continue re-activates it.
+
+## Room management (Rooms browser)
+- New (12x12 floor + player spawn), Duplicate, Rename (rewrites every door/portal/waits_for link), Delete (press twice; in a mod drops only the mod copy), Import (hand-made scene -> layout: tiles, overrides, entries, block walls, spawns, triggers, catalog scenes, waves). `RoomManager`, `RoomImporter`.
+- Ctrl+Shift+arrows shifts the whole room.
+
+## Campaign graph (Map / M)
+- `CampaignGraph` (GraphEdit): node per room of the campaign (layout `campaign`), row per door/portal with in/out ports. Drag out->in links (doors both ways), drag off unlinks. Add room, Start, Open (double click), Remove, Auto layout. Problems tint nodes.
+- `CampaignStore`: campaigns `{id, display_name, start, nodes}` in mod.json (or `res://game/rooms/campaigns.json`).
+- Title > Custom (`CustomCampaigns`): mod campaigns with a start room; activates the mod and loads the start. Offline only. Title deactivates mods.
+
+## Painting tools (`MapTools`)
+- Fill (F): same floor look, or an enclosed empty area (max `preset.fill_max`). Line brush (L). Pick (I / Alt+click) takes item + entity props.
+- MirX / MirY mirror the brush across the floor's middle. Mix scatters item variants by `MapCatalogItem.weight`.
+- Ctrl+C / Ctrl+V clipboard (kept across rooms). Stamps: save selection to `user://map_creator/stamps/<name>.json`; built-ins in `resources/stamps/`. Stamp JSON is checked like mod layouts.

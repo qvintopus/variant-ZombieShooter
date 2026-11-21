@@ -12,6 +12,9 @@ var _search:LineEdit
 var _list:ItemList
 var _info:Label
 var _keys:Array[String] = []
+var _actions:Dictionary = {}
+var _delete_armed:String
+var _delete_until:float
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -41,6 +44,21 @@ func _ready()->void:
 	_close.text = "x"
 	_close.pressed.connect(close)
 	_top.add_child(_close)
+	var _bar:HBoxContainer = HBoxContainer.new()
+	_box.add_child(_bar)
+	for _entry:Array in [
+			["New", "New empty room in the workspace", _new_room],
+			["Duplicate", "Copy the selected room under a new key", _duplicate_room],
+			["Rename", "New key for the selected room; links to it are rewritten", _rename_room],
+			["Delete", "Delete the selected room (press twice). In a mod: drops the mod's copy", _delete_room],
+			["Import", "Make a layout from the selected hand-made scene", _import_room]]:
+		var _b:Button = Button.new()
+		_b.text = _entry[0]
+		_b.tooltip_text = _entry[1]
+		_b.focus_mode = Control.FOCUS_NONE
+		_b.pressed.connect(_entry[2])
+		_bar.add_child(_b)
+		_actions[_entry[0]] = _b
 	var _split:HBoxContainer = HBoxContainer.new()
 	_split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_box.add_child(_split)
@@ -69,7 +87,7 @@ func toggle()->void:
 		open()
 
 func open()->void:
-	index.build(creator.baker, creator.catalog)
+	index.build(creator.baker, creator.catalog, creator.mod_state)
 	visible = true
 	size = panel_size
 	position = ((get_parent() as Control).size - size) * 0.5
@@ -87,7 +105,7 @@ func refresh()->void:
 	_list.clear()
 	for _key:String in _keys:
 		var _e:Dictionary = index.entries[_key]
-		_list.add_item("%s  %s" % [_key, _e.name])
+		_list.add_item("%s  %s%s" % [_key, _e.name, "  [%s]" % _e.source if !_e.source.is_empty() else ""])
 		if _e.layout == null:
 			_list.set_item_custom_fg_color(_list.item_count - 1, Color(1, 1, 1, 0.5))
 	var _at:int = _keys.find(creator.key)
@@ -105,6 +123,77 @@ func selected_key()->String:
 func _show_info()->void:
 	var _key:String = selected_key()
 	_info.text = index.describe(_key, creator.catalog) if !_key.is_empty() else "No room matches."
+	if _key.is_empty():
+		for _name:String in _actions:
+			_actions[_name].disabled = _name != "New"
+		return
+	var _e:Dictionary = index.entries[_key]
+	var _rooms:RoomManager = creator.rooms
+	_actions.Duplicate.disabled = _e.layout == null
+	_actions.Import.disabled = _e.layout != null
+	_actions.Rename.disabled = _e.layout == null || (creator.mod_state != null && creator.mod_state.is_active() && (_rooms.is_builtin(_key) || !_rooms.in_mod(_key)))
+	_actions.Delete.disabled = _key == creator.key || (creator.mod_state != null && creator.mod_state.is_active() && !_rooms.in_mod(_key)) || (_e.layout == null)
+	var _links:PackedStringArray = _rooms.links_to(_key)
+	if !_links.is_empty():
+		_info.text += "\nLinked from: " + ", ".join(_links)
+
+## Re-reads the rooms (after a change) and selects `key`.
+func _reload(key:String)->void:
+	index.build(creator.baker, creator.catalog, creator.mod_state)
+	refresh()
+	var _at:int = _keys.find(key)
+	if _at != -1:
+		_list.select(_at)
+		_list.ensure_current_is_visible()
+		_show_info()
+
+func _report(ok:bool, done:String, key:String)->void:
+	creator.message.emit(done if ok && creator.rooms.last_message.is_empty() else creator.rooms.last_message)
+	creator.rooms.last_message = ""
+	if ok:
+		_reload(key)
+
+func _new_room()->void:
+	creator.prompt_requested.emit("New room key (letters, digits, _)", _free_key("M"), func (key:String)->void:
+		_report(creator.rooms.new_room(key, "", creator.layout), "Created room_%s" % key, key))
+
+func _duplicate_room()->void:
+	var _from:String = selected_key()
+	creator.prompt_requested.emit("Copy room_%s as" % _from, _free_key(_from + "_"), func (key:String)->void:
+		_report(creator.rooms.duplicate_room(_from, key), "Copied room_%s to room_%s" % [_from, key], key))
+
+func _rename_room()->void:
+	var _from:String = selected_key()
+	creator.prompt_requested.emit("Rename room_%s to" % _from, _from, func (key:String)->void:
+		var _current:bool = _from == creator.key
+		var _ok:bool = creator.rooms.rename_room(_from, key)
+		_report(_ok, "", key)
+		if _ok && _current:
+			creator.dirty = false
+			creator.switch_room(key))
+
+func _delete_room()->void:
+	var _key:String = selected_key()
+	var _now:float = Time.get_ticks_msec() / 1000.0
+	if _delete_armed != _key || _now > _delete_until:
+		_delete_armed = _key
+		_delete_until = _now + 3.0
+		var _links:int = creator.rooms.links_to(_key).size()
+		creator.message.emit("Delete room_%s%s? Press Delete again" % [_key, " (%d doors/portals link to it)" % _links if _links > 0 else ""])
+		return
+	_delete_armed = ""
+	_report(creator.rooms.delete_room(_key), "", _key)
+
+func _import_room()->void:
+	var _key:String = selected_key()
+	_report(creator.rooms.import_room(_key), "", _key)
+
+## First "<prefix><n>" key no room uses.
+func _free_key(prefix:String)->String:
+	var _n:int = 1
+	while creator.rooms.exists("%s%02d" % [prefix, _n]):
+		_n += 1
+	return "%s%02d" % [prefix, _n]
 
 func go()->void:
 	var _key:String = selected_key()

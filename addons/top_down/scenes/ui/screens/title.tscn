@@ -21,6 +21,9 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="91_dnset"]
 
 [ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="92_mcset"]
+[ext_resource type="Script" path="res://game/scripts/CustomCampaigns.gd" id="93_custom"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/mod_state.tres" id="94_mods"]
+[ext_resource type="Resource" path="res://game/resources/map_creator/layout_baker.tres" id="95_baker"]
 [node name="Title" type="ColorRect"]
 anchors_preset = 15
 anchor_right = 1.0
@@ -39,6 +42,7 @@ action_resource = ExtResource("3_jby8r")
 script = ExtResource("1_q1kds")
 menu_path = {
 ".": NodePath("../MarginContainer/Control/Body/TitleMenu"),
+"./custom": NodePath("../MarginContainer/Control/Body/CustomMenu"),
 "./options": NodePath("../MarginContainer/Control/Body/OptionMenu"),
 "./options/audio": NodePath("../MarginContainer/Control/Body/AudioMenu"),
 "./options/controls": NodePath("../InputRebinding"),
@@ -94,6 +98,16 @@ save_button_button = NodePath("../MarginContainer/Control/Body/GraphicsMenu/Back
 script = ExtResource("3_6qnpd")
 button = NodePath("../MarginContainer/Control/Body/TitleMenu/NewGame/Button")
 scene_path = "res://addons/top_down/scenes/levels/room_start.tscn"
+
+[node name="CustomCampaigns" type="Node" parent="." node_paths=PackedStringArray("button", "row", "menu", "menu_traverse_manager")]
+script = ExtResource("93_custom")
+button = NodePath("../MarginContainer/Control/Body/TitleMenu/Custom/Button")
+row = NodePath("../MarginContainer/Control/Body/TitleMenu/Custom")
+menu = NodePath("../MarginContainer/Control/Body/CustomMenu")
+menu_traverse_manager = NodePath("../MenuTraverseManager")
+menu_button_scene = ExtResource("5_kq1p3")
+mod_state = ExtResource("94_mods")
+baker = ExtResource("95_baker")
 
 [node name="QuitComponent" type="Node" parent="." node_paths=PackedStringArray("button")]
 script = ExtResource("3_uv64m")
@@ -154,6 +168,13 @@ layout_mode = 2
 [node name="Label" parent="MarginContainer/Control/Body/TitleMenu/NewGame" index="1"]
 text = "New Game"
 
+[node name="Custom" parent="MarginContainer/Control/Body/TitleMenu" instance=ExtResource("5_kq1p3")]
+visible = false
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/TitleMenu/Custom" index="1"]
+text = "Custom"
+
 [node name="Options" parent="MarginContainer/Control/Body/TitleMenu" instance=ExtResource("5_kq1p3")]
 layout_mode = 2
 
@@ -165,6 +186,13 @@ layout_mode = 2
 
 [node name="Label" parent="MarginContainer/Control/Body/TitleMenu/Quit" index="1"]
 text = "Quit"
+
+[node name="CustomMenu" type="VBoxContainer" parent="MarginContainer/Control/Body"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 10
+theme_override_constants/separation = 0
 
 [node name="OptionMenu" type="VBoxContainer" parent="MarginContainer/Control/Body"]
 visible = false

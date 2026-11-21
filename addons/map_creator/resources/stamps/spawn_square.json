@@ -1,0 +1,6 @@
+[
+	{"type": "spawn", "cell": [0, 0], "props": {"section": 1}},
+	{"type": "spawn", "cell": [6, 0], "props": {"section": 1}},
+	{"type": "spawn", "cell": [0, 6], "props": {"section": 1}},
+	{"type": "spawn", "cell": [6, 6], "props": {"section": 1}}
+]

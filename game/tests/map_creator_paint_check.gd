@@ -174,6 +174,24 @@ func _check_painting(settings:MapCreatorSettings)->void:
 	check(_baked.get_node("Background/FloorLayer").get_cell_source_id(_island) == 10, "the baked scene has the painted floor")
 	_baked.free()
 
+	# save into a mod workspace: JSON layout + cached scene, the project untouched
+	var _mods:MapModState = _creator.mod_state
+	_mods.mods_dir = OUT + "mods/"
+	_mods.cache_dir = OUT + "cache/"
+	if DirAccess.dir_exists_absolute(_mods.mods_dir.path_join("paint_test")):
+		for _file:String in DirAccess.get_files_at(_mods.mods_dir.path_join("paint_test/layouts")):
+			DirAccess.remove_absolute(_mods.mods_dir.path_join("paint_test/layouts").path_join(_file))
+	check(_creator.create_mod("Paint test", false) && _mods.active == "paint_test", "New mod becomes the workspace")
+	check(_creator.workspace_name() == "Paint test", "workspace named after the mod")
+	_creator.dirty = true
+	check(_creator.save(), "Save into the mod succeeds")
+	var _info:MapModInfo = _mods.active_mod()
+	check(_info != null && _info.has_room(KEY), "the mod got the room's JSON layout")
+	check(FileAccess.file_exists(_mods.cache_scene("paint_test", KEY)) && _mods.scene_for(KEY) == _mods.cache_scene("paint_test", KEY), "the mod room is baked and resolves")
+	var _from_mod:RoomLayoutResource = _mods.read_layout(_info, KEY, _creator.catalog) if _info != null else null
+	check(_from_mod != null && _from_mod.floor.has(_island), "the mod layout has the edit")
+	_mods.deactivate(_baker)
+
 	_creator.set_editing(false)
 	check(!_creator.editing_flag.value && _room.process_mode != Node.PROCESS_MODE_DISABLED, "Play mode resumes the room")
 	_room.queue_free()

@@ -12,6 +12,10 @@ extends PanelContainer
 var _mode_button:Button
 var _room_label:Label
 var _recent:MenuButton
+var _workspace:MenuButton
+var _stamps:MenuButton
+var _stamp_names:Array = []
+var _workspace_ids:Array[String] = []
 var _browse:Button
 var _message:Label
 var _dirty:Label
@@ -68,6 +72,7 @@ func _ready()->void:
 	creator.history_changed.connect(_refresh)
 	creator.layout_changed.connect(_refresh)
 	creator.message.connect(show_message)
+	creator.workspace_changed.connect(_refresh)
 	if creator.settings != null:
 		creator.settings.recent_changed.connect(_fill_recent)
 	_fill_recent()
@@ -108,6 +113,12 @@ func _build_top_row()->HBoxContainer:
 	var _spacer:Control = Control.new()
 	_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_row.add_child(_spacer)
+	_workspace = MenuButton.new()
+	_workspace.flat = false
+	_workspace.tooltip_text = "Workspace: where Save writes (a mod in user://mods, or the game files)"
+	_workspace.get_popup().id_pressed.connect(_on_workspace)
+	_workspace.about_to_popup.connect(_fill_workspaces)
+	_row.add_child(_workspace)
 	_room_label = Label.new()
 	_room_label.text = "room_" + creator.key
 	_row.add_child(_room_label)
@@ -117,6 +128,7 @@ func _build_top_row()->HBoxContainer:
 	_recent.flat = false
 	_recent.get_popup().id_pressed.connect(func (id:int)->void: creator.switch_room(creator.settings.recent_rooms[id]))
 	_row.add_child(_recent)
+	_button(_row, "Map", "Campaign graph: rooms and their links (%s)" % OS.get_keycode_string(creator.preset.key_graph), func ()->void: creator.graph_requested.emit())
 	_browse = _button(_row, "Rooms", "Search / switch rooms (%s)" % OS.get_keycode_string(creator.preset.key_browse), func ()->void: creator.browse_requested.emit())
 	return _row
 
@@ -125,15 +137,31 @@ func _build_tool_row()->HBoxContainer:
 	_row.add_theme_constant_override(&"separation", 1)
 	var _p:MapCreatorPreset = creator.preset
 	for _entry:Array in [[MapCreator.Tool.PAINT, "Paint", _p.key_paint], [MapCreator.Tool.ERASE, "Erase", _p.key_erase],
+			[MapCreator.Tool.FILL, "Fill", _p.key_fill], [MapCreator.Tool.PICK, "Pick", _p.key_pick],
 			[MapCreator.Tool.SELECT, "Select", _p.key_select], [MapCreator.Tool.MOVE, "Move", _p.key_move]]:
 		var _b:Button = _button(_row, _entry[1], "%s (%s)" % [_entry[1], OS.get_keycode_string(_entry[2])], creator.set_tool.bind(_entry[0]))
 		_b.toggle_mode = true
 		_tool_buttons[_entry[0]] = _b
 	_row.add_child(VSeparator.new())
-	for _entry:Array in [[MapCreator.Brush.ONE, "1", "Single cell"], [MapCreator.Brush.THREE, "3x3", "3x3 brush"], [MapCreator.Brush.RECT, "Rect", "Drag a rectangle"]]:
+	for _entry:Array in [[MapCreator.Brush.ONE, "1", "Single cell"], [MapCreator.Brush.THREE, "3x3", "3x3 brush"], [MapCreator.Brush.RECT, "Rect", "Drag a rectangle"],
+			[MapCreator.Brush.LINE, "Line", "Drag a line (%s)" % OS.get_keycode_string(_p.key_line)]]:
 		var _b:Button = _button(_row, _entry[1], _entry[2], creator.set_brush.bind(_entry[0]))
 		_b.toggle_mode = true
 		_brush_buttons[_entry[0]] = _b
+	for _entry:Array in [["MirX", "Mirror the brush across the room's middle (x)", "mirror_x"],
+			["MirY", "Mirror the brush across the room's middle (y)", "mirror_y"],
+			["Mix", "Scatter: paint a random variant of the item", "scatter"]]:
+		var _b:Button = _button(_row, _entry[0], _entry[1], func ()->void: pass)
+		_b.toggle_mode = true
+		var _field:String = _entry[2]
+		_b.toggled.connect(func (on:bool)->void: creator.tools.set(_field, on))
+	_stamps = MenuButton.new()
+	_stamps.text = "Stamps"
+	_stamps.flat = false
+	_stamps.tooltip_text = "Place a saved stamp, or save the selection as one (Ctrl+C / Ctrl+V copy and paste)"
+	_stamps.about_to_popup.connect(_fill_stamps)
+	_stamps.get_popup().id_pressed.connect(_on_stamp)
+	_row.add_child(_stamps)
 	_row.add_child(VSeparator.new())
 	_button(_row, "Clean", "Clean visual tiles, colliders, navigation (%s)" % OS.get_keycode_string(_p.key_clean), creator.clean)
 	_undo = _button(_row, "Undo", "Ctrl+%s" % OS.get_keycode_string(_p.key_undo), creator.undo)
@@ -210,6 +238,59 @@ func _fill_recent()->void:
 		var _layout:RoomLayoutResource = creator.baker.layouts.get(_key, null) if creator.baker != null else null
 		_popup.add_item("room_%s%s" % [_key, "  " + _layout.display_name if _layout != null else ""], _i)
 
+const SAVE_STAMP_ID:int = 1002
+
+func _fill_stamps()->void:
+	var _popup:PopupMenu = _stamps.get_popup()
+	_popup.clear()
+	_popup.add_item("Save selection as stamp...", SAVE_STAMP_ID)
+	_popup.set_item_disabled(0, creator.selection.is_empty())
+	_popup.add_separator()
+	_stamp_names = MapTools.stamps().keys()
+	_stamp_names.sort()
+	for _i:int in _stamp_names.size():
+		_popup.add_item(_stamp_names[_i], _i)
+
+func _on_stamp(id:int)->void:
+	if id == SAVE_STAMP_ID:
+		creator.prompt_requested.emit("Stamp name", "stamp", creator.tools.save_stamp)
+	elif id < _stamp_names.size():
+		creator.tools.place_stamp(_stamp_names[id])
+
+const NEW_MOD_ID:int = 1000
+const OPEN_FOLDER_ID:int = 1001
+
+func _fill_workspaces()->void:
+	var _popup:PopupMenu = _workspace.get_popup()
+	_popup.clear()
+	_workspace_ids.clear()
+	if creator.mod_state == null:
+		return
+	if OS.has_feature("editor"):
+		_workspace_ids.append("")
+		_popup.add_radio_check_item("Game (project files)", 0)
+	var _mods:Dictionary = creator.mod_state.scan()
+	var _ids:Array = _mods.keys()
+	_ids.sort()
+	for _id:String in _ids:
+		_popup.add_radio_check_item("Mod: %s" % _mods[_id].name, _workspace_ids.size())
+		_workspace_ids.append(_id)
+	for _i:int in _workspace_ids.size():
+		_popup.set_item_checked(_i, _workspace_ids[_i] == creator.mod_state.active)
+	_popup.add_separator()
+	_popup.add_item("New mod...", NEW_MOD_ID)
+	_popup.add_item("Open mods folder", OPEN_FOLDER_ID)
+
+func _on_workspace(id:int)->void:
+	match id:
+		NEW_MOD_ID:
+			creator.prompt_requested.emit("New mod name", "my_rooms", creator.create_mod)
+		OPEN_FOLDER_ID:
+			creator.open_mods_folder()
+		_:
+			if id < _workspace_ids.size():
+				creator.set_workspace(_workspace_ids[id])
+
 func show_message(text:String)->void:
 	_message.text = text
 	_message_time = 4.0
@@ -241,6 +322,8 @@ func _refresh()->void:
 	_undo.disabled = !creator.can_undo()
 	_redo.disabled = !creator.can_redo()
 	_save.disabled = !creator.can_edit()
+	_workspace.text = creator.workspace_name()
+	_workspace.visible = _editing && creator.mod_state != null
 	_room_label.text = "room_%s%s" % [creator.key, "" if creator.can_edit() else " (no layout)"]
 	if creator.layout != null && !creator.layout.display_name.is_empty():
 		_room_label.text += "  " + creator.layout.display_name
