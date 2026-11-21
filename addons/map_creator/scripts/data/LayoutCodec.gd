@@ -1,6 +1,6 @@
 ## RoomLayoutResource <-> plain JSON data, for mods and stamps. Mods never ship .tres or
 ## .tscn (those can carry scripts): only this data, checked against the catalog on load.
-##   {key, display_name, campaign, writes_balance, look, accent, patches, start, home,
+##   {key, display_name, campaign, writes_balance, user_made, look, accent, patches, start, home,
 ##    side_room, boss_section, sections, floor: [[x, y, src, ax, ay]...],
 ##    walls / holes: [[x, y, 0|1]...], entities: [{item, cell: [x, y], props}...]}
 class_name LayoutCodec
@@ -27,7 +27,7 @@ static func to_dict(layout:RoomLayoutResource)->Dictionary:
 	return {
 		"version": VERSION,
 		"key": layout.key, "display_name": layout.display_name, "campaign": String(layout.campaign),
-		"writes_balance": layout.writes_balance, "look": layout.look, "accent": layout.accent,
+		"writes_balance": layout.writes_balance, "user_made": layout.user_made, "look": layout.look, "accent": layout.accent,
 		"patches": layout.patches.duplicate(true), "start": layout.start, "home": layout.home,
 		"side_room": layout.side_room, "boss_section": layout.boss_section,
 		"sections": layout.sections.duplicate(true),
@@ -64,6 +64,7 @@ func from_dict(data:Variant, catalog:MapCatalog)->RoomLayoutResource:
 	_layout.display_name = _text(data, "display_name")
 	_layout.campaign = StringName(_id(data, "campaign"))
 	_layout.writes_balance = _b(data.get("writes_balance", true))
+	_layout.user_made = _b(data.get("user_made", false))
 	_layout.look = _id(data, "look", "base")
 	_layout.accent = _id(data, "accent")
 	_layout.start = _b(data.get("start", false))

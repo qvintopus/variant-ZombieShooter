@@ -27,6 +27,8 @@ extends Resource
 @export var campaign:StringName
 ## Campaign rooms get a balance.json "rooms" entry and portal/victory checks.
 @export var writes_balance:bool = true
+## Made in the map creator (New / Copy): not a shipped original, edited without asking.
+@export var user_made:bool
 
 @export_group("Look")
 ## Default floor look (base, mossy, bloody, metal, sandstone, flesh, blotch).

@@ -188,7 +188,7 @@ func workspace_name()->String:
 ## Room scene a key loads in the current workspace.
 ## A built-in room edited in place (not the workspace mod's own copy).
 func is_original()->bool:
-	return can_edit() && rooms != null && rooms.is_builtin(key) && !rooms.in_mod(key)
+	return can_edit() && rooms != null && rooms.is_builtin(key) && !rooms.in_mod(key) && !(layout != null && layout.user_made)
 
 ## Entering Edit on an original: offer a copy to edit instead (once per room a session).
 func _ask_copy_original()->void:
