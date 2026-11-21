@@ -682,9 +682,7 @@ func set_layout_field(field:StringName, value:Variant)->void:
 
 func _set_marker(layer:TileMapLayer, cell:Vector2i)->void:
 	var _autotiler:TileVisualAutotiler = LayoutBaker.autotiler_of(layer)
-	var _src:int = floor_layer.get_cell_source_id(cell)
-	if _src == -1 || !layer.tile_set.has_source(_src):
-		_src = layer.tile_set.get_source_id(0)
+	var _src:int = TileVisualAutotiler.nearest_look_source(floor_layer, layer.tile_set, cell, layer.tile_set.get_source_id(0))
 	layer.set_cell(cell, _src, _autotiler.marker_atlas if _autotiler != null else Vector2i(0, 2))
 
 ## Floor look a removed hole gets back: the room look's plain floor.

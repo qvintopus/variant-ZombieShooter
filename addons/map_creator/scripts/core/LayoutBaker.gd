@@ -86,7 +86,7 @@ static func generate_tiles(floor_layer:TileMapLayer, holes:TileMapLayer, walls:T
 			step.call(0.3 + 0.3 * _i)
 	autotiler_of(floor_layer).autotile()
 
-## Forces cells on (true, keeping a painted floor look) or off (false).
+## Forces cells on (true, in the nearest floor's look) or off (false).
 static func apply_overrides(layer:TileMapLayer, floor_layer:TileMapLayer, marker_atlas:Vector2i, overrides:Dictionary)->void:
 	if overrides.is_empty():
 		return
@@ -95,8 +95,7 @@ static func apply_overrides(layer:TileMapLayer, floor_layer:TileMapLayer, marker
 		if !overrides[_cell]:
 			layer.erase_cell(_cell)
 		elif layer.get_cell_source_id(_cell) == -1:
-			var _src:int = floor_layer.get_cell_source_id(_cell)
-			layer.set_cell(_cell, _src if _src != -1 && layer.tile_set.has_source(_src) else _default, marker_atlas)
+			layer.set_cell(_cell, TileVisualAutotiler.nearest_look_source(floor_layer, layer.tile_set, _cell, _default), marker_atlas)
 
 ## Row by row (y, then x): the order cells were first painted in, so a bake is stable.
 static func sorted_cells(cells:Array)->Array:

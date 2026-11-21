@@ -118,7 +118,8 @@ func _enemy_instance_path(id:String)->String:
 
 func balance()->Dictionary:
 	if _balance.is_empty():
-		_balance = JSON.parse_string(FileAccess.get_file_as_string(balance_path))
+		var _parsed:Variant = JSON.parse_string(FileAccess.get_file_as_string(balance_path)) if FileAccess.file_exists(balance_path) else null
+		_balance = _parsed if _parsed is Dictionary else {}
 	return _balance
 
 ## The balance.json "rooms" entry matching what was written into the scene.
