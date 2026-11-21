@@ -90,6 +90,11 @@ func _check_painting(settings:MapCreatorSettings)->void:
 	var _holes:TileMapLayer = _creator.holes_layer
 	var _walls:TileMapLayer = _creator.walls_layer
 	var _catalog:MapCatalog = _creator.catalog
+	check(_creator.item != null && _creator.item.id == StringName("floor_" + _creator.layout.look), "the brush starts on the room look's floor (%s)" % [_creator.item.id if _creator.item != null else &""])
+	var _look:String = _creator.layout.look
+	_creator.set_layout_field(&"look", "metal" if _look != "metal" else "mossy")
+	check(_creator.item.id == StringName("floor_" + _creator.layout.look), "changing the look moves the brush to its floor")
+	_creator.undo()
 
 	_creator.set_editing(true)
 	await _frames(2)
