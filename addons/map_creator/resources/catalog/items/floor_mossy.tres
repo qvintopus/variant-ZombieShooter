@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_x2e1h"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_ftcmu"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_4thwc"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_mossy_cracked_1.tres" id="4_yvnth"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_mossy_cracked_2.tres" id="5_bh7e4"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_mossy_cracked_3.tres" id="6_xbaji"]
+
+[resource]
+script = ExtResource("3_4thwc")
+id = &"floor_mossy"
+display_name = "Mossy floor"
+color = Color(0.35, 0.6, 0.3, 1)
+kind = 0
+tags = PackedStringArray("mossy", "floor")
+floor_source = 10
+variants = Array[ExtResource("3_4thwc")]([ExtResource("4_yvnth"), ExtResource("5_bh7e4"), ExtResource("6_xbaji")])
+legend = "."

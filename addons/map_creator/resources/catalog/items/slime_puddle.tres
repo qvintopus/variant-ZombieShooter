@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_xgkeg"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_rufuy"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_y7eam"]
+
+[resource]
+script = ExtResource("3_y7eam")
+id = &"slime_puddle"
+display_name = "Slime puddle"
+color = Color(0.3, 0.8, 0.3, 1)
+tags = PackedStringArray("slime", "puddle")
+scene_path = "res://addons/top_down/scenes/obstacles/slime_puddle.tscn"
+parent_path = "Behind"
+legend = "S"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_kfpo8"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_yofho"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_vf4eq"]
+
+[resource]
+script = ExtResource("3_vf4eq")
+id = &"floor_bloody_cracked_1"
+display_name = "Bloody cracked 1"
+color = Color(0.52, 0.16000001, 0.16000001, 1)
+kind = 0
+tags = PackedStringArray("bloody", "floor", "cracked")
+floor_source = 20
+floor_atlas = Vector2i(1, 3)

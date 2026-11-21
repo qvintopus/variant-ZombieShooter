@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_6oypn"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_nmqjk"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_jhpbv"]
+
+[resource]
+script = ExtResource("3_jhpbv")
+id = &"gate_lever"
+display_name = "Gate lever"
+color = Color(0.9, 0.9, 0.3, 1)
+tags = PackedStringArray("lever", "grid", "home")
+scene_path = "res://addons/top_down/scenes/interactables/gate_lever.tscn"
+legend = "Z"

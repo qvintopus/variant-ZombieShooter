@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_2oh32"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_pk720"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_j1viy"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_sandstone_cracked_1.tres" id="4_jteej"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_sandstone_cracked_2.tres" id="5_p8ntd"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_sandstone_cracked_3.tres" id="6_nntwv"]
+
+[resource]
+script = ExtResource("3_j1viy")
+id = &"floor_sandstone"
+display_name = "Sandstone floor"
+color = Color(0.8, 0.7, 0.45, 1)
+kind = 0
+tags = PackedStringArray("sandstone", "floor")
+floor_source = 40
+variants = Array[ExtResource("3_j1viy")]([ExtResource("4_jteej"), ExtResource("5_p8ntd"), ExtResource("6_nntwv")])
+legend = "."

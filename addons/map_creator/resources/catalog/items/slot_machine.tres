@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_cfdig"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_bc2nt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_ekto0"]
+
+[resource]
+script = ExtResource("3_ekto0")
+id = &"slot_machine"
+display_name = "Slot machine"
+color = Color(0.9, 0.8, 0.2, 1)
+tags = PackedStringArray("slot", "gamble")
+scene_path = "res://addons/top_down/scenes/interactables/slot_machine.tscn"
+legend = "$"

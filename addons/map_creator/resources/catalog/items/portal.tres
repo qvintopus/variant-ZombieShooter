@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_dgd12"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_uoqrt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_pstq3"]
+
+[sub_resource type="Resource" id="Resource_6bsny"]
+script = ExtResource("2_uoqrt")
+key = &"tag"
+label = "Tag"
+type = 3
+max_value = 0.0
+options = PackedStringArray()
+hint = "This entry's tag; the other side's connect_tag."
+
+[sub_resource type="Resource" id="Resource_4gy3g"]
+script = ExtResource("2_uoqrt")
+key = &"connect_tag"
+label = "Arrives at tag"
+type = 3
+options = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_8mwxs"]
+script = ExtResource("2_uoqrt")
+key = &"room"
+label = "Leads to room"
+type = 5
+options = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ekxnv"]
+script = ExtResource("2_uoqrt")
+key = &"waits_for"
+label = "Opens when cleared"
+type = 5
+options = PackedStringArray()
+
+[resource]
+script = ExtResource("3_pstq3")
+id = &"portal"
+display_name = "Portal"
+color = Color(0.5, 0.3, 0.9, 1)
+tags = PackedStringArray("portal", "boss")
+bake = 2
+scene_path = "res://addons/top_down/scenes/obstacles/portal.tscn"
+parent_path = "Behind"
+properties = Array[ExtResource("2_uoqrt")]([SubResource("Resource_6bsny"), SubResource("Resource_4gy3g"), SubResource("Resource_8mwxs"), SubResource("Resource_ekxnv")])
+legend = "O"

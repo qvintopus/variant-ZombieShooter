@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="MapCatalogOperation" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_i34gg"]
+
+[resource]
+script = ExtResource("1_i34gg")
+id = &"pick"
+label = "Use as brush"

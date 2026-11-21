@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_863yt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_vyu2g"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_8hxq2"]
+
+[sub_resource type="Resource" id="Resource_jnvli"]
+script = ExtResource("2_vyu2g")
+key = &"section"
+label = "Section"
+type = 6
+min_value = 1.0
+max_value = 3.0
+options = PackedStringArray()
+
+[resource]
+script = ExtResource("3_8hxq2")
+id = &"trigger"
+display_name = "Section trigger"
+color = Color(1, 0.4, 0.7, 1)
+description = "Stepping on it starts the section."
+tags = PackedStringArray("trigger", "section", "fight")
+bake = 7
+defaults = {
+"section": 1
+}
+properties = Array[ExtResource("2_vyu2g")]([SubResource("Resource_jnvli")])
+legend = "xyz"

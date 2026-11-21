@@ -1,0 +1,120 @@
+[gd_resource type="Resource" script_class="MapCatalog" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogCategory.gd" id="1_o86u1"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="2_24t6h"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_base.tres" id="3_wo3n0"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_mossy.tres" id="4_tranu"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_bloody.tres" id="5_dch6y"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_metal.tres" id="6_rugj1"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_sandstone.tres" id="7_ksmw2"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_flesh.tres" id="8_1xt8o"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="9_gkoll"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/add.tres" id="10_jb7rr"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/pick.tres" id="11_frvut"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/modify.tres" id="12_i5jhq"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/replace.tres" id="13_npnrs"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/duplicate.tres" id="14_nf5mr"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/move.tres" id="15_5nvsa"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/remove.tres" id="16_ref60"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/select_all.tres" id="17_ko1o5"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/operations/remove_all.tres" id="18_cfsj6"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/wall.tres" id="19_w8mh2"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/hole.tres" id="20_mm47s"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/barrier.tres" id="21_poy5j"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/gate.tres" id="22_ylu6e"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/door.tres" id="23_juvbe"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/portal.tres" id="24_vqkpf"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/victory.tres" id="25_57agj"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/home_exit.tres" id="26_h472y"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/spawn.tres" id="27_tu7tl"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/boss_spawn.tres" id="28_75uvl"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/trigger.tres" id="29_pqfh0"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/loot_box.tres" id="30_c03gb"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/meat_grinder.tres" id="31_jehjq"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/slime_workbench.tres" id="32_lx3sc"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/slot_machine.tres" id="33_ksoo6"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/shrine.tres" id="34_jgo75"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/home_chest.tres" id="35_iigis"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/stash_lever.tres" id="36_0cobb"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/write_button.tres" id="37_yt5gx"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/reset_button.tres" id="38_kfcow"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/data_lever.tres" id="39_jvlgp"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/gate_lever.tres" id="40_ecjn5"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/comms_terminal.tres" id="41_4xvy1"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/robot_printer.tres" id="42_mxksg"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/piston_grid.tres" id="43_l1qc7"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/water_gun_spot.tres" id="44_5818g"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/web_trap.tres" id="45_b01v5"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/acid_puddle.tres" id="46_0pxga"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/slime_puddle.tres" id="47_sq8mp"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/player_spawn.tres" id="48_e7as5"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/weapon_spot.tres" id="49_nbwf7"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalog.gd" id="50_u6126"]
+
+[sub_resource type="Resource" id="Resource_ux0an"]
+script = ExtResource("1_o86u1")
+id = &"terrain"
+display_name = "Terrain"
+color = Color(0.6, 0.6, 0.5, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("3_wo3n0"), ExtResource("4_tranu"), ExtResource("5_dch6y"), ExtResource("6_rugj1"), ExtResource("7_ksmw2"), ExtResource("8_1xt8o")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_04cqk"]
+script = ExtResource("1_o86u1")
+id = &"structure"
+display_name = "Structure"
+color = Color(0.5, 0.5, 0.6, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("19_w8mh2"), ExtResource("20_mm47s"), ExtResource("21_poy5j"), ExtResource("22_ylu6e")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_cj66x"]
+script = ExtResource("1_o86u1")
+id = &"passages"
+display_name = "Passages"
+color = Color(0.6, 0.45, 0.3, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("23_juvbe"), ExtResource("24_vqkpf"), ExtResource("25_57agj"), ExtResource("26_h472y")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_p2mif"]
+script = ExtResource("1_o86u1")
+id = &"enemies"
+display_name = "Enemies"
+color = Color(0.85, 0.25, 0.25, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("27_tu7tl"), ExtResource("28_75uvl"), ExtResource("29_pqfh0")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_0g8ey"]
+script = ExtResource("1_o86u1")
+id = &"contraptions"
+display_name = "Contraptions"
+color = Color(0.85, 0.7, 0.25, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("30_c03gb"), ExtResource("31_jehjq"), ExtResource("32_lx3sc"), ExtResource("33_ksoo6"), ExtResource("34_jgo75")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_jwr4e"]
+script = ExtResource("1_o86u1")
+id = &"home"
+display_name = "Home base"
+color = Color(0.4, 0.6, 0.85, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("35_iigis"), ExtResource("36_0cobb"), ExtResource("37_yt5gx"), ExtResource("38_kfcow"), ExtResource("39_jvlgp"), ExtResource("40_ecjn5"), ExtResource("41_4xvy1"), ExtResource("42_mxksg"), ExtResource("43_l1qc7"), ExtResource("44_5818g")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_5i718"]
+script = ExtResource("1_o86u1")
+id = &"hazards"
+display_name = "Hazards"
+color = Color(0.55, 0.85, 0.2, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("45_b01v5"), ExtResource("46_0pxga"), ExtResource("47_sq8mp")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[sub_resource type="Resource" id="Resource_1q42b"]
+script = ExtResource("1_o86u1")
+id = &"markers"
+display_name = "Markers"
+color = Color(0.3, 0.85, 0.95, 1)
+items = Array[ExtResource("2_24t6h")]([ExtResource("48_e7as5"), ExtResource("49_nbwf7")])
+operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
+
+[resource]
+script = ExtResource("50_u6126")
+categories = Array[ExtResource("1_o86u1")]([SubResource("Resource_ux0an"), SubResource("Resource_04cqk"), SubResource("Resource_cj66x"), SubResource("Resource_p2mif"), SubResource("Resource_0g8ey"), SubResource("Resource_jwr4e"), SubResource("Resource_5i718"), SubResource("Resource_1q42b")])

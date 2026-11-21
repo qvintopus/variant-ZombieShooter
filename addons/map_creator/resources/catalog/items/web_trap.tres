@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_k4x6c"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_o2l1d"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_n0qn5"]
+
+[resource]
+script = ExtResource("3_n0qn5")
+id = &"web_trap"
+display_name = "Web trap"
+color = Color(0.85, 0.85, 0.85, 1)
+tags = PackedStringArray("web", "trap", "slow")
+scene_path = "res://addons/top_down/scenes/obstacles/web_trap.tscn"
+parent_path = "Behind"
+legend = "W"

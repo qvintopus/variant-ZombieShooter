@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_frlq3"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_rlem1"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_bqj11"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/shrine_2.tres" id="4_femuf"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/shrine_3.tres" id="5_dtvb4"]
+
+[resource]
+script = ExtResource("3_bqj11")
+id = &"shrine"
+display_name = "Shrine"
+color = Color(0.4, 0.9, 0.6, 1)
+tags = PackedStringArray("shrine", "heal")
+scene_path = "res://addons/top_down/scenes/interactables/shrine.tscn"
+variants = Array[ExtResource("3_bqj11")]([ExtResource("4_femuf"), ExtResource("5_dtvb4")])
+legend = "h"

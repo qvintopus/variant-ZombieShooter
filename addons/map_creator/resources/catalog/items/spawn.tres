@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_v7iuq"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_ado7k"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_xskck"]
+
+[sub_resource type="Resource" id="Resource_jnvli"]
+script = ExtResource("2_ado7k")
+key = &"section"
+label = "Section"
+type = 6
+min_value = 1.0
+max_value = 3.0
+options = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_4d5to"]
+script = ExtResource("2_ado7k")
+key = &"max_simultaneous"
+label = "Max at once"
+min_value = 1.0
+max_value = 6.0
+options = PackedStringArray()
+hint = "Empty: the section's."
+
+[resource]
+script = ExtResource("3_xskck")
+id = &"spawn"
+display_name = "Enemy spawner"
+color = Color(0.9, 0.2, 0.2, 1)
+tags = PackedStringArray("spawn", "spawner", "enemy")
+bake = 5
+script_path = "res://addons/top_down/scripts/arena/SpawnPoint.gd"
+parent_path = "EnemySpawnPoints"
+defaults = {
+"section": 1
+}
+properties = Array[ExtResource("2_ado7k")]([SubResource("Resource_jnvli"), SubResource("Resource_4d5to")])
+legend = "pqr"

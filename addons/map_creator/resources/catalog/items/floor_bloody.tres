@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_gt6h8"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_nmmae"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_8bccd"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_bloody_cracked_1.tres" id="4_4u25i"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_bloody_cracked_2.tres" id="5_y7lhy"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_bloody_cracked_3.tres" id="6_vnqqv"]
+
+[resource]
+script = ExtResource("3_8bccd")
+id = &"floor_bloody"
+display_name = "Bloody floor"
+color = Color(0.65, 0.2, 0.2, 1)
+kind = 0
+tags = PackedStringArray("bloody", "floor")
+floor_source = 20
+variants = Array[ExtResource("3_8bccd")]([ExtResource("4_4u25i"), ExtResource("5_y7lhy"), ExtResource("6_vnqqv")])
+legend = "."

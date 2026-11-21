@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_80mqu"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_oqmry"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_0i8mm"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_base_cracked_1.tres" id="4_dgjrl"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_base_cracked_2.tres" id="5_am70c"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_base_cracked_3.tres" id="6_8matn"]
+
+[resource]
+script = ExtResource("3_0i8mm")
+id = &"floor_base"
+display_name = "Base floor"
+color = Color(0.55, 0.55, 0.6, 1)
+kind = 0
+tags = PackedStringArray("base", "floor")
+variants = Array[ExtResource("3_0i8mm")]([ExtResource("4_dgjrl"), ExtResource("5_am70c"), ExtResource("6_8matn")])
+legend = "."
