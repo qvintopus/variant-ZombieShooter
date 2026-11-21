@@ -8,12 +8,20 @@ extends RefCounted
 ## key -> entry {key, name, campaign, layout (or null), scene, text, ...}
 var entries:Dictionary = {}
 
-func build(baker:LayoutBaker, catalog:MapCatalog)->void:
+## With an active mod in `mods`, baker.layouts already holds its rooms over the built-in
+## ones (MapModState.activate); entries get source "mod" (new) or "override".
+func build(baker:LayoutBaker, catalog:MapCatalog, mods:MapModState = null)->void:
 	entries.clear()
 	if baker.layouts.is_empty():
 		baker.load_layouts()
+	var _mod:MapModInfo = mods.active_mod() if mods != null else null
 	for _key:String in baker.layouts:
-		entries[_key] = _layout_entry(baker.layouts[_key], baker, catalog)
+		var _entry:Dictionary = _layout_entry(baker.layouts[_key], baker, catalog)
+		if _mod != null && _mod.has_room(_key):
+			_entry.source = "override" if ResourceLoader.exists(baker.layout_path(_key)) else "mod"
+			_entry.scene = mods.scene_for(_key)
+			_entry.text += " " + _entry.source + " " + _mod.id
+		entries[_key] = _entry
 	for _file:String in DirAccess.get_files_at(baker.scenes_dir):
 		var _file_name:String = _file.trim_suffix(".remap")
 		if !_file_name.begins_with("room_") || !_file_name.ends_with(".tscn"):
@@ -54,7 +62,7 @@ func _layout_entry(layout:RoomLayoutResource, baker:LayoutBaker, catalog:MapCata
 	return {
 		"key": layout.key, "name": layout.display_name, "campaign": String(layout.campaign), "layout": layout,
 		"scene": baker.scene_path(layout.key), "size": layout.size(), "cells": layout.floor.size(),
-		"counts": _counts, "enemies": _enemies, "links": _links,
+		"counts": _counts, "enemies": _enemies, "links": _links, "source": "",
 		"text": " ".join(_words).to_lower(),
 	}
 
@@ -68,7 +76,7 @@ func _scene_entry(key:String, path:String)->Dictionary:
 			var _instance:PackedScene = _state.get_node_instance(_i)
 			if _instance != null:
 				_words.append(_instance.resource_path.get_file().get_basename())
-	return {"key": key, "name": "(hand-made scene)", "campaign": "", "layout": null, "scene": path, "counts": {}, "enemies": [], "links": [], "text": " ".join(_words).to_lower()}
+	return {"key": key, "name": "(hand-made scene)", "campaign": "", "layout": null, "scene": path, "counts": {}, "enemies": [], "links": [], "source": "", "text": " ".join(_words).to_lower()}
 
 ## Keys whose text holds every word of `query` (all rooms for an empty query): the
 ## room with that key first, then rooms whose key or name has the query, then the rest.
@@ -105,6 +113,8 @@ func describe(key:String, catalog:MapCatalog)->String:
 	if _e.is_empty():
 		return ""
 	var _lines:PackedStringArray = ["room_%s  %s" % [key, _e.name]]
+	if !_e.source.is_empty():
+		_lines.append("Mod room (%s)" % ("replaces the built-in room" if _e.source == "override" else "new"))
 	if _e.layout == null:
 		_lines.append("Hand-made scene, no layout (view only)")
 		return "\n".join(_lines)

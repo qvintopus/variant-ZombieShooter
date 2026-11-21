@@ -12,6 +12,14 @@ extends Resource
 @export var key_prev_item:Key = KEY_Q
 @export var key_next_item:Key = KEY_E
 @export var key_browse:Key = KEY_TAB
+## Campaign graph.
+@export var key_graph:Key = KEY_M
+@export var key_fill:Key = KEY_F
+## Eyedropper (also Alt+click).
+@export var key_pick:Key = KEY_I
+@export var key_line:Key = KEY_L
+## Biggest area a fill covers (an open area stops the fill).
+@export var fill_max:int = 4000
 ## Ctrl + these
 @export var key_undo:Key = KEY_Z
 @export var key_redo:Key = KEY_Y

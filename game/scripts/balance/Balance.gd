@@ -181,6 +181,25 @@ func _load()->void:
 			if _entry is Dictionary && _entry.has("scene"):
 				_by_scene[_entry.scene] = [_category, _id]
 
+## Extra "rooms" entries of the active mod (by their cached scene path): room id ->
+## entry with "scene". Kept apart from balance.json; clear_registered() drops them.
+func register_rooms(entries:Dictionary)->void:
+	var _rooms:Dictionary = data.get_or_add("rooms", {})
+	for _id:String in entries:
+		var _entry:Variant = entries[_id]
+		if !(_entry is Dictionary) || !_entry.has("scene"):
+			continue
+		var _key:String = "mod:" + str(_entry.scene)
+		_rooms[_key] = _entry
+		_by_scene[_entry.scene] = ["rooms", _key]
+
+func clear_registered()->void:
+	var _rooms:Dictionary = data.get("rooms", {})
+	for _key:String in _rooms.keys():
+		if _key.begins_with("mod:"):
+			_by_scene.erase(_rooms[_key].get("scene", ""))
+			_rooms.erase(_key)
+
 ## Dotted lookup, e.g. value("difficulty.easy.enemy_health_ratio", 1.0)
 func value(key:String, fallback:Variant = null)->Variant:
 	var _current:Variant = data

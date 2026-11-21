@@ -24,6 +24,8 @@ enum Mode {SINGLE, COOP_HOST}
 ## Checkpoint room and the door the party arrived through ("" = the room's spawn marker).
 @export var room_scene:String
 @export var entry_tag:String
+## Map creator mod the run plays (its rooms are baked on resume); "" = base game.
+@export var mod_id:String
 @export var players:Array[PlayerRunData]
 @export var components:Array[RunSaveComponent]
 
@@ -42,7 +44,7 @@ func get_component(component_id:StringName)->RunSaveComponent:
 ## A usable save: right format and the checkpoint room still exists.
 func is_valid()->bool:
 	return format_version >= 1 && format_version <= FORMAT_VERSION \
-		&& !room_scene.is_empty() && ResourceLoader.exists(room_scene) && !players.is_empty()
+		&& !room_scene.is_empty() && (ResourceLoader.exists(room_scene) || !mod_id.is_empty()) && !players.is_empty()
 
 static func file_path()->String:
 	return SaveableResource.save_dir.path_join(file_name + ".tres")

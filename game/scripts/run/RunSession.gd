@@ -12,6 +12,8 @@ const TD:String = "res://addons/top_down/"
 const ROOM_STATE_PATH:String = TD + "resources/global_resources/room_state_resource.tres"
 const TRANSITION_PATH:String = TD + "resources/global_resources/scene_transition_resource.tres"
 const CAMPAIGN_PATH:String = "res://game/resources/campaign_resource.tres"
+const MOD_STATE_PATH:String = "res://addons/map_creator/resources/settings/mod_state.tres"
+const BAKER_PATH:String = "res://game/resources/map_creator/layout_baker.tres"
 ## Run-scoped resources cleared before a resume is applied (same list as FreshStart's).
 const RUN_RESOURCE_PATHS:PackedStringArray = [
 	TD + "resources/global_resources/score_resource.tres",
@@ -105,6 +107,10 @@ func is_resuming()->bool:
 func resume()->bool:
 	var _save:RunSave = RunSave.read()
 	if _save == null:
+		return false
+	var _mods:MapModState = load(MOD_STATE_PATH)
+	if _mods.active != _save.mod_id && !_mods.activate(_save.mod_id, load(BAKER_PATH)):
+		push_warning("RunSession: the run's mod '%s' is missing" % _save.mod_id)
 		return false
 	apply_save(_save)
 	Transition.change_scene(_save.room_scene)
@@ -204,6 +210,7 @@ func capture()->RunSave:
 	var _campaign:CampaignResource = load(CAMPAIGN_PATH)
 	_save.campaign_start_scene = _campaign.restart_scene()
 	_save.room_scene = _room_scene
+	_save.mod_id = (load(MOD_STATE_PATH) as MapModState).active
 	_save.entry_tag = _entry_tag
 	for _state:PlayerState in players.all():
 		# a ghost that left at victory has no part in this run; the hidden

@@ -15,12 +15,16 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RoomBrowser.gd" id="13_browser"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="14_transition"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="15_player"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/mod_state.tres" id="16_mods"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapPrompt.gd" id="17_prompt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CampaignGraph.gd" id="18_graph"]
 
 [node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
 process_mode = 3
 script = ExtResource("1_mc")
 catalog = ExtResource("2_catalog")
 baker = ExtResource("3_baker")
+mod_state = ExtResource("16_mods")
 settings = ExtResource("4_settings")
 preset = ExtResource("5_preset")
 editing_flag = ExtResource("6_flag")
@@ -73,4 +77,14 @@ creator = NodePath("../../..")
 [node name="RoomBrowser" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("13_browser")
+creator = NodePath("../../..")
+
+[node name="CampaignGraph" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("18_graph")
+creator = NodePath("../../..")
+
+[node name="Prompt" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("17_prompt")
 creator = NodePath("../../..")

@@ -28,8 +28,12 @@ const AUTOTILER:String = "TileVisualAutotiler.gd"
 
 ## Problems found since the last reset (each also printed).
 var problems:int = 0
+## Every problem since the last reset_problems(): {text, cell (Vector2i or null)}.
+var problem_list:Array[Dictionary] = []
 ## Every layout by key (portal destination names and links).
 var layouts:Dictionary = {}
+## No printing (the editor's live checks list problems themselves).
+var quiet:bool
 ## Writes the scenes here instead of scenes_dir (checks); links and uids stay scenes_dir's.
 var write_dir:String
 
@@ -37,6 +41,8 @@ var write_dir:String
 func load_layouts()->Dictionary:
 	layouts.clear()
 	for _file:String in DirAccess.get_files_at(layouts_dir):
+		# exported builds list converted resources as <name>.tres.remap
+		_file = _file.trim_suffix(".remap")
 		if !_file.ends_with(".tres"):
 			continue
 		var _layout:RoomLayoutResource = ResourceLoader.load(layouts_dir.path_join(_file), "", ResourceLoader.CACHE_MODE_REPLACE)
@@ -49,6 +55,10 @@ func layout_path(key:String)->String:
 
 func scene_path(key:String)->String:
 	return scenes_dir + "room_" + key + ".tscn"
+
+## Where bake() writes room_<key>.tscn (write_dir in checks, else scene_path).
+func written_path(key:String)->String:
+	return scene_path(key) if write_dir.is_empty() else write_dir.path_join("room_%s.tscn" % key)
 
 func save_layout(layout:RoomLayoutResource)->Error:
 	layouts[layout.key] = layout
@@ -100,7 +110,9 @@ static func autotiler_of(layer:Node)->TileVisualAutotiler:
 	return null
 
 ## Bakes one layout; returns its context (path, spawns, door_names...) or {} on failure.
-func bake(layout:RoomLayoutResource)->Dictionary:
+## With target_dir (a mod's cache) the scene is written there without a uid, so it
+## never clashes with the built-in room it overrides; links stay canonical (scenes_dir).
+func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 	if !layouts.has(layout.key):
 		layouts[layout.key] = layout
 	_validate(layout)
@@ -127,8 +139,8 @@ func bake(layout:RoomLayoutResource)->Dictionary:
 	_check_spans(layout.key, _cells, _blocked, _holes)
 
 	var _out:SceneText = SceneText.new()
-	var _path:String = scene_path(layout.key)
-	_out.uid = _existing_uid(_path)
+	var _path:String = scene_path(layout.key) if target_dir.is_empty() else target_dir.path_join("room_%s.tscn" % layout.key)
+	_out.uid = _existing_uid(_path) if target_dir.is_empty() else ""
 	_out.node("Room", "", {}, _out.ext("PackedScene", template_path))
 	for _layer:TileMapLayer in [_floor, _holes, _walls]:
 		_out.node(_layer.name, _root.get_path_to(_layer.get_parent()), {
@@ -237,7 +249,7 @@ func bake(layout:RoomLayoutResource)->Dictionary:
 	_bake_extras(_out, layout, _ctx)
 	_out.editable.append("EnemyManager")
 
-	var _write_path:String = _path if write_dir.is_empty() else write_dir.path_join(_path.get_file())
+	var _write_path:String = _path if write_dir.is_empty() || !target_dir.is_empty() else write_dir.path_join(_path.get_file())
 	var _file:FileAccess = FileAccess.open(_write_path, FileAccess.WRITE)
 	if _file == null:
 		problem("%s: can't write %s" % [layout.key, _write_path])
@@ -362,7 +374,8 @@ func _report(layout:RoomLayoutResource, cells:Dictionary, blocked:Dictionary, ho
 	var _size:Vector2i = Vector2i.ZERO
 	for _cell:Vector2i in cells:
 		_size = _size.max(_cell + Vector2i(2, 2))
-	print("room_%s (%s)" % [layout.key, layout.display_name])
+	if !quiet:
+		print("room_%s (%s)" % [layout.key, layout.display_name])
 	for _y:int in range(-1, _size.y):
 		var _line:String = ""
 		for _x:int in range(-1, _size.x):
@@ -370,13 +383,14 @@ func _report(layout:RoomLayoutResource, cells:Dictionary, blocked:Dictionary, ho
 			var _c:String = cells.get(_cell, " ")
 			var _covered:bool = blocked.has(_cell) || holes.get_cell_source_id(_cell) != -1
 			if _covered && _c != " " && _c != ".":
-				problem("%s: '%s' at %s is under a wall collider or hole" % [layout.key, _c, _cell])
+				problem("%s: '%s' at %s is under a wall collider or hole" % [layout.key, _c, _cell], _cell)
 			if blocked.has(_cell):
 				_c = "#"
 			elif holes.get_cell_source_id(_cell) != -1:
 				_c = "o"
 			_line += _c
-		print("  " + _line)
+		if !quiet:
+			print("  " + _line)
 
 ## Every BlockWall and trigger line must reach a wall collider (or hole) at both ends,
 ## or the player walks around it.
@@ -399,8 +413,14 @@ func _check_spans(key:String, cells:Dictionary, blocked:Dictionary, holes:TileMa
 			for _step:Vector2i in [_dir, -_dir]:
 				var _next:Vector2i = _cell + _step
 				if cells.get(_next) != _c && _walkable.call(_next):
-					problem("%s: '%s' line at %s leaves a gap at %s" % [key, _c, _cell, _next])
+					problem("%s: '%s' line at %s leaves a gap at %s" % [key, _c, _cell, _next], _next)
 
-func problem(message:String)->void:
+func problem(message:String, cell:Variant = null)->void:
 	problems += 1
-	printerr("PROBLEM: ", message)
+	problem_list.append({"text": message, "cell": cell})
+	if !quiet:
+		printerr("PROBLEM: ", message)
+
+func reset_problems()->void:
+	problems = 0
+	problem_list.clear()

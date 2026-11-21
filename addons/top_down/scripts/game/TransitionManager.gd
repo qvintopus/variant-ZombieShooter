@@ -5,6 +5,9 @@ extends CanvasLayer
 @export var transition_time:float = 1.0
 @export var bool_resource:BoolResource
 @export var transition_material:ShaderMaterial
+## Optional: any resource with resolve(path)->String (the map creator's mod state maps
+## built-in room paths to an active mod's rooms).
+@export var scene_path_resolver:Resource
 
 ## Resize screen texture to create same pixelation as the game
 const GAME_RESOLUTION_PIXELATION:bool = false
@@ -21,12 +24,18 @@ func _ready()->void:
 	visible = false
 
 func change_scene(path:String)->void:
+	path = resolve(path)
 	bool_resource.set_value(true)
 	if instant:
 		ThreadUtility.load_resource(path, _instant_loaded)
 		return
 	# wait for rendering everything on a screen
 	RenderingServer.frame_post_draw.connect(_post_draw.bind(path), CONNECT_ONE_SHOT)
+
+func resolve(path:String)->String:
+	if scene_path_resolver != null && scene_path_resolver.has_method(&"resolve"):
+		return scene_path_resolver.call(&"resolve", path)
+	return path
 
 func _post_draw(path:String)->void:
 	var _game_resolution:Vector2i = get_viewport().content_scale_size

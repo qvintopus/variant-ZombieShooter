@@ -69,6 +69,8 @@ enum Bake {
 @export_group("Catalog")
 ## Other looks of the same thing (future asset types); the topbar shows a picker.
 @export var variants:Array[MapCatalogItem] = []
+## How often Scatter painting picks this one among an item and its variants.
+@export var weight:float = 1.0
 ## Operations of this item; empty = its category's.
 @export var operations:Array[MapCatalogOperation] = []
 ## ASCII legend char(s) the old maps used, by props.section when several ("123").
