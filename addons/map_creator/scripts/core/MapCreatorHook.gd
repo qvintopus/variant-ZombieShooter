@@ -5,12 +5,13 @@ class_name MapCreatorHook
 extends Node
 
 @export var settings:MapCreatorSettings
-@export var creator_scene:PackedScene
+## Loaded only when Admin tools are on, so a normal game never loads the editor.
+@export_file("*.tscn") var creator_scene_path:String = "res://addons/map_creator/scenes/map_creator.tscn"
 
 var _creator:Node
 
 func _ready()->void:
-	if settings == null || creator_scene == null:
+	if settings == null || creator_scene_path.is_empty():
 		return
 	settings.changed_settings.connect(_sync)
 	_sync.call_deferred()
@@ -24,7 +25,7 @@ func allowed()->bool:
 func _sync()->void:
 	var _want:bool = settings.admin_enabled && allowed()
 	if _want && !is_instance_valid(_creator):
-		_creator = creator_scene.instantiate()
+		_creator = (load(creator_scene_path) as PackedScene).instantiate()
 		get_parent().add_child(_creator)
 	elif !_want && is_instance_valid(_creator):
 		_creator.queue_free()

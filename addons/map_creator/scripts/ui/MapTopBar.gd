@@ -6,8 +6,6 @@
 class_name MapTopBar
 extends PanelContainer
 
-signal browse_requested
-signal recent_selected(key:String)
 
 @export var creator:MapCreator
 
@@ -117,9 +115,9 @@ func _build_top_row()->HBoxContainer:
 	_recent.text = "Recent"
 	_recent.tooltip_text = "Last visited rooms"
 	_recent.flat = false
-	_recent.get_popup().id_pressed.connect(func (id:int)->void: recent_selected.emit(creator.settings.recent_rooms[id]))
+	_recent.get_popup().id_pressed.connect(func (id:int)->void: creator.switch_room(creator.settings.recent_rooms[id]))
 	_row.add_child(_recent)
-	_browse = _button(_row, "Rooms", "Search / switch rooms (%s)" % OS.get_keycode_string(creator.preset.key_browse), func ()->void: browse_requested.emit())
+	_browse = _button(_row, "Rooms", "Search / switch rooms (%s)" % OS.get_keycode_string(creator.preset.key_browse), func ()->void: creator.browse_requested.emit())
 	return _row
 
 func _build_tool_row()->HBoxContainer:

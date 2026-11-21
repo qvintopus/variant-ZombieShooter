@@ -45,14 +45,19 @@ func _spawn_resumed()->void:
 		RunSession.on_party_placed(owner, _tag), CONNECT_ONE_SHOT)
 
 func on_player_scene_entry()->void:
-	assert(scene_transition_resource.entry_match != null)
-	assert(scene_transition_resource.entry_match.is_inside_tree())
-	assert(!scene_transition_resource.entry_match.is_queued_for_deletion())
+	var _entry:Node2D = scene_transition_resource.entry_match
+	var _tag:String = scene_transition_resource.entry_tag
+	var _at:Vector2 = global_position
+	if is_instance_valid(_entry) && _entry.is_inside_tree() && !_entry.is_queued_for_deletion():
+		_at = _entry.global_position
+	else:
+		# no door with that tag here (the map creator's room switch): start at the spawner
+		_tag = ""
 	
 	var _player:Node2D = player_reference.node
-	_player.global_position = scene_transition_resource.entry_match.global_position
+	_player.global_position = _at
 	player_instance_resource.parent_reference_resource.node.add_child(_player)
-	RunSession.on_party_placed(owner, scene_transition_resource.entry_tag)
+	RunSession.on_party_placed(owner, _tag)
 	## Arrival consumed: a later menu/game over load isn't mistaken for a door entry.
 	scene_transition_resource.next_scene_path = ""
 

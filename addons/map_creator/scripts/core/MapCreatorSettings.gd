@@ -13,6 +13,8 @@ signal recent_changed
 ## Runs Clean Visuals after every paint stroke.
 @export var auto_clean:bool = true
 @export var show_grid:bool = true
+## Set by a room switch from Edit mode: the next room's editor starts editing. Not saved.
+var resume_editing:bool
 
 func set_admin_enabled(value:bool)->void:
 	admin_enabled = value

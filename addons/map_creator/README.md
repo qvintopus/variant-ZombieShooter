@@ -29,7 +29,8 @@ balance.json entries.
 
 ## In game
 Options > Gameplay > **Admin tools: ON** (title or pause menu). The room template's
-`MapCreatorHook` then adds `scenes/map_creator.tscn` to every room. It does this for solo
+`MapCreatorHook` then loads `scenes/map_creator.tscn` and adds it to every room. The
+scene is only loaded once the option is on. It does this for solo
 games and the co-op host, not for guests or a dedicated server. Edits are not synced.
 
 | key | action |
@@ -41,6 +42,8 @@ games and the co-op host, not for guests or a dedicated server. Edits are not sy
 | C | Clean: autotile walls, holes and floor, then colliders, hole scenes and AStar (progress bar) |
 | Ctrl+Z / Ctrl+Y | undo / redo (one step per stroke) |
 | Ctrl+S | save the layout + bake the room scene (+ balance.json entry) |
+| Tab | room browser |
+| Delete / Ctrl+D / Esc | remove / duplicate the selection, cancel |
 
 Entities (stairs, portals, gates/barriers, spawners, triggers, contraptions, hazards,
 markers) are placed with Paint and removed with Erase, one per floor cell. They are
@@ -68,6 +71,17 @@ side/boss section and the sections' waves as JSON.
 - Hovering a slice opens its children on the next ring.
 - The operations come from `MapCatalogOperation`s: Use as brush, Modify, Change to
   (a third ring of items), Duplicate, Move, Remove, Add here, Select all, Remove all.
+
+**Rooms**
+- **Rooms** (or Tab) opens the browser. Its search (`RoomIndex`) matches every word
+  against everything in a room: key, name, campaign, look, entities with their names and
+  tags, enemy ids, boss names, door targets, flags. Hand-made room scenes are listed too.
+  The info panel shows the selected room. Go switches to it.
+- **Recent** lists the last 5 rooms visited.
+- A switch goes through the scene transition with the entry tag `map_creator`, which no
+  door has, so the player lands on the PlayerSpawner. The next room opens in Edit mode
+  when this one was editing.
+- Unsaved edits need a second switch to drop them. Switching is off in co-op.
 
 Painting a floor look adds floor cells. Wall and hole painting writes overrides. Erasing a
 hole brings back the room look's floor. With **Auto** on, every stroke is cleaned.

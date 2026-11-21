@@ -66,7 +66,6 @@
 [ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_spin.tres" id="99_pspin"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/core/MapCreatorHook.gd" id="mc_hook"]
 [ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="mc_settings"]
-[ext_resource type="PackedScene" path="res://addons/map_creator/scenes/map_creator.tscn" id="mc_scene"]
 [ext_resource type="Resource" path="res://addons/map_creator/resources/settings/editing_flag.tres" id="mc_editing"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_pkurn"]
@@ -286,4 +285,3 @@ script = ExtResource("26_l7fet")
 [node name="MapCreatorHook" type="Node" parent="."]
 script = ExtResource("mc_hook")
 settings = ExtResource("mc_settings")
-creator_scene = ExtResource("mc_scene")
