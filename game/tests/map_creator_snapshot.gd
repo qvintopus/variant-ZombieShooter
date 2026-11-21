@@ -1,7 +1,7 @@
 ## Saves a screenshot of a room with the map creator in Edit mode (UI checks).
 ##   Godot --path . res://game/tests/map_creator_snapshot.tscn -- <room key> <out.png> [category index] [hover x,y] [radial]
 ## "radial" opens the radial menu on the hovered cell and hovers its first slice and that
-## slice's third operation.
+## slice's third operation; "rooms" opens the room browser.
 extends Node
 
 func _ready()->void:
@@ -25,6 +25,8 @@ func _ready()->void:
 		var _xy:PackedStringArray = _args[3].split(",")
 		_creator.hover_cell = Vector2i(int(_xy[0]), int(_xy[1]))
 		_creator.hover_valid = true
+	if _args.size() > 4 && _args[4] == "rooms":
+		_creator.browse_requested.emit()
 	if _args.size() > 4 && _args[4] == "radial":
 		var _menu:RadialMenu = _creator.get_node("UI/Root/RadialMenu")
 		var _screen:Vector2 = _creator.get_viewport().get_canvas_transform() * _creator.cell_center(_creator.hover_cell)

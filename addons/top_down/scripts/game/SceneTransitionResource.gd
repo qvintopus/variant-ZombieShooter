@@ -24,4 +24,6 @@ func set_next_scene(scene_path:String, entry:String)->void:
 	
 	next_scene_path = scene_path
 	entry_tag = entry
+	# the next room's matching door sets it again
+	entry_match = null
 	change_scene.emit()

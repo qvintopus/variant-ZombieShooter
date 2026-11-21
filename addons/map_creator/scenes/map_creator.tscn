@@ -12,6 +12,9 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CleanProgress.gd" id="10_progress"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapInspector.gd" id="11_inspector"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RadialMenu.gd" id="12_radial"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RoomBrowser.gd" id="13_browser"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="14_transition"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="15_player"]
 
 [node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
 process_mode = 3
@@ -21,6 +24,8 @@ baker = ExtResource("3_baker")
 settings = ExtResource("4_settings")
 preset = ExtResource("5_preset")
 editing_flag = ExtResource("6_flag")
+scene_transition_resource = ExtResource("14_transition")
+player_reference = ExtResource("15_player")
 camera = NodePath("EditCamera")
 overlay = NodePath("Overlay")
 
@@ -63,4 +68,9 @@ creator = NodePath("../../..")
 [node name="RadialMenu" type="Control" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("12_radial")
+creator = NodePath("../../..")
+
+[node name="RoomBrowser" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("13_browser")
 creator = NodePath("../../..")

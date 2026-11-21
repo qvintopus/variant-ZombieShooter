@@ -20,6 +20,8 @@ signal message(text:String)
 signal inspected_changed(entity:LayoutEntity)
 ## Right click: the radial menu opens at a screen position with these slices.
 signal radial_requested(screen_position:Vector2, slices:Array)
+## Topbar Rooms / Tab: open the room browser.
+signal browse_requested
 
 enum Tool { PAINT, ERASE, SELECT, MOVE }
 enum Brush { ONE, THREE, RECT }
@@ -32,6 +34,11 @@ enum Brush { ONE, THREE, RECT }
 @export var editing_flag:BoolResource
 @export var camera:Camera2D
 @export var overlay:Node2D
+## Scene change for room switching (the player keeps going to the next room).
+@export var scene_transition_resource:SceneTransitionResource
+@export var player_reference:ReferenceNodeResource
+## Entry tag of an admin room switch: no door has it, so the player lands on the PlayerSpawner.
+@export var switch_entry_tag:String = "map_creator"
 
 var room:Node2D
 var floor_layer:TileMapLayer
@@ -67,6 +74,7 @@ var _stroke_before:RoomLayoutResource
 var _stroking:bool
 var _rect_from:Vector2i
 var _clean_queued:bool
+var _discard_until:float
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -77,6 +85,8 @@ func _ready()->void:
 	holes_layer = room.get_node("Background/ObstacleLayer")
 	walls_layer = room.get_node("WallLayer_Ysorted")
 	key = room_key(room)
+	if baker != null && baker.layouts.is_empty():
+		baker.load_layouts()
 	if baker != null && !key.is_empty() && ResourceLoader.exists(baker.layout_path(key)):
 		var _source:RoomLayoutResource = ResourceLoader.load(baker.layout_path(key), "", ResourceLoader.CACHE_MODE_REPLACE)
 		layout = _source.clone()
@@ -86,6 +96,9 @@ func _ready()->void:
 		settings.visit(key)
 	if catalog != null && !catalog.categories.is_empty():
 		select_category(catalog.categories[0])
+	if settings != null && settings.resume_editing:
+		settings.resume_editing = false
+		set_editing.call_deferred(true)
 
 func _exit_tree()->void:
 	set_editing(false)
@@ -310,7 +323,9 @@ func _handle_key(event:InputEventKey)->bool:
 			return false
 		return true
 	var _key:Key = event.keycode
-	if _key == preset.key_clean:
+	if _key == preset.key_browse:
+		browse_requested.emit()
+	elif _key == preset.key_clean:
 		clean()
 	elif _key == preset.key_paint:
 		set_tool(Tool.PAINT)
@@ -899,3 +914,30 @@ func _catalog_slice(type:StringName, cell:Vector2i)->Dictionary:
 				if _item != null:
 					_children.append(_slice(_op.label, _op.color, _op.icon, [], select_item.bind(_item)))
 	return _slice(_type_name(type), _type_color(type), _item.icon if _item != null else null, _children)
+
+# --- rooms ------------------------------------------------------------------------------
+
+## Goes to another room (solo only). Unsaved edits need a second call within 3 s to drop.
+## The new room's editor comes back in Edit mode when this one was editing.
+func switch_room(to_key:String)->bool:
+	var _net:Node = get_node_or_null(^"/root/Net")
+	if _net != null && _net.call(&"is_online"):
+		message.emit("Room switching is off in co-op")
+		return false
+	var _now:float = Time.get_ticks_msec() / 1000.0
+	if dirty && _now > _discard_until:
+		_discard_until = _now + 3.0
+		message.emit("Unsaved changes: Save (Ctrl+S), or switch again to drop them")
+		return false
+	var _path:String = baker.scene_path(to_key)
+	if !ResourceLoader.exists(_path):
+		message.emit("No scene %s" % _path)
+		return false
+	if settings != null:
+		settings.resume_editing = editing
+	set_editing(false)
+	if scene_transition_resource != null && player_reference != null && player_reference.node != null:
+		scene_transition_resource.set_next_scene(_path, switch_entry_tag)
+	else:
+		get_tree().change_scene_to_file(_path)
+	return true
