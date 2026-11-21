@@ -14,6 +14,8 @@ var _room_label:Label
 var _recent:MenuButton
 var _workspace:MenuButton
 var _stamps:MenuButton
+var _problems:Button
+var _layers:MenuButton
 var _stamp_names:Array = []
 var _workspace_ids:Array[String] = []
 var _browse:Button
@@ -73,6 +75,7 @@ func _ready()->void:
 	creator.layout_changed.connect(_refresh)
 	creator.message.connect(show_message)
 	creator.workspace_changed.connect(_refresh)
+	creator.problems_changed.connect(_refresh)
 	if creator.settings != null:
 		creator.settings.recent_changed.connect(_fill_recent)
 	_fill_recent()
@@ -128,8 +131,11 @@ func _build_top_row()->HBoxContainer:
 	_recent.flat = false
 	_recent.get_popup().id_pressed.connect(func (id:int)->void: creator.switch_room(creator.settings.recent_rooms[id]))
 	_row.add_child(_recent)
+	_problems = _button(_row, "OK", "Live problems of the room (%s)" % OS.get_keycode_string(creator.preset.key_problems), func ()->void: creator.problems_requested.emit())
+	_button(_row, "Waves", "Sections and waves (%s)" % OS.get_keycode_string(creator.preset.key_waves), func ()->void: creator.waves_requested.emit())
 	_button(_row, "Map", "Campaign graph: rooms and their links (%s)" % OS.get_keycode_string(creator.preset.key_graph), func ()->void: creator.graph_requested.emit())
 	_browse = _button(_row, "Rooms", "Search / switch rooms (%s)" % OS.get_keycode_string(creator.preset.key_browse), func ()->void: creator.browse_requested.emit())
+	_button(_row, "?", "Keys and mouse (%s)" % OS.get_keycode_string(creator.preset.key_help), func ()->void: creator.help_requested.emit())
 	return _row
 
 func _build_tool_row()->HBoxContainer:
@@ -155,6 +161,17 @@ func _build_tool_row()->HBoxContainer:
 		_b.toggle_mode = true
 		var _field:String = _entry[2]
 		_b.toggled.connect(func (on:bool)->void: creator.tools.set(_field, on))
+	_layers = MenuButton.new()
+	_layers.text = "Layers"
+	_layers.flat = false
+	_layers.tooltip_text = "Show / hide floor, walls, holes, entity markers"
+	var _layer_popup:PopupMenu = _layers.get_popup()
+	_layer_popup.hide_on_checkable_item_selection = false
+	for _i:int in LAYER_NAMES.size():
+		_layer_popup.add_check_item(LAYER_NAMES[_i], _i)
+		_layer_popup.set_item_checked(_i, true)
+	_layer_popup.id_pressed.connect(_on_layer)
+	_row.add_child(_layers)
 	_stamps = MenuButton.new()
 	_stamps.text = "Stamps"
 	_stamps.flat = false
@@ -237,6 +254,14 @@ func _fill_recent()->void:
 		var _key:String = creator.settings.recent_rooms[_i]
 		var _layout:RoomLayoutResource = creator.baker.layouts.get(_key, null) if creator.baker != null else null
 		_popup.add_item("room_%s%s" % [_key, "  " + _layout.display_name if _layout != null else ""], _i)
+
+const LAYER_NAMES:PackedStringArray = ["Floor", "Walls", "Holes", "Entity markers"]
+
+func _on_layer(id:int)->void:
+	var _popup:PopupMenu = _layers.get_popup()
+	var _on:bool = !_popup.is_item_checked(id)
+	_popup.set_item_checked(id, _on)
+	creator.set_layer_visible(id, _on)
 
 const SAVE_STAMP_ID:int = 1002
 
@@ -323,6 +348,9 @@ func _refresh()->void:
 	_redo.disabled = !creator.can_redo()
 	_save.disabled = !creator.can_edit()
 	_workspace.text = creator.workspace_name()
+	_problems.text = "OK" if creator.problems.is_empty() else "! %d" % creator.problems.size()
+	_problems.modulate = Color.WHITE if creator.problems.is_empty() else Color(1, 0.6, 0.3)
+	_problems.visible = _editing && creator.can_edit()
 	_workspace.visible = _editing && creator.mod_state != null
 	_room_label.text = "room_%s%s" % [creator.key, "" if creator.can_edit() else " (no layout)"]
 	if creator.layout != null && !creator.layout.display_name.is_empty():

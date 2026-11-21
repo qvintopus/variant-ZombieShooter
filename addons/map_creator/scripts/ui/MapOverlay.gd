@@ -7,6 +7,8 @@ extends Node2D
 
 ## Extra draw passes (selection, entity markers) register here: Callable(overlay).
 var passes:Array[Callable] = []
+## Layers menu: entity markers on / off.
+var show_entities:bool = true
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -17,6 +19,11 @@ func _ready()->void:
 func _process(_delta:float)->void:
 	if visible:
 		queue_redraw()
+
+## Color of fight section `number` (1-based): spawns, triggers and barriers of the section
+## the waves panel highlights, and its title there.
+static func section_color(number:int)->Color:
+	return Color.from_hsv(fposmod(0.08 + 0.29 * (number - 1), 1.0), 0.65, 1.0)
 
 ## Diamond of a cell, in global coords.
 func diamond(cell:Vector2i, shrink:float = 0.0)->PackedVector2Array:
@@ -39,8 +46,10 @@ func _draw()->void:
 	if creator.settings == null || creator.settings.show_grid:
 		for _cell:Vector2i in creator.floor_layer.get_used_cells():
 			outline_cell(_cell, _preset.grid_color)
-	if creator.layout != null:
+	if creator.layout != null && show_entities:
 		_draw_entities(_preset)
+	elif creator.layout != null:
+		_draw_selection(_preset)
 	for _pass:Callable in passes:
 		_pass.call(self)
 	if !creator.hover_valid || creator.busy || !creator.moving.is_empty():
@@ -68,6 +77,14 @@ func _draw_entities(preset:MapCreatorPreset)->void:
 		if _letter.is_empty() || _letter == ".":
 			_letter = _item.display_name.left(1)
 		draw_string(_font, creator.cell_center(_entity.cell) + Vector2(-2, 2), _letter, HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(1, 1, 1, preset.entity_marker_alpha))
+	if creator.highlight_section > 0:
+		var _color:Color = section_color(creator.highlight_section)
+		for _entity:LayoutEntity in creator.layout.entities:
+			if _entity.props.has("section") && int(_entity.props.section) == creator.highlight_section:
+				outline_cell(_entity.cell, _color, 1.5)
+	if creator.flash_cell is Vector2i:
+		var _pulse:float = 0.5 + 0.5 * sin(Time.get_ticks_msec() / 120.0)
+		outline_cell(creator.flash_cell, Color(1, 0.4, 0.2, _pulse), 2.0)
 	if creator.inspected != null:
 		outline_cell(creator.inspected.cell, preset.selection_color, 1.5)
 	_draw_selection(preset)

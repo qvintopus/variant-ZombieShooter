@@ -110,3 +110,13 @@ export. Hotkeys, colors and UI size are in `resources/presets/default_preset.tre
 - Fill (F): same floor look, or an enclosed empty area (max `preset.fill_max`). Line brush (L). Pick (I / Alt+click) takes item + entity props.
 - MirX / MirY mirror the brush across the floor's middle. Mix scatters item variants by `MapCatalogItem.weight`.
 - Ctrl+C / Ctrl+V clipboard (kept across rooms). Stamps: save selection to `user://map_creator/stamps/<name>.json`; built-ins in `resources/stamps/`. Stamp JSON is checked like mod layouts.
+
+## Waves (K)
+- `WavesPanel` (left): sections (add/remove/reorder, Boss / Side flags, density, spawner cap), waves (count, alive cap, boss name, duplicate/reorder/remove), enemy rows from balance.json. Each change one undo step. Section title highlights + selects its spawns/triggers/barriers (`MapOverlay.section_color`).
+- Test: saves, reloads the room (`settings.test_section`), puts the player on the section's trigger, starts the fight.
+
+## Checks and comfort
+- `MapChecks` after every edit / clean: baker rules, things under walls/holes, barrier/trigger gaps, links to missing rooms, reachability flood from player spawn + entries (unreachable doors/triggers/contraptions, spawns without a path). Topbar badge (O) opens `ProblemsPanel`; click jumps the camera.
+- P: play from the cursor; F2 returns to the same view. F1 / ?: `HelpOverlay` from the preset keys.
+- Autosave every `preset.autosave_seconds` while dirty (`user://map_creator/autosave/<workspace>/`); Ctrl+R restores; Save drops it.
+- Saved rooms keep undo history across room switches (`settings.histories`). Layers menu hides floor / wall / hole tiles and entity markers.

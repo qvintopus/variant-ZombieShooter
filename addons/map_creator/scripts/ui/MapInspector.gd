@@ -1,7 +1,7 @@
 ## Side panel of the map creator. With an entity inspected it shows that entity's catalog
 ## properties as editors (MapPropertySpec: number, toggle, text, choice, room, section).
 ## Otherwise it shows the room: name, look, start/home, side room, boss section and the
-## fight sections (waves) as JSON. Every change is one undo step.
+## a button to the waves editor (WavesPanel). Every change is one undo step.
 class_name MapInspector
 extends PanelContainer
 
@@ -9,7 +9,6 @@ extends PanelContainer
 @export var width:float = 120.0
 
 var _box:VBoxContainer
-var _sections_text:TextEdit
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -54,7 +53,6 @@ func _has_focus()->bool:
 func rebuild()->void:
 	for _child:Node in _box.get_children():
 		_child.queue_free()
-	_sections_text = null
 	if !creator.can_edit():
 		return
 	if creator.inspected != null:
@@ -184,44 +182,9 @@ func _build_room()->void:
 		_check.button_pressed = _layout.get(_flag[0])
 		_check.toggled.connect(func (v:bool)->void: creator.set_layout_field(_flag[0], v))
 		_box.add_child(_check)
-	for _field:Array in [[&"side_room", "Side room section (0 none)"], [&"boss_section", "Boss section (0 none)"]]:
-		var _spin:SpinBox = SpinBox.new()
-		_spin.max_value = 3
-		_spin.value = _layout.get(_field[0])
-		_spin.value_changed.connect(func (v:float)->void: creator.set_layout_field(_field[0], int(v)))
-		_row(_field[1], _spin)
-	_sections_text = TextEdit.new()
-	_sections_text.custom_minimum_size.y = 90
-	_sections_text.text = JSON.stringify(_layout.sections, " ")
-	_row("Sections (waves)", _sections_text, "[{waves: [{count, enemies: [ids], is_boss?, display_name?, max_alive?}], spawn_density?, max_simultaneous?}]")
-	var _apply:Button = Button.new()
-	_apply.text = "Apply sections"
-	_apply.pressed.connect(_apply_sections)
-	_box.add_child(_apply)
-
-func _apply_sections()->void:
-	var _parsed:Variant = JSON.parse_string(_sections_text.text)
-	if !(_parsed is Array):
-		creator.message.emit("Sections must be a JSON array")
-		return
-	var _list:Array[Dictionary] = []
-	for _section:Variant in _parsed:
-		if !(_section is Dictionary) || !(_section.get("waves") is Array):
-			creator.message.emit("Each section needs a waves array")
-			return
-		_list.append(_whole_ints(_section))
-	creator.set_layout_field(&"sections", _list)
-	creator.message.emit("Sections applied (%d)" % _list.size())
-
-## JSON numbers come back as floats: whole ones become ints again (counts, densities).
-func _whole_ints(value:Variant)->Variant:
-	if value is float && is_equal_approx(value, roundf(value)):
-		return int(value)
-	if value is Array:
-		return value.map(_whole_ints)
-	if value is Dictionary:
-		var _out:Dictionary = {}
-		for _k:Variant in value:
-			_out[_k] = _whole_ints(value[_k])
-		return _out
-	return value
+	var _waves:Button = Button.new()
+	_waves.text = "Sections and waves... (%s)" % OS.get_keycode_string(creator.preset.key_waves)
+	_waves.tooltip_text = "%d sections. Opens the waves editor" % _layout.sections.size()
+	_waves.focus_mode = Control.FOCUS_NONE
+	_waves.pressed.connect(func ()->void: creator.waves_requested.emit())
+	_box.add_child(_waves)
