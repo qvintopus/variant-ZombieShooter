@@ -43,7 +43,7 @@ func _draw()->void:
 		_draw_entities(_preset)
 	for _pass:Callable in passes:
 		_pass.call(self)
-	if !creator.hover_valid || creator.busy:
+	if !creator.hover_valid || creator.busy || !creator.moving.is_empty():
 		return
 	var _color:Color = _preset.hover_color
 	if creator.tool == MapCreator.Tool.PAINT:
@@ -70,3 +70,21 @@ func _draw_entities(preset:MapCreatorPreset)->void:
 		draw_string(_font, creator.cell_center(_entity.cell) + Vector2(-2, 2), _letter, HORIZONTAL_ALIGNMENT_LEFT, -1, 6, Color(1, 1, 1, preset.entity_marker_alpha))
 	if creator.inspected != null:
 		outline_cell(creator.inspected.cell, preset.selection_color, 1.5)
+	_draw_selection(preset)
+
+## Selected cells, the Ctrl+drag box, and the ghost of a move/duplicate under the cursor.
+func _draw_selection(preset:MapCreatorPreset)->void:
+	for _entry:Dictionary in creator.selection.entries():
+		fill_cell(_entry.cell, Color(preset.selection_color, preset.selection_color.a * 0.6), 0.15)
+		outline_cell(_entry.cell, preset.selection_color)
+	if creator.box_from != null:
+		var _from:Vector2i = creator.box_from
+		var _min:Vector2i = _from.min(creator.hover_cell)
+		var _max:Vector2i = _from.max(creator.hover_cell)
+		for _y:int in range(_min.y, _max.y + 1):
+			for _x:int in range(_min.x, _max.x + 1):
+				outline_cell(Vector2i(_x, _y), preset.selection_color)
+	if !creator.moving.is_empty():
+		var _delta:Vector2i = creator.hover_cell - creator.moving.origin
+		for _p:Dictionary in creator.moving.payload:
+			fill_cell(_p.cell + _delta, Color(creator._type_color(_p.type), 0.5), 0.1)

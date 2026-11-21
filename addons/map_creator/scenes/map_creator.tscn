@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapTopBar.gd" id="9_topbar"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CleanProgress.gd" id="10_progress"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapInspector.gd" id="11_inspector"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RadialMenu.gd" id="12_radial"]
 
 [node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
 process_mode = 3
@@ -57,4 +58,9 @@ creator = NodePath("../../..")
 [node name="CleanProgress" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("10_progress")
+creator = NodePath("../../..")
+
+[node name="RadialMenu" type="Control" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("12_radial")
 creator = NodePath("../../..")

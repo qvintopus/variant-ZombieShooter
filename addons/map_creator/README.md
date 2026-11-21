@@ -50,6 +50,25 @@ The Select tool opens an entity in the **inspector**, which edits its `MapProper
 props. With nothing selected the inspector edits the room: name, look, flags,
 side/boss section and the sections' waves as JSON.
 
+**Selection**
+- Ctrl+click toggles the top thing on a cell. The order is entity, painted wall, floor
+  look, generated wall, hole.
+- Ctrl+drag box-selects.
+- A plain click lets go of the selection.
+- Delete removes the selection. Ctrl+D duplicates it.
+- With the Move tool, drag the selection.
+- Esc cancels.
+- A selection of one entity type is edited together in the inspector.
+
+**Radial menu** (right click)
+- Ring 1 holds:
+  - the hovered thing, or each selected type plus "All selected";
+  - every kind of thing in the room, plus the brush item;
+  - More, which opens categories and then items.
+- Hovering a slice opens its children on the next ring.
+- The operations come from `MapCatalogOperation`s: Use as brush, Modify, Change to
+  (a third ring of items), Duplicate, Move, Remove, Add here, Select all, Remove all.
+
 Painting a floor look adds floor cells. Wall and hole painting writes overrides. Erasing a
 hole brings back the room look's floor. With **Auto** on, every stroke is cleaned.
 Saving writes into `res://`, so it only works when running from the project, not from an

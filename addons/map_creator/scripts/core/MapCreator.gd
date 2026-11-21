@@ -18,6 +18,8 @@ signal clean_progress(fraction:float)
 signal message(text:String)
 ## The entity shown in the inspector changed (null = none).
 signal inspected_changed(entity:LayoutEntity)
+## Right click: the radial menu opens at a screen position with these slices.
+signal radial_requested(screen_position:Vector2, slices:Array)
 
 enum Tool { PAINT, ERASE, SELECT, MOVE }
 enum Brush { ONE, THREE, RECT }
@@ -51,6 +53,13 @@ var hover_valid:bool
 var entities:LiveEntities
 ## Entity open in the inspector.
 var inspected:LayoutEntity
+## Entities edited together with `inspected` (same item, from a selection).
+var inspected_group:Array[LayoutEntity] = []
+var selection:MapSelection
+## While moving/duplicating: {entries, payload, copy, origin}.
+var moving:Dictionary = {}
+## Ctrl+drag box selection start (null when not boxing).
+var box_from:Variant = null
 
 var _undo:Array[RoomLayoutResource] = []
 var _redo:Array[RoomLayoutResource] = []
@@ -61,6 +70,7 @@ var _clean_queued:bool
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	selection = MapSelection.new(self)
 	if room == null:
 		room = get_parent() as Node2D
 	floor_layer = room.get_node("Background/FloorLayer")
@@ -175,19 +185,96 @@ func _unhandled_input(event:InputEvent)->void:
 		_update_hover()
 		if _stroking && brush != Brush.RECT:
 			_apply_brush(hover_cell)
-	elif event is InputEventMouseButton && event.button_index == MOUSE_BUTTON_LEFT:
-		_update_hover()
-		if event.pressed && (tool == Tool.PAINT || tool == Tool.ERASE):
-			begin_stroke(hover_cell)
-			get_viewport().set_input_as_handled()
-		elif event.pressed && tool == Tool.SELECT && can_edit():
-			inspect(layout.entity_at(hover_cell))
-			get_viewport().set_input_as_handled()
-		elif !event.pressed && _stroking:
-			if brush == Brush.RECT:
-				_apply_brush(hover_cell)
-			end_stroke()
-			get_viewport().set_input_as_handled()
+		return
+	if !(event is InputEventMouseButton):
+		return
+	_update_hover()
+	if event.button_index == MOUSE_BUTTON_RIGHT && event.pressed:
+		if !moving.is_empty():
+			cancel_move()
+		elif can_edit():
+			radial_requested.emit(event.position, radial_slices(hover_cell))
+		get_viewport().set_input_as_handled()
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	get_viewport().set_input_as_handled()
+	if event.pressed:
+		_left_pressed(event.ctrl_pressed)
+	else:
+		_left_released()
+
+func _left_pressed(ctrl:bool)->void:
+	if !moving.is_empty():
+		confirm_move(hover_cell)
+		return
+	if ctrl:
+		box_from = hover_cell
+		return
+	if tool == Tool.MOVE && can_edit():
+		var _type:StringName = selection.type_at(hover_cell)
+		if !selection.has_cell(hover_cell) && !_type.is_empty():
+			selection.set_entries([{"cell": hover_cell, "type": _type}])
+		if !selection.is_empty():
+			begin_move(selection.entries(), false)
+			moving.drag = true
+		return
+	if !selection.is_empty():
+		# a plain click lets go of the selection first
+		selection.clear()
+		inspect(null)
+		return
+	if tool == Tool.PAINT || tool == Tool.ERASE:
+		begin_stroke(hover_cell)
+	elif tool == Tool.SELECT && can_edit():
+		inspect(layout.entity_at(hover_cell))
+
+func _left_released()->void:
+	if box_from != null:
+		_finish_box(box_from, hover_cell)
+		box_from = null
+	elif !moving.is_empty() && moving.get("drag", false):
+		if hover_cell != moving.origin:
+			confirm_move(hover_cell)
+		else:
+			# a click without dragging: keep following the cursor until the next click
+			moving.drag = false
+	elif _stroking:
+		if brush == Brush.RECT:
+			_apply_brush(hover_cell)
+		end_stroke()
+
+## Ctrl+click toggles the top thing on a cell; Ctrl+drag adds every cell of the box.
+func _finish_box(from:Vector2i, to:Vector2i)->void:
+	if !can_edit():
+		return
+	if from == to:
+		selection.toggle(from, selection.type_at(from))
+	else:
+		var _min:Vector2i = from.min(to)
+		var _max:Vector2i = from.max(to)
+		for _y:int in range(_min.y, _max.y + 1):
+			for _x:int in range(_min.x, _max.x + 1):
+				var _cell:Vector2i = Vector2i(_x, _y)
+				var _type:StringName = selection.type_at(_cell)
+				if !_type.is_empty():
+					selection.add(_cell, _type)
+	_inspect_selection()
+
+## One entity type selected: the inspector edits them together.
+func _inspect_selection()->void:
+	var _types:Array[StringName] = selection.types()
+	if _types.size() == 1 && _is_entity_type(_types[0]):
+		var _group:Array[LayoutEntity] = []
+		for _entry:Dictionary in selection.entries():
+			var _entity:LayoutEntity = layout.entity_at(_entry.cell)
+			if _entity != null:
+				_group.append(_entity)
+		inspect(_group[0] if !_group.is_empty() else null, _group)
+
+func _is_entity_type(type:StringName)->bool:
+	var _item:MapCatalogItem = catalog.item(type)
+	return _item != null && _item.kind == MapCatalogItem.Kind.ENTITY
 
 func _handle_key(event:InputEventKey)->bool:
 	if preset == null:
@@ -197,6 +284,19 @@ func _handle_key(event:InputEventKey)->bool:
 		return true
 	if !editing:
 		return false
+	if event.keycode == KEY_ESCAPE:
+		if !moving.is_empty():
+			cancel_move()
+		else:
+			selection.clear()
+			inspect(null)
+		return true
+	if event.keycode == KEY_DELETE && !selection.is_empty():
+		remove_entries(selection.entries())
+		return true
+	if event.ctrl_pressed && event.keycode == KEY_D && !selection.is_empty():
+		begin_move(selection.entries(), true)
+		return true
 	if event.ctrl_pressed:
 		if event.keycode == preset.key_undo && event.shift_pressed:
 			redo()
@@ -361,8 +461,9 @@ func _drop_entity_at(cell:Vector2i)->void:
 
 # --- entity edits (one undo step each) --------------------------------------------------
 
-func inspect(entity:LayoutEntity)->void:
+func inspect(entity:LayoutEntity, group:Array[LayoutEntity] = [])->void:
 	inspected = entity
+	inspected_group = group
 	inspected_changed.emit(entity)
 
 ## Runs `change` on the layout as one undoable edit, then syncs the live room.
@@ -376,13 +477,21 @@ func edit(change:Callable, reclean:bool = false)->void:
 	_mark_dirty()
 	if reclean:
 		clean(false)
+	selection.prune()
 
+## Sets a prop on the entity (and on the rest of an inspected group of the same item).
 func set_entity_prop(entity:LayoutEntity, prop:StringName, value:Variant)->void:
+	var _targets:Array[LayoutEntity] = [entity]
+	if entity == inspected:
+		for _other:LayoutEntity in inspected_group:
+			if _other != entity && _other.item_id == entity.item_id:
+				_targets.append(_other)
 	edit(func ()->void:
-		if value == null:
-			entity.props.erase(prop)
-		else:
-			entity.props[prop] = value)
+		for _target:LayoutEntity in _targets:
+			if value == null:
+				_target.props.erase(prop)
+			else:
+				_target.props[prop] = value)
 
 ## Sets a room-level layout field (look, side_room, sections...).
 func set_layout_field(field:StringName, value:Variant)->void:
@@ -488,8 +597,10 @@ func _restore(snapshot:RoomLayoutResource)->void:
 	layout = snapshot
 	history_changed.emit()
 	entities.sync(layout)
+	cancel_move()
 	if inspected != null:
 		inspect(null)
+	selection.clear()
 	_mark_dirty()
 	clean(false)
 
@@ -515,3 +626,276 @@ func save()->bool:
 	dirty_changed.emit()
 	message.emit("Saved room_%s%s" % [key, "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
 	return true
+
+# --- selection operations ---------------------------------------------------------------
+
+## What an entry carries when moved/copied.
+func _payload(entry:Dictionary)->Dictionary:
+	var _cell:Vector2i = entry.cell
+	var _type:StringName = entry.type
+	if _type == MapSelection.WALL || _type == MapSelection.HOLE:
+		return {"type": _type, "cell": _cell}
+	var _item:MapCatalogItem = catalog.item(_type)
+	if _item != null && _item.kind == MapCatalogItem.Kind.FLOOR:
+		return {"type": _type, "cell": _cell, "floor": layout.floor.get(_cell, Vector3i(_item.floor_source, _item.floor_atlas.x, _item.floor_atlas.y))}
+	var _entity:LayoutEntity = layout.entity_at(_cell)
+	return {"type": _type, "cell": _cell, "entity": _entity.copy() if _entity != null else null}
+
+## Takes a thing off the layout (no clean, no sync).
+func _take(cell:Vector2i, type:StringName)->void:
+	if type == MapSelection.WALL:
+		layout.wall_overrides[cell] = false
+	elif type == MapSelection.HOLE:
+		layout.hole_overrides[cell] = false
+		var _floor:MapCatalogItem = _default_floor()
+		layout.floor[cell] = Vector3i(_floor.floor_source, _floor.floor_atlas.x, _floor.floor_atlas.y)
+	elif _is_entity_type(type):
+		var _entity:LayoutEntity = layout.entity_at(cell)
+		if _entity != null && _entity.item_id == type:
+			layout.entities.erase(_entity)
+	else:
+		layout.floor.erase(cell)
+		var _entity:LayoutEntity = layout.entity_at(cell)
+		if _entity != null:
+			layout.entities.erase(_entity)
+
+## Puts a catalog item on the layout (no clean, no sync). Entities need floor.
+func _put(cell:Vector2i, with:MapCatalogItem, props:Variant = null, floor_value:Variant = null)->void:
+	match with.kind:
+		MapCatalogItem.Kind.FLOOR:
+			layout.floor[cell] = floor_value if floor_value != null else Vector3i(with.floor_source, with.floor_atlas.x, with.floor_atlas.y)
+			layout.hole_overrides.erase(cell)
+		MapCatalogItem.Kind.WALL:
+			layout.wall_overrides[cell] = true
+		MapCatalogItem.Kind.HOLE:
+			layout.floor.erase(cell)
+			layout.hole_overrides[cell] = true
+			var _gone:LayoutEntity = layout.entity_at(cell)
+			if _gone != null:
+				layout.entities.erase(_gone)
+		MapCatalogItem.Kind.ENTITY:
+			if !layout.floor.has(cell):
+				return
+			var _old:LayoutEntity = layout.entity_at(cell)
+			if _old != null:
+				layout.entities.erase(_old)
+			layout.entities.append(LayoutEntity.make(with.id, cell, props if props != null else new_props(with)))
+
+func _type_item(type:StringName)->MapCatalogItem:
+	return catalog.item(type)
+
+func remove_entries(entries:Array)->void:
+	edit(func ()->void:
+		for _entry:Dictionary in entries:
+			_take(_entry.cell, _entry.type), true)
+	selection.clear()
+	inspect(null)
+
+## Changes every entry to `with`. A floor keeps its cells under a new entity; entity props
+## carry over where the new item has the same keys.
+func replace_entries(entries:Array, with:MapCatalogItem)->void:
+	edit(func ()->void:
+		for _entry:Dictionary in entries:
+			var _old:LayoutEntity = layout.entity_at(_entry.cell)
+			var _props:Variant = null
+			if _old != null && _old.item_id == _entry.type && with.kind == MapCatalogItem.Kind.ENTITY:
+				_props = new_props(with)
+				for _key:Variant in _old.props:
+					if with.property(_key) != null:
+						_props[_key] = _old.props[_key]
+			var _target_item:MapCatalogItem = _type_item(_entry.type)
+			var _from_floor:bool = _target_item != null && _target_item.kind == MapCatalogItem.Kind.FLOOR
+			# a new look keeps the cell's cracks
+			var _floor_value:Variant = null
+			if _from_floor && with.kind == MapCatalogItem.Kind.FLOOR && layout.floor.has(_entry.cell) && with.floor_atlas == Vector2i(0, 3):
+				var _old_floor:Vector3i = layout.floor[_entry.cell]
+				_floor_value = Vector3i(with.floor_source, _old_floor.y, _old_floor.z)
+			# a floor stays under a new entity or wall, and a new look just repaints it
+			if !_from_floor:
+				_take(_entry.cell, _entry.type)
+			_put(_entry.cell, with, _props, _floor_value), true)
+	selection.clear()
+
+func select_type(type:StringName)->void:
+	var _entries:Array = []
+	for _cell:Vector2i in selection.cells_of(type):
+		_entries.append({"cell": _cell, "type": type})
+	for _entry:Dictionary in selection.entries():
+		_entries.append(_entry)
+	selection.set_entries(_entries)
+	_inspect_selection()
+
+func remove_type(type:StringName)->void:
+	var _entries:Array = []
+	for _cell:Vector2i in selection.cells_of(type):
+		_entries.append({"cell": _cell, "type": type})
+	remove_entries(_entries)
+
+func add_at(cell:Vector2i, with:MapCatalogItem)->void:
+	if with.kind == MapCatalogItem.Kind.ENTITY && !layout.floor.has(cell):
+		message.emit("%s needs floor under it" % with.display_name)
+		return
+	edit(func ()->void: _put(cell, with), with.kind != MapCatalogItem.Kind.ENTITY)
+
+## Starts moving (or copying) entries: they follow the cursor until a click drops them.
+func begin_move(entries:Array, copy:bool)->void:
+	if entries.is_empty() || !can_edit():
+		return
+	var _payload:Array = []
+	for _entry:Dictionary in entries:
+		_payload.append(_payload(_entry))
+	moving = {"entries": entries, "payload": _payload, "copy": copy, "origin": hover_cell, "drag": false}
+	message.emit("%s %d: click to drop, right click / Esc to cancel" % ["Copy" if copy else "Move", entries.size()])
+
+func cancel_move()->void:
+	moving = {}
+
+func confirm_move(cell:Vector2i)->void:
+	if moving.is_empty():
+		return
+	var _delta:Vector2i = cell - moving.origin
+	var _payload:Array = moving.payload
+	var _copy:bool = moving.copy
+	moving = {}
+	if _delta == Vector2i.ZERO && !_copy:
+		return
+	var _moved:Array = []
+	edit(func ()->void:
+		if !_copy:
+			for _p:Dictionary in _payload:
+				_take(_p.cell, _p.type)
+		# floors first so entities land on floor
+		_payload.sort_custom(func (a:Dictionary, b:Dictionary)->bool: return a.has("floor") && !b.has("floor"))
+		for _p:Dictionary in _payload:
+			var _to:Vector2i = _p.cell + _delta
+			if _p.has("floor"):
+				_put(_to, _type_item(_p.type), null, _p.floor)
+			elif _p.has("entity"):
+				if _p.entity != null:
+					_put(_to, _type_item(_p.type), _p.entity.props.duplicate(true))
+			else:
+				_put(_to, _type_item(_p.type))
+			_moved.append({"cell": _to, "type": _p.type}), true)
+	selection.set_entries(_moved)
+	selection.prune()
+
+# --- radial menu ------------------------------------------------------------------------
+
+func _type_name(type:StringName)->String:
+	var _item:MapCatalogItem = catalog.item(type)
+	return _item.display_name if _item != null else String(type)
+
+func _type_color(type:StringName)->Color:
+	var _item:MapCatalogItem = catalog.item(type)
+	return _item.color if _item != null else Color.WHITE
+
+func _slice(label:String, color:Color, icon:Texture2D = null, children:Array = [], action:Callable = Callable())->Dictionary:
+	return {"label": label, "color": color, "icon": icon, "children": children, "action": action}
+
+## Ring 1: the selection's types (and all of it) or the hovered thing, then every kind of
+## thing in the room plus the brush item, then More (categories -> items). Ring 2 holds
+## the operations; "Change to" opens a third ring of items.
+func radial_slices(cell:Vector2i)->Array:
+	var _ring:Array = []
+	if !selection.is_empty():
+		var _types:Array[StringName] = selection.types()
+		for _type:StringName in _types:
+			var _entries:Array = selection.entries(_type)
+			_ring.append(_target_slice("%d x %s" % [_entries.size(), _type_name(_type)], _type, _entries))
+		if _types.size() > 1:
+			_ring.append(_target_slice("All %d selected" % selection.size(), &"", selection.entries()))
+	else:
+		var _type:StringName = selection.type_at(cell)
+		if !_type.is_empty():
+			_ring.append(_target_slice("This %s" % _type_name(_type), _type, [{"cell": cell, "type": _type}]))
+	var _room_types:Array[StringName] = selection.room_types()
+	for _type:StringName in _room_types:
+		_ring.append(_catalog_slice(_type, cell))
+	if item != null && !_room_types.has(item.id):
+		_ring.append(_catalog_slice(item.id, cell))
+	var _categories:Array = []
+	for _category:MapCatalogCategory in catalog.categories:
+		var _items:Array = []
+		for _entry:MapCatalogItem in category_items(_category):
+			_items.append(_catalog_slice(_entry.id, cell))
+		_categories.append(_slice(_category.display_name, _category.color, _category.icon, _items))
+	_ring.append(_slice("More...", Color(0.7, 0.7, 0.7), null, _categories))
+	return _ring
+
+## A category's items and their variants.
+func category_items(of:MapCatalogCategory)->Array[MapCatalogItem]:
+	var _list:Array[MapCatalogItem] = []
+	for _entry:MapCatalogItem in of.items:
+		_list.append(_entry)
+		_list.append_array(_entry.variants)
+	return _list
+
+func _ops_for(type:StringName, context:int)->Array[MapCatalogOperation]:
+	var _list:Array[MapCatalogOperation] = []
+	var _ops:Array[MapCatalogOperation] = catalog.operations_of(type) if !type.is_empty() else catalog.categories[0].operations
+	var _item:MapCatalogItem = catalog.item(type)
+	var _kind:int = _item.kind if _item != null else -1
+	for _op:MapCatalogOperation in _ops:
+		if (_op.context & context) != 0 && (_kind == -1 || _op.kinds.is_empty() || _op.kinds.has(_kind)):
+			if type.is_empty() && (_op.id == &"pick" || _op.id == &"modify"):
+				continue
+			_list.append(_op)
+	return _list
+
+func _target_slice(label:String, type:StringName, entries:Array)->Dictionary:
+	var _children:Array = []
+	for _op:MapCatalogOperation in _ops_for(type, MapCatalogOperation.Context.TARGET):
+		match _op.id:
+			&"pick":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], select_item.bind(catalog.item(type))))
+			&"modify":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], func ()->void:
+					selection.set_entries(entries)
+					_inspect_selection()))
+			&"replace":
+				_children.append(_slice(_op.label, _op.color, _op.icon, _replace_slices(type, entries)))
+			&"duplicate":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], func ()->void:
+					hover_cell = entries[0].cell
+					begin_move(entries, true)))
+			&"move":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], func ()->void:
+					hover_cell = entries[0].cell
+					begin_move(entries, false)))
+			&"remove":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], remove_entries.bind(entries)))
+	return _slice(label, _type_color(type) if !type.is_empty() else preset.selection_color, catalog.item(type).icon if catalog.item(type) != null else null, _children)
+
+## "Change to": the brush item first, then the target's category (and variants).
+func _replace_slices(type:StringName, entries:Array)->Array:
+	var _list:Array = []
+	var _seen:Dictionary = {}
+	var _candidates:Array[MapCatalogItem] = []
+	if item != null:
+		_candidates.append(item)
+	var _category:MapCatalogCategory = catalog.category_of(type) if !type.is_empty() else null
+	if _category != null:
+		_candidates.append_array(category_items(_category))
+	for _entry:MapCatalogItem in _candidates:
+		if _seen.has(_entry.id) || _entry.id == type:
+			continue
+		_seen[_entry.id] = true
+		_list.append(_slice(_entry.display_name, _entry.color, _entry.icon, [], replace_entries.bind(entries, _entry)))
+	return _list
+
+func _catalog_slice(type:StringName, cell:Vector2i)->Dictionary:
+	var _children:Array = []
+	var _item:MapCatalogItem = catalog.item(type)
+	for _op:MapCatalogOperation in _ops_for(type, MapCatalogOperation.Context.CATALOG):
+		match _op.id:
+			&"add":
+				if _item != null:
+					_children.append(_slice("%s here" % _op.label, _op.color, _op.icon, [], add_at.bind(cell, _item)))
+			&"select_all":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], select_type.bind(type)))
+			&"remove_all":
+				_children.append(_slice(_op.label, _op.color, _op.icon, [], remove_type.bind(type)))
+			&"pick":
+				if _item != null:
+					_children.append(_slice(_op.label, _op.color, _op.icon, [], select_item.bind(_item)))
+	return _slice(_type_name(type), _type_color(type), _item.icon if _item != null else null, _children)

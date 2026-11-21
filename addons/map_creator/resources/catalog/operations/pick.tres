@@ -6,3 +6,5 @@
 script = ExtResource("1_i34gg")
 id = &"pick"
 label = "Use as brush"
+context = 3
+color = Color(0.3, 0.85, 0.95, 1)
