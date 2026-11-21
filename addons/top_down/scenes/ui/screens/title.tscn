@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://dpv4epw1i5b4g"]
+[gd_scene format=3 uid="uid://dpv4epw1i5b4g"]
 
 [ext_resource type="Theme" uid="uid://yctjuhnen1br" path="res://addons/top_down/resources/theme/game_gui_theme.theme" id="1_2uqb8"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/ui/title_screen/MenuManager.gd" id="1_q1kds"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/ui/title_screen/GameplayManager.gd" id="90_gpmgr"]
 [ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="91_dnset"]
 
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="92_mcset"]
 [node name="Title" type="ColorRect"]
 anchors_preset = 15
 anchor_right = 1.0
@@ -60,7 +61,7 @@ slider_container = [NodePath("../MarginContainer/Control/Body/AudioMenu/Master")
 audio_settings_resource = ExtResource("3_eeftq")
 save_button = NodePath("../MarginContainer/Control/Body/AudioMenu/Back/Button")
 
-[node name="GameplayManager" type="Node" parent="." node_paths=PackedStringArray("enemy_button", "enemy_label", "player_button", "player_label", "size_button", "size_label", "colors_button", "colors_label", "back_button", "preview_enemy", "preview_critical", "preview_player", "preview_heal")]
+[node name="GameplayManager" type="Node" parent="." node_paths=PackedStringArray("enemy_button", "enemy_label", "player_button", "player_label", "size_button", "size_label", "colors_button", "colors_label", "admin_button", "admin_label", "back_button", "preview_enemy", "preview_critical", "preview_player", "preview_heal")]
 script = ExtResource("90_gpmgr")
 settings = ExtResource("91_dnset")
 enemy_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/EnemyNumbers/Button")
@@ -71,6 +72,9 @@ size_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberSize/
 size_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberSize/Label")
 colors_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberColors/Button")
 colors_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberColors/Label")
+admin_settings = ExtResource("92_mcset")
+admin_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/AdminTools/Button")
+admin_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/AdminTools/Label")
 back_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/Back/Button")
 preview_enemy = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Enemy")
 preview_critical = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Critical")
@@ -235,6 +239,12 @@ layout_mode = 2
 
 [node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/NumberColors" index="1"]
 text = "Number colors: Classic"
+
+[node name="AdminTools" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("5_kq1p3")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/AdminTools" index="1"]
+text = "Admin tools: OFF"
 
 [node name="Preview" type="HBoxContainer" parent="MarginContainer/Control/Body/GameplayMenu"]
 layout_mode = 2

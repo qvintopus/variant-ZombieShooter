@@ -26,3 +26,24 @@ balance.json entries.
 ## Baking
 - `Godot --headless --path . res://game/tools/build_rooms.tscn [-- N02 P10]` bakes the layouts.
 - `game/tests/layout_roundtrip_check.tscn` fails when a committed room scene doesn't match its layout.
+
+## In game
+Options > Gameplay > **Admin tools: ON** (title or pause menu). The room template's
+`MapCreatorHook` then adds `scenes/map_creator.tscn` to every room. It does this for solo
+games and the co-op host, not for guests or a dedicated server. Edits are not synced.
+
+| key | action |
+|---|---|
+| F2 | Edit / Play. Edit pauses the room and switches to a free camera (WASD/arrows, middle-drag, wheel zoom) |
+| 1-9 | category tabs |
+| Q / E | previous / next item (variants included) |
+| B / X / V / G | Paint / Erase / Select / Move |
+| C | Clean: autotile walls, holes and floor, then colliders, hole scenes and AStar (progress bar) |
+| Ctrl+Z / Ctrl+Y | undo / redo (one step per stroke) |
+| Ctrl+S | save the layout + bake the room scene (+ balance.json entry) |
+
+Painting a floor look adds floor cells. Wall and hole painting writes overrides. Erasing a
+hole brings back the room look's floor. With **Auto** on, every stroke is cleaned.
+Saving writes into `res://`, so it only works when running from the project, not from an
+export. Hotkeys, colors and UI size are in `resources/presets/default_preset.tres`.
+`game/tests/map_creator_snapshot.tscn` saves a screenshot of the editor UI.

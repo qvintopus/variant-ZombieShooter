@@ -51,7 +51,9 @@ func setup_obstacles()->void:
 		
 		for _offset:Vector2 in _offset_list:
 			var _tile_pos_off:Vector2i = _tile_pos + Vector2i(_offset)
-			assert(_astar.region.has_point(_tile_pos_off))
+			# a wall painted off the floor (map creator) is outside the grid: nothing walks there
+			if !_astar.region.has_point(_tile_pos_off):
+				continue
 			_astar.set_point_solid(_tile_pos_off, true)
 	
 	_astar.update()
@@ -64,4 +66,5 @@ func cleanup() -> void:
 	
 	for i:int in tiles.size():
 		var _tile_pos:Vector2i = tiles[i]
-		astargrid_resource.value.set_point_solid(_tile_pos, false)
+		if astargrid_resource.value.region.has_point(_tile_pos):
+			astargrid_resource.value.set_point_solid(_tile_pos, false)

@@ -38,4 +38,6 @@ func initialize_astargrid()->void:
 			_astar.cell_shape = AStarGrid2D.CellShape.CELL_SHAPE_ISOMETRIC_DOWN
 	
 	astargrid_resource.set_value(_astar)
-	tree_exiting.connect(astargrid_resource.cleanup)
+	# a rebuild (map creator) calls this again
+	if !tree_exiting.is_connected(astargrid_resource.cleanup):
+		tree_exiting.connect(astargrid_resource.cleanup)
