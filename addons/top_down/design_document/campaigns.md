@@ -98,6 +98,6 @@ portal of its target room.
    the layout `.tres` in the inspector (see the `RoomLayoutResource` doc comment).
 2. Rebuild after inspector edits:
    `Godot --headless --path . res://game/tools/build_rooms.tscn [-- N02 P10]`.
-   It rewrites the room scenes. For campaign rooms it also rewrites their balance.json
+   It rewrites the room scenes. For campaign rooms it also rewrites their maps.json
    `rooms` entries and leaves every other entry as it is.
 3. Check: `Godot --headless --path . res://game/tests/campaign_check.tscn`.

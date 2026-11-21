@@ -25,7 +25,7 @@ extends Resource
 @export var display_name:String
 ## Campaign it belongs to (new_game, new_game_plus, boss_path, home).
 @export var campaign:StringName
-## Campaign rooms get a balance.json "rooms" entry and portal/victory checks.
+## Campaign rooms get a maps.json "rooms" entry (waves, spawn caps, loot) and portal/victory checks.
 @export var writes_balance:bool = true
 ## Made in the map creator (New / Copy): not a shipped original, edited without asking.
 @export var user_made:bool

@@ -1,5 +1,6 @@
 ## The admin topbar, built from the catalog.
-## Row 1: Edit/Play toggle, category tabs (keys 1-9), the room name, recent rooms and Browse.
+## Row 1: Edit/Play toggle, category tabs (keys 1-9), the room's settings (floor look,
+## Start / Home / Campaign flags, each with a tooltip), workspace, room name, recent rooms and Browse.
 ## Row 2: tools, brush, Clean, Undo/Redo, Save, the auto-clean and grid toggles, and messages.
 ## Row 3: the current category's items, each followed by its variants (Q/E step through them).
 ## In Play mode only row 1 shows.
@@ -32,6 +33,18 @@ var _item_strip:HBoxContainer
 var _item_buttons:Dictionary = {}
 var _swatches:Dictionary = {}
 var _message_time:float
+## Room settings on row 1: look menu and flag toggles (field -> Button).
+var _look:MenuButton
+var _looks:PackedStringArray = []
+var _flags:Dictionary = {}
+var _room_box:HBoxContainer
+
+## Room flags: [field, label, tooltip].
+const ROOM_FLAGS:Array = [
+	[&"start", "Start", "Campaign start: a new run begins in this room.\nResets the run (cleared rooms, loot, weapons) on entry; starting weapon spots work only here. No fight sections."],
+	[&"home", "Home", "Home base: the hub between runs (adds the HomeBase node: shop, run summary)."],
+	[&"writes_balance", "Campaign", "Campaign room: its waves, spawn caps and loot are written to game/balance/maps.json on save,\nand the campaign checks run (boss room needs a portal + victory exit).\nOff for test rooms outside a campaign."],
+]
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -118,6 +131,7 @@ func _build_top_row()->HBoxContainer:
 	var _spacer:Control = Control.new()
 	_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_row.add_child(_spacer)
+	_row.add_child(_build_room_settings())
 	_workspace = MenuButton.new()
 	_workspace.flat = false
 	_workspace.tooltip_text = "Workspace: where Save writes (a mod in user://mods, or the game files)"
@@ -209,6 +223,38 @@ func _build_tool_row()->HBoxContainer:
 	_message.clip_text = true
 	_row.add_child(_message)
 	return _row
+
+func _build_room_settings()->HBoxContainer:
+	_room_box = HBoxContainer.new()
+	_room_box.add_theme_constant_override(&"separation", 1)
+	_look = MenuButton.new()
+	_look.flat = false
+	_look.tooltip_text = "Room look: the default floor style (new floor, holes and walls take it). Click to change"
+	_look.about_to_popup.connect(_fill_looks)
+	_look.get_popup().id_pressed.connect(func (id:int)->void:
+		if id < _looks.size():
+			creator.set_layout_field(&"look", _looks[id]))
+	_room_box.add_child(_look)
+	for _flag:Array in ROOM_FLAGS:
+		var _field:StringName = _flag[0]
+		var _b:Button = _button(_room_box, _flag[1], _flag[2], func ()->void: pass)
+		_b.toggle_mode = true
+		_b.toggled.connect(func (on:bool)->void:
+			if creator.layout != null && bool(creator.layout.get(_field)) != on:
+				creator.set_layout_field(_field, on))
+		_flags[_field] = _b
+	return _room_box
+
+func _fill_looks()->void:
+	var _popup:PopupMenu = _look.get_popup()
+	_popup.clear()
+	_looks.clear()
+	for _item:MapCatalogItem in creator.catalog.all_items():
+		if _item.kind == MapCatalogItem.Kind.FLOOR && String(_item.id).count("_") == 1:
+			_looks.append(String(_item.id).trim_prefix("floor_"))
+	for _i:int in _looks.size():
+		_popup.add_radio_check_item(_looks[_i], _i)
+		_popup.set_item_checked(_i, creator.layout != null && _looks[_i] == creator.layout.look)
 
 func _fill_room_menu()->void:
 	var _popup:PopupMenu = _room_label.get_popup()
@@ -381,6 +427,11 @@ func _refresh()->void:
 	_problems.modulate = Color.WHITE if creator.problems.is_empty() else Color(1, 0.6, 0.3)
 	_problems.visible = _editing && creator.can_edit()
 	_workspace.visible = _editing && creator.mod_state != null
+	_room_box.visible = _editing && creator.can_edit()
+	if creator.layout != null:
+		_look.text = creator.layout.look
+		for _field:StringName in _flags:
+			_flags[_field].set_pressed_no_signal(bool(creator.layout.get(_field)))
 	_room_label.text = "room_%s%s" % [creator.key, "" if creator.can_edit() else " (no layout)"]
 	if creator.layout != null && !creator.layout.display_name.is_empty():
 		_room_label.text += "  " + creator.layout.display_name

@@ -1,6 +1,6 @@
 ## Bakes every room layout (game/rooms/layouts/room_*.tres, see RoomLayoutResource for
 ## the cells, entities and sections) into game/scenes/room_<key>.tscn through the shared
-## GameLayoutBaker, and rewrites the campaign rooms' balance.json "rooms" entries.
+## GameLayoutBaker, and rewrites the campaign rooms' maps.json "rooms" entries.
 ## The in-game map creator saves layouts and bakes the same way; run this after editing
 ## a layout in the Godot inspector or after changing the baker/catalog.
 ##   Godot --headless --path . res://game/tools/build_rooms.tscn [-- N02 P10 ...]

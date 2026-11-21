@@ -49,11 +49,13 @@ func _test_baker()->GameLayoutBaker:
 	_baker.layouts_dir = OUT + "layouts/"
 	_baker.write_dir = OUT + "scenes/"
 	_baker.balance_path = OUT + "balance.json"
+	_baker.maps_path = OUT + "maps.json"
 	for _dir:String in [_baker.layouts_dir, _baker.write_dir]:
 		DirAccess.make_dir_recursive_absolute(_dir)
 	for _file:String in DirAccess.get_files_at("res://game/rooms/layouts/"):
 		DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/rooms/layouts/" + _file), ProjectSettings.globalize_path(_baker.layouts_dir + _file))
 	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/balance.json"), ProjectSettings.globalize_path(_baker.balance_path))
+	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/maps.json"), ProjectSettings.globalize_path(_baker.maps_path))
 	_baker.load_layouts()
 	return _baker
 

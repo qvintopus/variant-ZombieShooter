@@ -4,7 +4,7 @@ In-game room editor on top of `addons/top_down`. Rooms are `RoomLayoutResource`s
 (`game/rooms/layouts/room_<key>.tres`). A `LayoutBaker` bakes them into scenes that
 inherit `room_template.tscn`. The game's baker (`GameLayoutBaker`,
 `game/resources/map_creator/layout_baker.tres`) adds the project nodes and the
-balance.json entries.
+`game/balance/maps.json` room entries.
 
 ## Data (shared resources)
 - `MapCatalog` (`resources/catalog/default_catalog.tres`) has categories, which hold `MapCatalogItem`s
@@ -41,7 +41,7 @@ games and the co-op host, not for guests or a dedicated server. Edits are not sy
 | B / X / V / G | Paint / Erase / Select / Move |
 | C | Clean: autotile walls, holes and floor, then colliders, hole scenes and AStar (progress bar) |
 | Ctrl+Z / Ctrl+Y | undo / redo (one step per stroke) |
-| Ctrl+S | save the layout + bake the room scene (+ balance.json entry) |
+| Ctrl+S | save the layout + bake the room scene (+ maps.json entry) |
 | Tab | room browser |
 | Delete / Ctrl+D / Esc | remove / duplicate the selection, cancel |
 
@@ -50,8 +50,10 @@ markers) are placed with Paint and removed with Erase, one per floor cell. They 
 built live through `LiveEntities` and drawn on the overlay with their legend letter.
 Starting weapon spots, the piston grid and plain markers apply after Save and a reload.
 The Select tool opens an entity in the **inspector**, which edits its `MapPropertySpec`
-props. With nothing selected the inspector edits the room: name, look, flags,
-side/boss section and the sections' waves as JSON.
+props; it shows only while an entity is inspected. Room settings sit in topbar row 1:
+floor look, **Start** (campaign start), **Home** (home base), **Campaign** (writes the
+room's `game/balance/maps.json` entry + campaign checks), each with a tooltip. Name and
+key: the room name menu. Sections and waves: `WavesPanel`.
 
 **Selection**
 - Ctrl+click toggles the top thing on a cell. The order is entity, painted wall, floor
@@ -92,7 +94,7 @@ export. Hotkeys, colors and UI size are in `resources/presets/default_preset.tre
 ## Mods (workspaces)
 - Mod = folder `user://mods/<id>/`: `mod.json` (name, author, version, description, campaigns) + `layouts/room_<key>.json`. Share by copying the folder (topbar workspace menu > Open mods folder).
 - Mods hold JSON only, never .tres/.tscn (those can carry scripts). `LayoutCodec` checks items/props against the catalog, keeps strings to safe chars, bounds cells.
-- `MapModState` (`resources/settings/mod_state.tres`): active mod; bakes its rooms into `user://map_creator/cache/<id>/` (rebakes on JSON/game version change); balance entries go to the `Balance` autoload (`register_rooms`).
+- `MapModState` (`resources/settings/mod_state.tres`): active mod; bakes its rooms into `user://map_creator/cache/<id>/` (rebakes on JSON/game version change); room entries (cache `maps.json`) go to the `Balance` autoload (`register_rooms`).
 - Baked doors/portals always link `res://game/scenes/room_<key>.tscn`; `Transition.change_scene` resolves through the mod state, so a mod room with a built-in key overrides it and new keys just work.
 - Workspace menu (topbar): Game (project files, only when run from Godot) or a mod. Saving a built-in room in a mod copies it into the mod. In an exported game, Save on a built-in room asks for a new mod name.
 - Runs remember their mod (`RunSave.mod_id`); Continue re-activates it.

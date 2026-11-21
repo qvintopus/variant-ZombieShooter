@@ -1,17 +1,20 @@
 ## Zombie Shooter's room baker: LayoutBaker plus FreshStart / HomeBase, the starting
-## weapon, RoomController, the HUD overlay, campaign checks and the balance.json
-## "rooms" entries (enemy ids resolve through balance.json too).
+## weapon, RoomController, the HUD overlay, campaign checks and the maps.json
+## "rooms" entries (enemy ids resolve through balance.json).
 class_name GameLayoutBaker
 extends LayoutBaker
 
 const TD:String = "res://addons/top_down/"
 
+## Enemy / boss ids (read only).
 @export_file("*.json") var balance_path:String = "res://game/balance/balance.json"
-## balance.json free_distance of every written section.
+## Room entries (waves, spawn caps, loot): written by write_balance().
+@export_file("*.json") var maps_path:String = "res://game/balance/maps.json"
+## maps.json free_distance of every written section.
 @export var free_distance:int = 116
 
 var _balance:Dictionary
-## Room key -> balance.json "rooms" entry, written by write_balance().
+## Room key -> maps.json "rooms" entry, written by write_balance().
 var _entries:Dictionary = {}
 
 func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
@@ -122,7 +125,7 @@ func balance()->Dictionary:
 		_balance = _parsed if _parsed is Dictionary else {}
 	return _balance
 
-## The balance.json "rooms" entry matching what was written into the scene.
+## The maps.json "rooms" entry matching what was written into the scene.
 func _balance_entry(path:String, layout:RoomLayoutResource, spawns:Dictionary)->Dictionary:
 	if layout.sections.is_empty():
 		return {}
@@ -147,8 +150,8 @@ func _balance_entry(path:String, layout:RoomLayoutResource, spawns:Dictionary)->
 		_points[_name] = {"max_simultaneous": spawns[_name].max_simultaneous}
 	return {"scene": path, "sections": _sections, "spawn_points": _points, "loot_multiplier": 1.0}
 
-## The balance "rooms" entries baked since the last write/take, keyed room_<key>
-## (a mod keeps them next to its cached scenes instead of in balance.json).
+## The maps.json "rooms" entries baked since the last write/take, keyed room_<key>
+## (a mod keeps them next to its cached scenes instead of in maps.json).
 func take_entries()->Dictionary:
 	var _taken:Dictionary = {}
 	for _key:String in _entries:
@@ -156,15 +159,15 @@ func take_entries()->Dictionary:
 	_entries.clear()
 	return _taken
 
-## Replaces (or appends) only the baked rooms' entries in balance.json, keeping the
+## Replaces (or appends) only the baked rooms' entries in maps.json, keeping the
 ## rest of the file as it is written.
 func write_balance()->void:
 	if _entries.is_empty():
 		return
-	var _lines:PackedStringArray = FileAccess.get_file_as_string(balance_path).split("\n")
+	var _lines:PackedStringArray = FileAccess.get_file_as_string(maps_path).split("\n")
 	var _rooms_at:int = _lines.find("\t\"rooms\": {")
 	if _rooms_at == -1:
-		problem("balance.json has no \"rooms\" block")
+		problem("maps.json has no \"rooms\" block")
 		return
 	for _key:String in _entries:
 		var _start:int = _lines.find("\t\t\"room_%s\": {" % _key)
@@ -179,16 +182,16 @@ func write_balance()->void:
 		_lines.insert(_close, "\t\t\"room_%s\": %s" % [_key, JSON.stringify(_entries[_key], "\t", false).replace("\n", "\n\t\t")])
 	var _last:int = _block_close(_lines, _rooms_at) - 1
 	_lines[_last] = _lines[_last].trim_suffix(",")
-	var _file:FileAccess = FileAccess.open(balance_path, FileAccess.WRITE)
+	var _file:FileAccess = FileAccess.open(maps_path, FileAccess.WRITE)
 	_file.store_string("\n".join(_lines))
 	_file.close()
 	_entries.clear()
 	_balance = {}
 
-## Drops room_<key>'s entry from balance.json (a deleted room).
+## Drops room_<key>'s entry from maps.json (a deleted room).
 func remove_balance(key:String)->void:
 	_entries.erase(key)
-	var _lines:PackedStringArray = FileAccess.get_file_as_string(balance_path).split("\n")
+	var _lines:PackedStringArray = FileAccess.get_file_as_string(maps_path).split("\n")
 	var _start:int = _lines.find("\t\t\"room_%s\": {" % key)
 	var _rooms_at:int = _lines.find("\t\"rooms\": {")
 	if _start == -1 || _rooms_at == -1:
@@ -200,7 +203,7 @@ func remove_balance(key:String)->void:
 		_lines.remove_at(_start)
 	var _last:int = _block_close(_lines, _rooms_at) - 1
 	_lines[_last] = _lines[_last].trim_suffix(",")
-	var _file:FileAccess = FileAccess.open(balance_path, FileAccess.WRITE)
+	var _file:FileAccess = FileAccess.open(maps_path, FileAccess.WRITE)
 	_file.store_string("\n".join(_lines))
 	_file.close()
 	_balance = {}

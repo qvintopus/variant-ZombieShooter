@@ -70,10 +70,12 @@ func _check_painting(settings:MapCreatorSettings)->void:
 	_baker.layouts_dir = OUT + "layouts/"
 	_baker.write_dir = OUT + "scenes/"
 	_baker.balance_path = OUT + "balance.json"
+	_baker.maps_path = OUT + "maps.json"
 	for _dir:String in [_baker.layouts_dir, _baker.write_dir]:
 		DirAccess.make_dir_recursive_absolute(_dir)
 	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/rooms/layouts/room_%s.tres" % KEY), ProjectSettings.globalize_path(_baker.layout_path(KEY)))
 	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/balance.json"), ProjectSettings.globalize_path(_baker.balance_path))
+	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/maps.json"), ProjectSettings.globalize_path(_baker.maps_path))
 	_baker.load_layouts()
 
 	var _room:Node2D = _load_room()
