@@ -7,3 +7,4 @@ script = ExtResource("1_k8fkl")
 id = &"select_all"
 label = "Select all"
 context = 2
+color = Color(0.9, 0.9, 0.9, 1)

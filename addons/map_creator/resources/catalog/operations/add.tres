@@ -7,3 +7,4 @@ script = ExtResource("1_t8bb5")
 id = &"add"
 label = "Add"
 context = 2
+color = Color(0.35, 0.85, 0.4, 1)

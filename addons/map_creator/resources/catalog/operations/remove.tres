@@ -6,3 +6,4 @@
 script = ExtResource("1_m4kbb")
 id = &"remove"
 label = "Remove"
+color = Color(0.95, 0.3, 0.3, 1)

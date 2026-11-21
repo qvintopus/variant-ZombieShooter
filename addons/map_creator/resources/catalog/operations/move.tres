@@ -6,3 +6,4 @@
 script = ExtResource("1_5pbby")
 id = &"move"
 label = "Move"
+color = Color(1, 0.6, 0.25, 1)

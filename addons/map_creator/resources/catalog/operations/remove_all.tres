@@ -7,3 +7,4 @@ script = ExtResource("1_ssd6b")
 id = &"remove_all"
 label = "Remove all"
 context = 2
+color = Color(0.6, 0.15, 0.15, 1)

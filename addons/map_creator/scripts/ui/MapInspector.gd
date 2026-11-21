@@ -83,7 +83,11 @@ func _row(label:String, editor:Control, hint:String = "")->void:
 
 func _build_entity(entity:LayoutEntity)->void:
 	var _item:MapCatalogItem = creator.catalog.item(entity.item_id)
-	_title("%s  (%d, %d)" % [_item.display_name if _item != null else entity.item_id, entity.cell.x, entity.cell.y])
+	var _group:int = creator.inspected_group.size() if entity == creator.inspected else 0
+	if _group > 1:
+		_title("%d x %s (edited together)" % [_group, _item.display_name if _item != null else entity.item_id])
+	else:
+		_title("%s  (%d, %d)" % [_item.display_name if _item != null else entity.item_id, entity.cell.x, entity.cell.y])
 	if _item == null:
 		return
 	if !_item.description.is_empty():
