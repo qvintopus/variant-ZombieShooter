@@ -75,6 +75,8 @@ var entities:LiveEntities
 var rooms:RoomManager
 ## Fill, line, mirror, scatter, clipboard, stamps.
 var tools:MapTools
+## Menu icons of catalog items (sprites / tiles), cached.
+var icons:MapIcons = MapIcons.new()
 ## Props the eyedropper picked up, used by the next placements of that item.
 var picked_props:Dictionary = {}
 ## Live problems [{text, cell}] (MapChecks), refreshed check_delay after edits.
@@ -990,6 +992,20 @@ func _type_color(type:StringName)->Color:
 	var _item:MapCatalogItem = catalog.item(type)
 	return _item.color if _item != null else Color.WHITE
 
+## Menu icon of a catalog item: own icon, tile or sprite (null for markers).
+func icon_of(entry:MapCatalogItem)->Texture2D:
+	return icons.of(entry, self)
+
+## A category's icon, else its first item's.
+func category_icon(of:MapCatalogCategory)->Texture2D:
+	if of.icon != null:
+		return of.icon
+	for _entry:MapCatalogItem in of.items:
+		var _icon:Texture2D = icon_of(_entry)
+		if _icon != null:
+			return _icon
+	return null
+
 func _slice(label:String, color:Color, icon:Texture2D = null, children:Array = [], action:Callable = Callable())->Dictionary:
 	return {"label": label, "color": color, "icon": icon, "children": children, "action": action}
 
@@ -1019,8 +1035,10 @@ func radial_slices(cell:Vector2i)->Array:
 		var _items:Array = []
 		for _entry:MapCatalogItem in category_items(_category):
 			_items.append(_catalog_slice(_entry.id, cell))
-		_categories.append(_slice(_category.display_name, _category.color, _category.icon, _items))
-	_ring.append(_slice("More...", Color(0.7, 0.7, 0.7), null, _categories))
+		_categories.append(_slice(_category.display_name, _category.color, category_icon(_category), _items))
+	var _more:Dictionary = _slice("More...", Color(0.7, 0.7, 0.7), null, _categories)
+	_more.glyph = "+"
+	_ring.append(_more)
 	return _ring
 
 ## A category's items and their variants.
@@ -1065,7 +1083,7 @@ func _target_slice(label:String, type:StringName, entries:Array)->Dictionary:
 					begin_move(entries, false)))
 			&"remove":
 				_children.append(_slice(_op.label, _op.color, _op.icon, [], remove_entries.bind(entries)))
-	return _slice(label, _type_color(type) if !type.is_empty() else preset.selection_color, catalog.item(type).icon if catalog.item(type) != null else null, _children)
+	return _slice(label, _type_color(type) if !type.is_empty() else preset.selection_color, icon_of(catalog.item(type)), _children)
 
 ## "Change to": the brush item first, then the target's category (and variants).
 func _replace_slices(type:StringName, entries:Array)->Array:
@@ -1081,7 +1099,7 @@ func _replace_slices(type:StringName, entries:Array)->Array:
 		if _seen.has(_entry.id) || _entry.id == type:
 			continue
 		_seen[_entry.id] = true
-		_list.append(_slice(_entry.display_name, _entry.color, _entry.icon, [], replace_entries.bind(entries, _entry)))
+		_list.append(_slice(_entry.display_name, _entry.color, icon_of(_entry), [], replace_entries.bind(entries, _entry)))
 	return _list
 
 func _catalog_slice(type:StringName, cell:Vector2i)->Dictionary:
@@ -1099,7 +1117,7 @@ func _catalog_slice(type:StringName, cell:Vector2i)->Dictionary:
 			&"pick":
 				if _item != null:
 					_children.append(_slice(_op.label, _op.color, _op.icon, [], select_item.bind(_item)))
-	return _slice(_type_name(type), _type_color(type), _item.icon if _item != null else null, _children)
+	return _slice(_type_name(type), _type_color(type), icon_of(_item), _children)
 
 # --- rooms ------------------------------------------------------------------------------
 

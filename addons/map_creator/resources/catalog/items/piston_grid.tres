@@ -16,6 +16,7 @@ options = PackedStringArray()
 script = ExtResource("3_c668f")
 id = &"piston_grid"
 display_name = "Piston grid"
+icon_scene = "res://addons/top_down/scenes/home/piston.tscn"
 color = Color(0.5, 0.5, 0.8, 1)
 description = "Corner piston (0, 0); pistons along -x/-y, lever column at +1 x and row at +1 y."
 tags = PackedStringArray("piston", "grid", "memory", "home")

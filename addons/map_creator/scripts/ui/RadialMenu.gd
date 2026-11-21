@@ -2,7 +2,7 @@
 ## a slice opens its children as an arc on the next ring outward, centered on that slice
 ## (any depth). Clicking a slice with an action runs it and closes the menu. The hovered
 ## slice's label shows in the middle. Right click, Esc or a click outside closes it.
-## Slices: {label, color, icon, children: Array, action: Callable} (MapCreator.radial_slices).
+## Slices: {label, color, icon, glyph (swatch text, else label's first letter), children: Array, action: Callable} (MapCreator.radial_slices).
 class_name RadialMenu
 extends Control
 
@@ -14,7 +14,10 @@ extends Control
 @export var outer_slice_length:float = 17.0
 ## Least arc length of a ring-1 slice: many slices push ring 1 outward.
 @export var min_slice_length:float = 11.0
+## Letter swatch size (slices without an icon: operations, markers).
 @export var icon_size:float = 7.0
+## Box a sprite / tile icon is fitted into (keeps aspect).
+@export var sprite_icon_size:float = 13.0
 @export var fill_color:Color = Color(0.1, 0.1, 0.13, 0.92)
 @export var hover_color:Color = Color(0.35, 0.65, 1.0, 0.9)
 @export var line_color:Color = Color(1, 1, 1, 0.15)
@@ -182,12 +185,14 @@ func _draw_slice(r:Vector2, a0:float, a1:float, color:Color, slice:Dictionary)->
 	var _icon:Texture2D = slice.get("icon")
 	var _half:float = icon_size * 0.5
 	if _icon != null:
-		draw_texture_rect(_icon, Rect2(_mid - Vector2(_half, _half), Vector2(icon_size, icon_size)), false)
+		var _fit:Vector2 = _icon.get_size()
+		_fit *= minf(sprite_icon_size, ring_width - 2.0) / maxf(maxf(_fit.x, _fit.y), 1.0)
+		draw_texture_rect(_icon, Rect2(_mid - _fit * 0.5, _fit), false)
 	else:
 		var _color:Color = slice.get("color", Color.WHITE)
 		draw_rect(Rect2(_mid - Vector2(_half, _half), Vector2(icon_size, icon_size)), _color)
 		# no icon: the label's first letter on the swatch
-		var _letter:String = String(slice.get("label", "")).left(1)
+		var _letter:String = slice.get("glyph", String(slice.get("label", "")).left(1))
 		var _font:Font = get_theme_default_font()
 		var _size:int = int(icon_size)
 		var _w:float = _font.get_string_size(_letter, HORIZONTAL_ALIGNMENT_LEFT, -1, _size).x

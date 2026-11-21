@@ -36,6 +36,9 @@ enum Bake {
 @export var id:StringName
 @export var display_name:String
 @export var icon:Texture2D
+## No icon: menus show this scene's sprite (else scene_path's; markers without a look of
+## their own point at what they stand for, e.g. a spawn at a zombie).
+@export_file("*.tscn") var icon_scene:String
 ## Tint for the icon / fallback swatch and the editor overlay.
 @export var color:Color = Color.WHITE
 @export_multiline var description:String
