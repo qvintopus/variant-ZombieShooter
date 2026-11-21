@@ -99,6 +99,8 @@ export. Hotkeys, colors and UI size are in `resources/presets/default_preset.tre
 
 ## Room management (Rooms browser)
 - New (12x12 floor + player spawn), Duplicate, Rename (rewrites every door/portal/waits_for link), Delete (press twice; in a mod drops only the mod copy), Import (hand-made scene -> layout: tiles, overrides, entries, block walls, spawns, triggers, catalog scenes, waves). `RoomManager`, `RoomImporter`.
+- Topbar room name = menu for the open room: Rename, Copy as new room, Display name, All rooms. Unsaved edits: save first.
+- Entering Edit on an original (built-in room, not the mod's copy) offers a copy to edit (OK opens it) or Edit original / Override in mod (not asked again this session). `MapCreatorPreset.ask_copy_original`.
 - Ctrl+Shift+arrows shifts the whole room.
 
 ## Campaign graph (Map / M)

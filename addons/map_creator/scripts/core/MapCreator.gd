@@ -26,6 +26,8 @@ signal browse_requested
 signal graph_requested
 ## A one-line text question (MapPrompt): answer(text) runs on OK.
 signal prompt_requested(title:String, initial:String, answer:Callable)
+## Same with a second button: `alt_label` runs `alt_answer` (no text).
+signal choice_requested(title:String, initial:String, answer:Callable, alt_label:String, alt_answer:Callable)
 ## The workspace (active mod) changed.
 signal workspace_changed
 signal waves_requested
@@ -184,6 +186,67 @@ func workspace_name()->String:
 	return _info.name if _info != null else mod_state.active
 
 ## Room scene a key loads in the current workspace.
+## A built-in room edited in place (not the workspace mod's own copy).
+func is_original()->bool:
+	return can_edit() && rooms != null && rooms.is_builtin(key) && !rooms.in_mod(key)
+
+## Entering Edit on an original: offer a copy to edit instead (once per room a session).
+func _ask_copy_original()->void:
+	if preset == null || !preset.ask_copy_original || settings == null || !writable() || !is_original() || settings.originals_ok.has(key):
+		return
+	var _in_place:String = "Override in mod" if mod_state != null && mod_state.is_active() else "Edit original"
+	choice_requested.emit("room_%s is an original. Copy it as" % key, free_key(key + "_"), func (new_key:String)->void:
+		if _duplicate(key, new_key):
+			switch_room(new_key),
+		_in_place, func ()->void: settings.originals_ok[key] = true)
+
+## First "<prefix><nn>" key no room uses.
+func free_key(prefix:String)->String:
+	var _n:int = 1
+	while rooms.exists("%s%02d" % [prefix, _n]):
+		_n += 1
+	return "%s%02d" % [prefix, _n]
+
+func _duplicate(from:String, new_key:String)->bool:
+	var _ok:bool = rooms.duplicate_room(from, new_key)
+	message.emit("Copied room_%s to room_%s" % [from, new_key] if _ok && rooms.last_message.is_empty() else rooms.last_message)
+	rooms.last_message = ""
+	return _ok
+
+## Prompts for a key and copies room `from`; `open` goes to the copy. done(ok, key).
+func ask_duplicate(from:String, open:bool, done:Callable = Callable())->void:
+	if from == key && dirty:
+		message.emit("Save first (Ctrl+%s): the copy is made from the saved room" % OS.get_keycode_string(preset.key_save))
+		return
+	prompt_requested.emit("Copy room_%s as" % from, free_key(from + "_"), func (new_key:String)->void:
+		var _ok:bool = _duplicate(from, new_key)
+		if done.is_valid():
+			done.call(_ok, new_key)
+		if _ok && open:
+			switch_room(new_key))
+
+## Prompts for a new key for room `from` (links to it follow); the current room reopens
+## under the new key. done(ok, key).
+func ask_rename(from:String, done:Callable = Callable())->void:
+	if from == key && dirty:
+		message.emit("Save first (Ctrl+%s), then rename" % OS.get_keycode_string(preset.key_save))
+		return
+	prompt_requested.emit("Rename room_%s to" % from, from, func (new_key:String)->void:
+		var _ok:bool = rooms.rename_room(from, new_key)
+		message.emit(rooms.last_message)
+		rooms.last_message = ""
+		if done.is_valid():
+			done.call(_ok, new_key)
+		if _ok && from == key:
+			switch_room(new_key))
+
+## Prompts for the room's display name (one undo step).
+func ask_display_name()->void:
+	if !can_edit():
+		return
+	prompt_requested.emit("Name of room_%s" % key, layout.display_name, func (text:String)->void:
+		set_layout_field(&"display_name", LayoutCodec.safe_text(text)))
+
 func scene_of(room_key:String)->String:
 	return mod_state.scene_for(room_key) if mod_state != null else baker.scene_path(room_key)
 
@@ -203,6 +266,8 @@ func set_editing(value:bool)->void:
 	if overlay != null:
 		overlay.visible = value
 	mode_changed.emit(value)
+	if value:
+		_ask_copy_original()
 
 func toggle_editing()->void:
 	set_editing(!editing)
