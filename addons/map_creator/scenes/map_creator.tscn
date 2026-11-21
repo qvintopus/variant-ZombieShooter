@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapOverlay.gd" id="8_overlay"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapTopBar.gd" id="9_topbar"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CleanProgress.gd" id="10_progress"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapInspector.gd" id="11_inspector"]
 
 [node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
 process_mode = 3
@@ -46,6 +47,11 @@ mouse_filter = 2
 [node name="TopBar" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("9_topbar")
+creator = NodePath("../../..")
+
+[node name="Inspector" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("11_inspector")
 creator = NodePath("../../..")
 
 [node name="CleanProgress" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]

@@ -94,6 +94,11 @@ func _exit_tree()->void:
 func register_point(point:SpawnPoint)->void:
 	spawn_points.append(point)
 
+## A point leaving the room (map creator edits) stops being picked.
+func unregister_point(point:SpawnPoint)->void:
+	spawn_points.erase(point)
+	boss_points.erase(point)
+
 func register_boss_point(point:SpawnPoint)->void:
 	boss_points.append(point)
 

@@ -16,6 +16,8 @@ signal history_changed
 ## 0..1 while cleaning, -1 when done.
 signal clean_progress(fraction:float)
 signal message(text:String)
+## The entity shown in the inspector changed (null = none).
+signal inspected_changed(entity:LayoutEntity)
 
 enum Tool { PAINT, ERASE, SELECT, MOVE }
 enum Brush { ONE, THREE, RECT }
@@ -45,6 +47,10 @@ var dirty:bool
 var busy:bool
 var hover_cell:Vector2i
 var hover_valid:bool
+## Live entity nodes of the edited layout.
+var entities:LiveEntities
+## Entity open in the inspector.
+var inspected:LayoutEntity
 
 var _undo:Array[RoomLayoutResource] = []
 var _redo:Array[RoomLayoutResource] = []
@@ -64,6 +70,8 @@ func _ready()->void:
 	if baker != null && !key.is_empty() && ResourceLoader.exists(baker.layout_path(key)):
 		var _source:RoomLayoutResource = ResourceLoader.load(baker.layout_path(key), "", ResourceLoader.CACHE_MODE_REPLACE)
 		layout = _source.clone()
+		entities = LiveEntities.new(self)
+		entities.claim(layout)
 	if settings != null:
 		settings.visit(key)
 	if catalog != null && !catalog.categories.is_empty():
@@ -172,6 +180,9 @@ func _unhandled_input(event:InputEvent)->void:
 		if event.pressed && (tool == Tool.PAINT || tool == Tool.ERASE):
 			begin_stroke(hover_cell)
 			get_viewport().set_input_as_handled()
+		elif event.pressed && tool == Tool.SELECT && can_edit():
+			inspect(layout.entity_at(hover_cell))
+			get_viewport().set_input_as_handled()
 		elif !event.pressed && _stroking:
 			if brush == Brush.RECT:
 				_apply_brush(hover_cell)
@@ -279,9 +290,30 @@ func paint_at(cell:Vector2i, with:MapCatalogItem)->void:
 			layout.hole_overrides[cell] = true
 			floor_layer.erase_cell(cell)
 			_set_marker(holes_layer, cell)
+			_drop_entity_at(cell)
 		MapCatalogItem.Kind.ENTITY:
-			return
+			if !layout.floor.has(cell):
+				message.emit("%s needs floor under it" % with.display_name)
+				return
+			var _old:LayoutEntity = layout.entity_at(cell)
+			if _old != null && _old.item_id == with.id:
+				return
+			if _old != null:
+				layout.entities.erase(_old)
+			layout.entities.append(LayoutEntity.make(with.id, cell, new_props(with)))
+			entities.sync(layout)
 	_mark_dirty()
+
+## Props a newly placed entity starts with: the item defaults, plus a unique tag and
+## this room as the target for doors and portals (edit them in the inspector).
+func new_props(with:MapCatalogItem)->Dictionary:
+	var _props:Dictionary = with.defaults.duplicate(true)
+	if with.bake == MapCatalogItem.Bake.DOOR || with.bake == MapCatalogItem.Bake.PORTAL:
+		var _n:int = layout.entities_of(with.id).size() + 1
+		_props.merge({"tag": "%s_%s%d" % [key.to_lower(), with.id, _n], "connect_tag": "unset", "room": "room_" + key}, false)
+		if with.bake == MapCatalogItem.Bake.PORTAL:
+			_props.merge({"waits_for": "room_" + key}, false)
+	return _props
 
 ## Removes what `with` would paint at a cell (any floor look for FLOOR).
 func erase_at(cell:Vector2i, with:MapCatalogItem)->void:
@@ -293,6 +325,7 @@ func erase_at(cell:Vector2i, with:MapCatalogItem)->void:
 				return
 			layout.floor.erase(cell)
 			floor_layer.erase_cell(cell)
+			_drop_entity_at(cell)
 		MapCatalogItem.Kind.WALL:
 			if walls_layer.get_cell_source_id(cell) == -1 && !layout.wall_overrides.get(cell, false):
 				return
@@ -308,8 +341,52 @@ func erase_at(cell:Vector2i, with:MapCatalogItem)->void:
 			layout.floor[cell] = Vector3i(_floor.floor_source, _floor.floor_atlas.x, _floor.floor_atlas.y)
 			floor_layer.set_cell(cell, _floor.floor_source, _floor.floor_atlas)
 		MapCatalogItem.Kind.ENTITY:
-			return
+			var _old:LayoutEntity = layout.entity_at(cell)
+			if _old == null || _old.item_id != with.id:
+				return
+			layout.entities.erase(_old)
+			entities.sync(layout)
+			if inspected == _old:
+				inspect(null)
 	_mark_dirty()
+
+## Entities can't stand on a removed floor cell.
+func _drop_entity_at(cell:Vector2i)->void:
+	var _old:LayoutEntity = layout.entity_at(cell)
+	if _old != null:
+		layout.entities.erase(_old)
+		entities.sync(layout)
+		if inspected == _old:
+			inspect(null)
+
+# --- entity edits (one undo step each) --------------------------------------------------
+
+func inspect(entity:LayoutEntity)->void:
+	inspected = entity
+	inspected_changed.emit(entity)
+
+## Runs `change` on the layout as one undoable edit, then syncs the live room.
+func edit(change:Callable, reclean:bool = false)->void:
+	if !can_edit() || busy:
+		return
+	var _before:RoomLayoutResource = layout.clone()
+	change.call()
+	_push_undo(_before)
+	entities.sync(layout)
+	_mark_dirty()
+	if reclean:
+		clean(false)
+
+func set_entity_prop(entity:LayoutEntity, prop:StringName, value:Variant)->void:
+	edit(func ()->void:
+		if value == null:
+			entity.props.erase(prop)
+		else:
+			entity.props[prop] = value)
+
+## Sets a room-level layout field (look, side_room, sections...).
+func set_layout_field(field:StringName, value:Variant)->void:
+	edit(func ()->void: layout.set(field, value))
 
 func _set_marker(layer:TileMapLayer, cell:Vector2i)->void:
 	var _autotiler:TileVisualAutotiler = LayoutBaker.autotiler_of(layer)
@@ -410,6 +487,9 @@ func redo()->void:
 func _restore(snapshot:RoomLayoutResource)->void:
 	layout = snapshot
 	history_changed.emit()
+	entities.sync(layout)
+	if inspected != null:
+		inspect(null)
 	_mark_dirty()
 	clean(false)
 

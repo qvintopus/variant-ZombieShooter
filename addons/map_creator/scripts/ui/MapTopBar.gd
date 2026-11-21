@@ -31,6 +31,9 @@ var _message_time:float
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# children are ready before the creator: wait for its layout
+	if !creator.is_node_ready():
+		await creator.ready
 	var _preset:MapCreatorPreset = creator.preset
 	var _style:StyleBoxFlat = StyleBoxFlat.new()
 	_style.bg_color = _preset.bar_color
@@ -39,7 +42,8 @@ func _ready()->void:
 	_style.content_margin_top = 1
 	_style.content_margin_bottom = 1
 	add_theme_stylebox_override(&"panel", _style)
-	theme = _make_theme(_preset)
+	# shared by every map creator panel under the UI root
+	get_parent().theme = make_theme(_preset)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 
@@ -71,7 +75,7 @@ func _ready()->void:
 	_fill_recent()
 	_on_item_changed()
 
-func _make_theme(preset:MapCreatorPreset)->Theme:
+static func make_theme(preset:MapCreatorPreset)->Theme:
 	var _theme:Theme = Theme.new()
 	_theme.default_font_size = preset.font_size
 	var _flat:StyleBoxFlat = StyleBoxFlat.new()
