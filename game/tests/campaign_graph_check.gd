@@ -105,6 +105,8 @@ func _check_graph(creator:MapCreator, graph:CampaignGraph)->void:
 		var _entity:LayoutEntity = _from.entities[CampaignGraph._linkable_exits(_from)[_c.from_port]]
 		_ok = _ok && String(_entity.props.room).trim_prefix("room_") == _to
 	check(_ok, "every connection is a real link")
+	_check_search(creator, graph)
+	await _check_preview(creator, graph)
 
 	# two new rooms with a door each, linked through the graph
 	var _rooms_manager:RoomManager = creator.rooms
@@ -134,6 +136,80 @@ func _check_graph(creator:MapCreator, graph:CampaignGraph)->void:
 		creator.undo()
 		check(creator.layout.entities[_ports[0]].props.room != "room_G2", "and undo takes it back")
 	graph.close()
+
+## Search fades non-matching nodes; the side panel shows the room browser's details.
+func _check_search(creator:MapCreator, graph:CampaignGraph)->void:
+	graph.select_room("N01")
+	check(graph._info.text.contains("room_N01") && graph._info.text.contains("Size:"), "details panel shows the room's details")
+	check(graph._nodes.N01.tooltip_text.contains("Size:"), "node tooltip has the details")
+	var _look:String = creator.layout.look
+	graph._search.text = "N01"
+	graph.apply_search()
+	check(graph.matches.has("N01") && graph._nodes.N01.modulate.a == 1.0, "search matches N01")
+	var _faded:int = 0
+	for _key:String in graph._nodes:
+		if graph._nodes[_key].modulate.a < 1.0:
+			_faded += 1
+	check(_faded > 0 && _faded == graph._nodes.size() - graph.matches.size(), "non-matches fade (%d)" % _faded)
+	graph._search.text = ""
+	graph.apply_search()
+	check(graph.matches.size() == graph._nodes.size(), "empty search shows all")
+	check(!_look.is_empty(), "room has a look")
+
+## Preview: every room placed, none overlap, a door-linked room lies on its stairs' side,
+## several stairs to one room count as their mean.
+func _check_preview(creator:MapCreator, graph:CampaignGraph)->void:
+	graph.set_preview(true)
+	await _frames(2)
+	var _preview:CampaignPreview = graph.preview
+	check(_preview.visible && !graph._graph.visible, "Preview swaps the view")
+	check(_preview.rooms.size() == graph._nodes.size(), "preview has every shown room (%d)" % _preview.rooms.size())
+	check(!_preview.links.is_empty(), "preview draws links")
+	var _overlaps:int = 0
+	var _cells:Dictionary = {}
+	for _key:String in _preview.rooms:
+		var _room:Dictionary = _preview.rooms[_key]
+		for _cell:Vector2i in _room.layout.floor:
+			if _cells.has(_cell + _room.cell_offset):
+				_overlaps += 1
+			_cells[_cell + _room.cell_offset] = true
+	check(_overlaps == 0, "no rooms overlap (%d)" % _overlaps)
+	_preview.set_selected("N01")
+	var _hit:String = _preview.room_at(_preview.to_screen(_preview.rooms.N01.offset + _preview.rooms.N01.center))
+	check(_hit == "N01", "room_at finds the room under its centre (%s)" % _hit)
+	graph.set_preview(false)
+	check(graph._graph.visible && !_preview.visible, "and back to the graph")
+
+	# synthetic rooms: A with two stairs on its right to B; B's stairs on its left
+	var _a:RoomLayoutResource = _square("A", Vector2i(0, 0))
+	var _b:RoomLayoutResource = _square("B", Vector2i(0, 0))
+	for _y:int in [3, 5]:
+		var _door:LayoutEntity = LayoutEntity.make(&"door", Vector2i(9, _y))
+		_door.props = {"room": "room_B", "tag": "a%d" % _y, "connect_tag": "b"}
+		_a.entities.append(_door)
+	var _back:LayoutEntity = LayoutEntity.make(&"door", Vector2i(0, 4))
+	_back.props = {"room": "room_A", "tag": "b", "connect_tag": "a3"}
+	_b.entities.append(_back)
+	var _layouts:Dictionary = {"A": _a, "B": _b}
+	check(CampaignPreview.ends(_a, "A", _b, "B") == Vector2(9, 4), "two stairs side by side meet at their mean")
+	var _offsets:Dictionary = CampaignPreview.layout_rooms(_layouts, "A", 3)
+	check(_offsets.B.x >= 11 && _offsets.B.x <= 13 && absi(_offsets.B.y) <= 1, "B sits right of A's stairs, its stairs facing them (%s)" % _offsets.B)
+	# mismatched: B's stairs on its right too -> pushed out until clear of A
+	_back.cell = Vector2i(9, 4)
+	_offsets = CampaignPreview.layout_rooms(_layouts, "A", 3)
+	check(_offsets.B.x >= 11, "mismatched stairs: B pushed right of A, not overlapping (%s)" % _offsets.B)
+	# an unlinked room lines up below
+	_layouts.C = _square("C", Vector2i.ZERO)
+	_offsets = CampaignPreview.layout_rooms(_layouts, "A", 3)
+	check(_offsets.C.y >= 10, "unlinked room goes below (%s)" % _offsets.C)
+
+func _square(key:String, origin:Vector2i)->RoomLayoutResource:
+	var _layout:RoomLayoutResource = RoomLayoutResource.new()
+	_layout.key = key
+	for _y:int in 10:
+		for _x:int in 10:
+			_layout.floor[origin + Vector2i(_x, _y)] = Vector3i(1, 0, 0)
+	return _layout
 
 func _check_custom(creator:MapCreator, graph:CampaignGraph)->void:
 	var _mods:MapModState = creator.mod_state

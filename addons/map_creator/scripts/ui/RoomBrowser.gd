@@ -122,7 +122,7 @@ func selected_key()->String:
 
 func _show_info()->void:
 	var _key:String = selected_key()
-	_info.text = index.describe(_key, creator.catalog) if !_key.is_empty() else "No room matches."
+	_info.text = index.details(_key, creator.catalog, creator.rooms) if !_key.is_empty() else "No room matches."
 	if _key.is_empty():
 		for _name:String in _actions:
 			_actions[_name].disabled = _name != "New"
@@ -133,9 +133,6 @@ func _show_info()->void:
 	_actions.Import.disabled = _e.layout != null
 	_actions.Rename.disabled = _e.layout == null || (creator.mod_state != null && creator.mod_state.is_active() && (_rooms.is_builtin(_key) || !_rooms.in_mod(_key)))
 	_actions.Delete.disabled = _key == creator.key || (creator.mod_state != null && creator.mod_state.is_active() && !_rooms.in_mod(_key)) || (_e.layout == null)
-	var _links:PackedStringArray = _rooms.links_to(_key)
-	if !_links.is_empty():
-		_info.text += "\nLinked from: " + ", ".join(_links)
 
 ## Re-reads the rooms (after a change) and selects `key`.
 func _reload(key:String)->void:

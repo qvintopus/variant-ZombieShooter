@@ -2,7 +2,8 @@
 ##   Godot --path . res://game/tests/map_creator_snapshot.tscn -- <room key> <out.png> [category index] [hover x,y] [radial [hover path, e.g. -1,3]]
 ## "radial" opens the radial menu on the hovered cell and hovers its first slice and that
 ## slice's third operation; "rooms" opens the room browser; "waves", "graph", "problems",
-## "help" open those panels.
+## "help" open those panels; "preview" opens the graph's Preview view, "graph" / "preview"
+## then take an optional search text.
 extends Node
 
 func _ready()->void:
@@ -30,6 +31,14 @@ func _ready()->void:
 		_creator.emit_signal(StringName(_args[4] + "_requested"))
 		if _args[4] == "problems":
 			_creator.run_checks()
+	if _args.size() > 4 && _args[4] == "preview":
+		_creator.graph_requested.emit()
+		(_creator.get_node("UI/Root/CampaignGraph") as CampaignGraph).set_preview(true)
+	if _args.size() > 5 && _args[4] in ["graph", "preview"]:
+		var _graph:CampaignGraph = _creator.get_node("UI/Root/CampaignGraph")
+		_graph._search.text = _args[5]
+		_graph.apply_search()
+		_graph._focus_first_match()
 	if _args.size() > 4 && _args[4] == "rooms":
 		_creator.browse_requested.emit()
 	if _args.size() > 4 && _args[4] == "radial":
