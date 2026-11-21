@@ -31,6 +31,7 @@ func _ready()->void:
 	var _creator:MapCreator = _open("N01", _baker)
 	await _frames(2)
 	_check_project(_creator, _baker)
+	_check_original(_creator)
 	_check_import(_creator, _baker)
 	_check_shift(_creator)
 	_check_mod(_creator, _baker)
@@ -90,6 +91,35 @@ func _check_project(creator:MapCreator, baker:GameLayoutBaker)->void:
 	check(JSON.parse_string(_balance) is Dictionary, "balance.json stays valid JSON")
 	check(!_rooms.delete_room("N01"), "the open room can't be deleted")
 	check(_rooms.delete_room("T01") && !baker.layouts.has("T01") && !FileAccess.file_exists(baker.layout_path("T01")), "delete")
+
+## Entering Edit on an original asks to copy it; "Edit original" stops the asking.
+func _check_original(creator:MapCreator)->void:
+	var _asked:Array = []
+	var _on_choice:Callable = func (title:String, initial:String, answer:Callable, alt_label:String, alt_answer:Callable)->void:
+		_asked.append([title, initial, answer, alt_label, alt_answer])
+	creator.choice_requested.connect(_on_choice)
+	check(creator.is_original(), "original: N01 is a built-in room")
+	creator.set_editing(false)
+	creator.set_editing(true)
+	check(_asked.size() == 1 && _asked[0][1] == "N01_01" && _asked[0][3] == "Edit original", "original: Edit asks to copy (%s)" % [_asked])
+	if _asked.size() == 1:
+		(_asked[0][4] as Callable).call()
+	creator.set_editing(false)
+	creator.set_editing(true)
+	check(_asked.size() == 1, "original: Edit original isn't asked again")
+	check(creator.free_key("N01_") == "N01_01" && creator._duplicate("N01", "N01_01") && creator.free_key("N01_") == "N01_02", "original: copy made, next free key")
+	creator.dirty = true
+	var _prompts:Array = []
+	var _on_prompt:Callable = func (title:String, _i:String, _a:Callable)->void: _prompts.append(title)
+	creator.prompt_requested.connect(_on_prompt)
+	creator.ask_rename("N01")
+	check(_prompts.is_empty(), "rename: unsaved room asks to save first")
+	creator.dirty = false
+	creator.ask_rename("N01")
+	creator.ask_duplicate("N01", false)
+	check(_prompts.size() == 2, "rename / copy prompts open")
+	creator.prompt_requested.disconnect(_on_prompt)
+	creator.choice_requested.disconnect(_on_choice)
 
 func _check_import(creator:MapCreator, baker:GameLayoutBaker)->void:
 	for _key:String in HAND_MADE:

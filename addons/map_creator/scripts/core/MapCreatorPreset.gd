@@ -27,6 +27,8 @@ extends Resource
 @export var key_help:Key = KEY_F1
 ## Seconds between autosaves of unsaved edits (0 = off).
 @export var autosave_seconds:float = 30.0
+## Entering Edit on an original (built-in) room first offers to copy it.
+@export var ask_copy_original:bool = true
 ## Seconds after an edit before the live checks run.
 @export var check_delay:float = 0.3
 ## Biggest area a fill covers (an open area stops the fill).

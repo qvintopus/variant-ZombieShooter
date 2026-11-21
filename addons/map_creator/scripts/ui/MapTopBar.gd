@@ -10,7 +10,7 @@ extends PanelContainer
 @export var creator:MapCreator
 
 var _mode_button:Button
-var _room_label:Label
+var _room_label:MenuButton
 var _recent:MenuButton
 var _workspace:MenuButton
 var _stamps:MenuButton
@@ -124,8 +124,11 @@ func _build_top_row()->HBoxContainer:
 	_workspace.get_popup().id_pressed.connect(_on_workspace)
 	_workspace.about_to_popup.connect(_fill_workspaces)
 	_row.add_child(_workspace)
-	_room_label = Label.new()
+	_room_label = MenuButton.new()
 	_room_label.text = "room_" + creator.key
+	_room_label.tooltip_text = "This room: rename, copy, name"
+	_room_label.about_to_popup.connect(_fill_room_menu)
+	_room_label.get_popup().id_pressed.connect(_on_room_menu)
 	_row.add_child(_room_label)
 	_recent = MenuButton.new()
 	_recent.text = "Recent"
@@ -206,6 +209,28 @@ func _build_tool_row()->HBoxContainer:
 	_message.clip_text = true
 	_row.add_child(_message)
 	return _row
+
+func _fill_room_menu()->void:
+	var _popup:PopupMenu = _room_label.get_popup()
+	_popup.clear()
+	var _locked:bool = creator.mod_state != null && creator.mod_state.is_active() && creator.rooms.is_builtin(creator.key)
+	_popup.add_item("Rename room_%s..." % creator.key, 0)
+	_popup.set_item_disabled(0, !creator.can_edit() || _locked || !creator.writable())
+	if _locked:
+		_popup.set_item_tooltip(0, "Built-in rooms keep their key: copy it instead")
+	_popup.add_item("Copy as new room...", 1)
+	_popup.set_item_disabled(1, !creator.can_edit() || !creator.writable())
+	_popup.add_item("Display name...", 2)
+	_popup.set_item_disabled(2, !creator.can_edit())
+	_popup.add_separator()
+	_popup.add_item("All rooms (%s)" % OS.get_keycode_string(creator.preset.key_browse), 3)
+
+func _on_room_menu(id:int)->void:
+	match id:
+		0: creator.ask_rename(creator.key)
+		1: creator.ask_duplicate(creator.key, true)
+		2: creator.ask_display_name()
+		3: creator.browse_requested.emit()
 
 func _button(parent:Control, text:String, tooltip:String, action:Callable)->Button:
 	var _b:Button = Button.new()

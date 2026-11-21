@@ -1,4 +1,4 @@
-## One-line text question (new mod / room names). Opens on creator.prompt_requested;
+## One-line text question (new mod / room names), optionally with a second choice button. Opens on creator.prompt_requested;
 ## Enter or OK calls the answer with the text, Escape or x cancels.
 class_name MapPrompt
 extends PanelContainer
@@ -9,6 +9,8 @@ extends PanelContainer
 var _title:Label
 var _edit:LineEdit
 var _answer:Callable
+var _alt:Button
+var _alt_answer:Callable
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -34,9 +36,22 @@ func _ready()->void:
 		_b.text = _entry[0]
 		_b.pressed.connect(_entry[1])
 		_row.add_child(_b)
+	_alt = Button.new()
+	_alt.visible = false
+	_alt.pressed.connect(func ()->void:
+		var _call:Callable = _alt_answer
+		close()
+		if _call.is_valid():
+			_call.call())
+	_box.add_child(_alt)
 	creator.prompt_requested.connect(ask)
+	creator.choice_requested.connect(ask)
 
-func ask(title:String, initial:String, answer:Callable)->void:
+## `alt_label` adds a second button running `alt_answer` (no text).
+func ask(title:String, initial:String, answer:Callable, alt_label:String = "", alt_answer:Callable = Callable())->void:
+	_alt.text = alt_label
+	_alt.visible = !alt_label.is_empty()
+	_alt_answer = alt_answer
 	_title.text = title
 	_edit.text = initial
 	_answer = answer
@@ -57,6 +72,7 @@ func confirm()->void:
 func close()->void:
 	visible = false
 	_answer = Callable()
+	_alt_answer = Callable()
 	_edit.release_focus()
 
 func _unhandled_key_input(event:InputEvent)->void:

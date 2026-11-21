@@ -154,23 +154,18 @@ func _report(ok:bool, done:String, key:String)->void:
 		_reload(key)
 
 func _new_room()->void:
-	creator.prompt_requested.emit("New room key (letters, digits, _)", _free_key("M"), func (key:String)->void:
+	creator.prompt_requested.emit("New room key (letters, digits, _)", creator.free_key("M"), func (key:String)->void:
 		_report(creator.rooms.new_room(key, "", creator.layout), "Created room_%s" % key, key))
 
 func _duplicate_room()->void:
-	var _from:String = selected_key()
-	creator.prompt_requested.emit("Copy room_%s as" % _from, _free_key(_from + "_"), func (key:String)->void:
-		_report(creator.rooms.duplicate_room(_from, key), "Copied room_%s to room_%s" % [_from, key], key))
+	creator.ask_duplicate(selected_key(), false, func (ok:bool, key:String)->void:
+		if ok:
+			_reload(key))
 
 func _rename_room()->void:
-	var _from:String = selected_key()
-	creator.prompt_requested.emit("Rename room_%s to" % _from, _from, func (key:String)->void:
-		var _current:bool = _from == creator.key
-		var _ok:bool = creator.rooms.rename_room(_from, key)
-		_report(_ok, "", key)
-		if _ok && _current:
-			creator.dirty = false
-			creator.switch_room(key))
+	creator.ask_rename(selected_key(), func (ok:bool, key:String)->void:
+		if ok:
+			_reload(key))
 
 func _delete_room()->void:
 	var _key:String = selected_key()
@@ -188,12 +183,6 @@ func _import_room()->void:
 	var _key:String = selected_key()
 	_report(creator.rooms.import_room(_key), "", _key)
 
-## First "<prefix><n>" key no room uses.
-func _free_key(prefix:String)->String:
-	var _n:int = 1
-	while creator.rooms.exists("%s%02d" % [prefix, _n]):
-		_n += 1
-	return "%s%02d" % [prefix, _n]
 
 func go()->void:
 	var _key:String = selected_key()

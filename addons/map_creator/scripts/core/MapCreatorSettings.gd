@@ -21,6 +21,8 @@ var clipboard:Array = []
 var histories:Dictionary = {}
 ## Set by Test section: the reloaded room starts that fight (1-based). Not saved.
 var test_section:int
+## Original rooms the user chose to edit in place this session (key -> true).
+var originals_ok:Dictionary = {}
 
 func set_admin_enabled(value:bool)->void:
 	admin_enabled = value
