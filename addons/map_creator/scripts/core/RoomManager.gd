@@ -68,6 +68,7 @@ func new_room(key:String, display_name:String = "", like:RoomLayoutResource = nu
 	_layout.key = key
 	_layout.display_name = display_name if !display_name.is_empty() else "room_" + key
 	_layout.writes_balance = false
+	_layout.user_made = true
 	if like != null:
 		_layout.campaign = like.campaign
 		_layout.look = like.look
@@ -89,6 +90,7 @@ func duplicate_room(from_key:String, key:String)->bool:
 	_copy.display_name = (_source.display_name if !_source.display_name.is_empty() else "room_" + from_key) + " copy"
 	_copy.start = false
 	_copy.home = false
+	_copy.user_made = true
 	return store(_copy)
 
 ## Renames a workspace room and rewrites the links to it (those rooms are stored too:

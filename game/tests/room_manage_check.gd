@@ -108,6 +108,9 @@ func _check_original(creator:MapCreator)->void:
 	creator.set_editing(true)
 	check(_asked.size() == 1, "original: Edit original isn't asked again")
 	check(creator.free_key("N01_") == "N01_01" && creator._duplicate("N01", "N01_01") && creator.free_key("N01_") == "N01_02", "original: copy made, next free key")
+	var _copy:RoomLayoutResource = creator.baker.layouts.get("N01_01", null)
+	check(_copy != null && _copy.user_made && !creator.baker.layouts["N01"].user_made, "original: copy is user_made, source isn't")
+	check(_copy != null && LayoutCodec.new().from_dict(LayoutCodec.to_dict(_copy), creator.catalog).user_made, "original: user_made survives JSON")
 	creator.dirty = true
 	var _prompts:Array = []
 	var _on_prompt:Callable = func (title:String, _i:String, _a:Callable)->void: _prompts.append(title)
