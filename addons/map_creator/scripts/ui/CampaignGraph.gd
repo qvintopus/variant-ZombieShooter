@@ -28,6 +28,7 @@ var _campaigns:OptionButton
 var _status:Label
 var _search:LineEdit
 var _view:Button
+var _portal_links:CheckButton
 var _info:Label
 var preview:CampaignPreview
 ## Searchable details of every room (rebuilt with the graph).
@@ -60,7 +61,7 @@ func _ready()->void:
 	_bar.add_child(_campaigns)
 	_search = LineEdit.new()
 	_search.placeholder_text = "Search rooms: name, key, enemy, look..."
-	_search.custom_minimum_size.x = 150
+	_search.custom_minimum_size.x = 120
 	_search.clear_button_enabled = true
 	_search.text_changed.connect(func (_t:String)->void: apply_search())
 	_search.text_submitted.connect(func (_t:String)->void: _focus_first_match())
@@ -82,6 +83,14 @@ func _ready()->void:
 		_bar.add_child(_b)
 		if _entry[0] == "Preview":
 			_view = _b
+	_portal_links = CheckButton.new()
+	_portal_links.text = "Portals"
+	_portal_links.tooltip_text = "Preview: thin lines from portals to their target rooms (portals and their targets always show)"
+	_portal_links.focus_mode = Control.FOCUS_NONE
+	_portal_links.button_pressed = true
+	_portal_links.visible = false
+	_portal_links.toggled.connect(func (on:bool)->void: preview.set_show_portal_links(on))
+	_bar.add_child(_portal_links)
 	_status = Label.new()
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -155,6 +164,7 @@ func set_preview(on:bool)->void:
 	preview.visible = on
 	_graph.visible = !on
 	_view.text = "Graph" if on else "Preview"
+	_portal_links.visible = on
 	if on:
 		_show_preview()
 
