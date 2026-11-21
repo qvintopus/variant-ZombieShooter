@@ -551,12 +551,15 @@ func _play_death(node:Node2D)->void:
 	var _damage:Node = node.get_node_or_null("ActorDamage")
 	if _damage == null:
 		return
+	var _at:Vector2 = node.global_position
 	var _vfx:Variant = _damage.get("dead_vfx_instance_resource")
 	if _vfx is InstanceResource:
-		var _at:Vector2 = node.global_position
-		(_vfx as InstanceResource).instance(func (inst:Node)->void:
-			if inst is Node2D:
-				(inst as Node2D).global_position = _at)
+		var _delay:Variant = _damage.get("dead_vfx_delay")
+		ActorDamage.spawn_dead_vfx(_vfx, _at, 1.0, float(_delay) if _delay != null else 0.0, get_tree())
+	var _fx:Variant = _damage.get("death_fx")
+	if _fx is BossDeathFx && (_fx as BossDeathFx).enabled:
+		(_fx as BossDeathFx).play_burst(_at)
+		(_fx as BossDeathFx).hold_room_clear(get_tree())
 	var _sound:Variant = _damage.get("sound_resource_dead")
 	if _sound != null && _sound.has_method("play_managed"):
 		_sound.play_managed()
@@ -684,7 +687,7 @@ static func apply_hit(actor:Node, amount:float, impulse:Vector2, critical:bool)-
 		return
 	var _damage:DamageResource = _resources.get_resource("damage")
 	var _health:HealthResource = _resources.get_resource("health")
-	if _damage == null || _health == null || !_damage.can_receive_damage || _damage.immune || _health.is_dead || _health.hp <= 0.0:
+	if _damage == null || _health == null || _damage.is_blocked() || _health.is_dead || _health.hp <= 0.0:
 		return
 	var _push:PushResource = _resources.get_resource("push")
 	if _push != null:

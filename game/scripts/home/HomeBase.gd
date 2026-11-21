@@ -21,6 +21,10 @@ const WATER_GUN:String = "Water Gun"
 ## Where the water gun lies while nobody has it
 @export var water_gun_spot:Node2D
 @export var piston_grid:PistonGrid
+## Backpack weapons (inventory grid) are kept like the quick-slot ones
+@export var inventory_grid:InventoryGridResource = preload("res://addons/top_down/resources/global_resources/inventory_grid.tres")
+## The home chest (HomeChest): its cells are saved in home_base_resource.chest
+@export var chest_grid:InventoryGridResource = preload("res://addons/top_down/resources/global_resources/home_chest_grid.tres")
 
 ## Set by depart(): the stash went out with the player, don't save it back
 var _departed:bool
@@ -50,10 +54,14 @@ func _enter_tree()->void:
 		weapon_inventory.set_selected(0)
 		return
 	home_base_resource.loadout = ""
+	# coins, meat and slime held between runs (InventoryCarry)
+	InventoryCarry.apply(home_base_resource, inventory_grid)
 	for _name:String in home_base_resource.stash_inventory:
 		var _item:ItemResource = HomeBaseResource.find_item(weapon_database, _name)
 		if _item != null && weapon_inventory.list.size() < weapon_inventory.max_items:
 			weapon_inventory.list.append(_item)
+		elif _item != null && inventory_grid != null && inventory_grid.put_weapon(_item):
+			pass
 		elif _item != null:
 			# more than the inventory holds: lies in the control room (no "pos")
 			home_base_resource.dropped.append({"item": _name})
@@ -72,6 +80,11 @@ func _ready()->void:
 	# a guest picking up one of our weapons takes it off the floor
 	item_pickup_instance_resource.updated.connect(queue_save)
 	weapon_inventory.updated.connect(queue_save)
+	if inventory_grid != null:
+		inventory_grid.changed_cells.connect(queue_save)
+	if chest_grid != null:
+		chest_grid.load_layout(home_base_resource.chest, weapon_database)
+		chest_grid.changed_cells.connect(queue_save)
 	# pickups need the room's parent references, set during the room's _ready
 	_place_pickups.call_deferred()
 	if Net.is_ghost():
@@ -135,7 +148,9 @@ func _holds(item_name:String)->bool:
 	for _item:ItemResource in weapon_inventory.list:
 		if _item != null && _item.resource_name == item_name:
 			return true
-	return false
+	if chest_grid != null && !guest_mode && chest_grid.weapon_names().has(item_name):
+		return true
+	return inventory_grid != null && inventory_grid.weapon_names().has(item_name)
 
 ## Pickups lying in the room (freed ones were just picked up)
 func pickups()->Array[ItemPickup]:
@@ -154,6 +169,10 @@ func owned_weapons()->PackedStringArray:
 	for _item:ItemResource in weapon_inventory.list:
 		if _item != null:
 			_names.append(_item.resource_name)
+	if inventory_grid != null:
+		_names.append_array(inventory_grid.weapon_names())
+	if chest_grid != null && !guest_mode:
+		_names.append_array(chest_grid.weapon_names())
 	for _pickup:ItemPickup in pickups():
 		_names.append(_pickup.item_resource.resource_name)
 	return _names
@@ -179,7 +198,12 @@ func save_state()->void:
 	for _item:ItemResource in weapon_inventory.list:
 		if _item != null:
 			_stash.append(_item.resource_name)
+	if inventory_grid != null:
+		_stash.append_array(inventory_grid.weapon_names())
 	home_base_resource.stash_inventory = _stash
+	if chest_grid != null:
+		home_base_resource.chest = chest_grid.save_layout()
+	InventoryCarry.capture(home_base_resource, inventory_grid)
 	home_base_resource.save_resource()
 
 ## Leaving for a mission with at most one gun: it becomes the run's loadout,
@@ -229,10 +253,16 @@ func lend_to_host()->void:
 		_carried.append(_first)
 	weapon_inventory.set_list(_carried)
 	weapon_inventory.set_selected(0)
+	if inventory_grid != null:
+		inventory_grid.clear_weapons()
 
 func _on_tree_exiting()->void:
 	if weapon_inventory.updated.is_connected(queue_save):
 		weapon_inventory.updated.disconnect(queue_save)
+	if inventory_grid != null && inventory_grid.changed_cells.is_connected(queue_save):
+		inventory_grid.changed_cells.disconnect(queue_save)
+	if chest_grid != null && chest_grid.changed_cells.is_connected(queue_save):
+		chest_grid.changed_cells.disconnect(queue_save)
 	if item_pickup_instance_resource.updated.is_connected(queue_save):
 		item_pickup_instance_resource.updated.disconnect(queue_save)
 	if !_departed:

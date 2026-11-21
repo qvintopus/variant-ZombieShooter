@@ -25,6 +25,15 @@ signal updated
 @export var loadout:String
 ## Printed by the robot printer (CO-OP tree): joining a host as an electrician.
 @export var electrician_shell:bool
+## Run-scoped currencies the player holds between runs (InventoryCarry):
+## {item id: amount}, kept from an extract and handed over at the next run start.
+@export var carried:Dictionary
+## Where those stacks sat in the player's grid (InventoryGridResource.save_layout, no weapons)
+@export var carried_layout:PackedStringArray
+## The home chest's cells (InventoryGridResource.save_layout)
+@export var chest:PackedStringArray
+## Stash lever (meta upgrade): a run start puts auto_stash items into the chest
+@export var auto_stash:bool
 
 func reset_resource()->void:
 	grid_size = 0
@@ -37,6 +46,10 @@ func reset_resource()->void:
 	stash_inventory = PackedStringArray()
 	loadout = ""
 	electrician_shell = false
+	carried = {}
+	carried_layout = PackedStringArray()
+	chest = PackedStringArray()
+	auto_stash = false
 	updated.emit()
 
 func prepare_save()->Resource:
@@ -51,6 +64,10 @@ func prepare_save()->Resource:
 	_data.stash_inventory = stash_inventory
 	_data.loadout = loadout
 	_data.electrician_shell = electrician_shell
+	_data.carried = carried.duplicate()
+	_data.carried_layout = carried_layout
+	_data.chest = chest
+	_data.auto_stash = auto_stash
 	return _data
 
 func prepare_load(data:Resource)->void:
@@ -64,6 +81,10 @@ func prepare_load(data:Resource)->void:
 	stash_inventory = data.stash_inventory
 	loadout = data.loadout
 	electrician_shell = data.electrician_shell if "electrician_shell" in data else false
+	carried = data.carried.duplicate() if "carried" in data else {}
+	carried_layout = data.carried_layout if "carried_layout" in data else PackedStringArray()
+	chest = data.chest if "chest" in data else PackedStringArray()
+	auto_stash = data.auto_stash if "auto_stash" in data else false
 	updated.emit()
 
 ## Weapons of the finished run join the stash (victory / extract only).

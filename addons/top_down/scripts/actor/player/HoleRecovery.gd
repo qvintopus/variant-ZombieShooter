@@ -10,6 +10,9 @@ extends Node
 ## Damage applied when stepping on a hole
 @export var hole_damage:int = 10
 
+## Optional fall animation; damage lands at its hit_moment (default: smallest, at the bottom)
+@export var hole_fall:HoleFall
+
 var health_resource:HealthResource
 
 func _ready()->void:
@@ -25,5 +28,18 @@ func _ready()->void:
 func _on_hole_touched()->void:
 	if health_resource.is_dead:
 		return
-	health_resource.add_hp(-hole_damage)
+	if hole_fall != null && hole_fall.enabled:
+		if !hole_fall.falling:
+			hole_fall.fall(_apply_damage)
+		return
+	_apply_damage()
 	safe_tile_tracker.move_to_safe_position()
+
+func _apply_damage()->void:
+	if health_resource.is_dead:
+		return
+	health_resource.add_hp(-hole_damage)
+	var _damage:DamageResource = resource_node.get_resource("damage")
+	if _damage != null:
+		# damage number popup
+		_damage.receive_points(hole_damage)

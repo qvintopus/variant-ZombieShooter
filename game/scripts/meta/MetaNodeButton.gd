@@ -5,7 +5,7 @@ extends TextureButton
 
 const NORMAL_FRAMES:Texture2D = preload("res://addons/top_down/assets/images/gui/meta_frame_normal_20x20_strip3.png")
 const GOLDEN_FRAMES:Texture2D = preload("res://addons/top_down/assets/images/gui/meta_frame_golden_28x28_strip3.png")
-const ICONS:Texture2D = preload("res://addons/top_down/assets/images/gui/meta_icons_12x12_strip10.png")
+const ICONS:Texture2D = preload("res://addons/top_down/assets/images/gui/meta_icons_12x12_strip11.png")
 const CURSOR:Texture2D = preload("res://addons/top_down/assets/images/gui/meta_cursor_16x16.png")
 const ICON_SIZE:int = 12
 ## Cursor brackets stand this far outside the frame.

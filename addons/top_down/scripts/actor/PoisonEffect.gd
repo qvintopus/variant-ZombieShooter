@@ -56,6 +56,8 @@ func _physics_process(delta:float)->void:
 	tick_remaining += tick_time
 	if health_resource.is_dead:
 		return
+	if damage_resource != null && damage_resource.is_dot_blocked():
+		return
 	health_resource.add_hp(-damage)
 	if damage_resource != null:
 		# damage number popup

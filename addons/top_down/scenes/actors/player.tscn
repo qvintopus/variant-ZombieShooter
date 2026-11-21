@@ -39,8 +39,24 @@
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/StuckEffect.gd" id="31_stuck"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/VisualInvulnerability.gd" id="32_82fau"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/actor/PoisonEffect.gd" id="32_poison"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/DashImmunity.gd" id="40_dashimm"]
 [ext_resource type="Script" path="res://game/scripts/meta/MetaStats.gd" id="33_meta"]
 [ext_resource type="Resource" path="res://game/resources/meta_upgrade_resource.tres" id="34_meta"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/PickupJuice.gd" id="41_pjuice"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="42_pev"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/pickup_text_instance_resource.tres" id="43_ptext"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="44_dnset"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/player/HoleFall.gd" id="45_hfall"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/hole_fall/fall_default.tres" id="46_hfp"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/land_dust_instance.tres" id="47_dust"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_fall.tres" id="48_fsnd"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/hole_land.tres" id="49_lsnd"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/AbilityManager.gd" id="50_abm"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/AbilitySlot.gd" id="51_abs"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/abilities/bomb_ability.tres" id="52_bomb"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/ability_charges.tres" id="53_achg"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/PlayerInventory.gd" id="60_pinv"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="61_grid"]
 
 [sub_resource type="Resource" id="Resource_u7p0r"]
 resource_name = "movement  properties"
@@ -416,15 +432,54 @@ script = ExtResource("28_ww0nn")
 obstacle_tilemap_reference = ExtResource("29_4dv8f")
 actor = NodePath("..")
 
-[node name="HoleRecovery" type="Node" parent="." index="24" node_paths=PackedStringArray("safe_tile_tracker", "resource_node", "hole_trigger")]
+[node name="HoleRecovery" type="Node" parent="." index="24" node_paths=PackedStringArray("safe_tile_tracker", "resource_node", "hole_trigger", "hole_fall")]
 script = ExtResource("30_n8poo")
 safe_tile_tracker = NodePath("../SafeTileTracker")
 resource_node = NodePath("../ResourceNode")
 hole_trigger = NodePath("../HoleTrigger")
+hole_fall = NodePath("../HoleFall")
+
+[node name="HoleFall" type="Node" parent="." node_paths=PackedStringArray("resource_node", "safe_tile_tracker", "player_input", "visual_node", "tint_node", "shadow_node")]
+script = ExtResource("45_hfall")
+preset = ExtResource("46_hfp")
+resource_node = NodePath("../ResourceNode")
+safe_tile_tracker = NodePath("../SafeTileTracker")
+player_input = NodePath("../PlayerInput")
+visual_node = NodePath("../Body")
+tint_node = NodePath("../Body/Stretch/Sprite2D")
+shadow_node = NodePath("../Shadow")
+land_dust = ExtResource("47_dust")
+fall_sound = ExtResource("48_fsnd")
+land_sound = ExtResource("49_lsnd")
 
 [node name="PoisonEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
 script = ExtResource("32_poison")
 resource_node = NodePath("../ResourceNode")
+
+[node name="DamageDisplay" parent="."]
+is_player = true
+
+[node name="DashImmunity" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("40_dashimm")
+resource_node = NodePath("../ResourceNode")
+
+[node name="PickupJuice" type="Node" parent="." node_paths=PackedStringArray("sprite", "squash_node")]
+script = ExtResource("41_pjuice")
+pickup_events = ExtResource("42_pev")
+sprite = NodePath("../Body/Stretch/Sprite2D")
+squash_node = NodePath("../Body/Stretch")
+text_instance = ExtResource("43_ptext")
+settings = ExtResource("44_dnset")
+
+[node name="AbilityManager" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("50_abm")
+resource_node = NodePath("../ResourceNode")
+pickup_events = ExtResource("42_pev")
+store = ExtResource("53_achg")
+
+[node name="BombSlot" type="Node" parent="AbilityManager"]
+script = ExtResource("51_abs")
+ability = ExtResource("52_bomb")
 
 [node name="StuckEffect" type="Node" parent="." node_paths=PackedStringArray("resource_node", "dash_ability")]
 script = ExtResource("31_stuck")
@@ -438,6 +493,15 @@ meta_upgrade_resource = ExtResource("34_meta")
 dash_ability = NodePath("../DashAbility")
 damage_cooldown = NodePath("../DamageCooldown")
 weapon_manager = NodePath("../WeaponManager")
+
+[node name="PlayerInventory" type="Node" parent="." node_paths=PackedStringArray("resource_node")]
+script = ExtResource("60_pinv")
+grid = ExtResource("61_grid")
+resource_node = NodePath("../ResourceNode")
+meta_upgrade_resource = ExtResource("34_meta")
+item_pickup_instance_resource = ExtResource("19_pbauh")
+text_instance = ExtResource("43_ptext")
+settings = ExtResource("44_dnset")
 
 [node name="VisualInvulnerability" type="Node" parent="." index="25" node_paths=PackedStringArray("resource_node", "animation_player")]
 script = ExtResource("32_82fau")

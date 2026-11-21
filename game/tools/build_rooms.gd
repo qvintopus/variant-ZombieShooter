@@ -32,6 +32,9 @@
 ##   T  write button   R  data lever   Z  gate lever   C  lever reset button
 ##   g  water gun spot   >  stairs to a mission   N  co-op comms terminal
 ##   Q  robot printer (electrician shells, CO-OP tree)
+##   E  home chest (inventory storage)   J  stash lever (meta upgrade, by the chest)
+## Run rooms:
+##   h i j  healing shrine with 1 / 2 / 3 uses (full heal each, shared in co-op)
 ##
 ## Spec keys: name, look, accent, patches, doors {char: [tag, connect_tag, room]},
 ## portals {char: [tag, connect_tag, room, room it waits for]}, sections, boss_section,
@@ -68,6 +71,11 @@ const INTERACTABLES:Dictionary = {
 	"C": "scenes/interactables/reset_button.tscn",
 	"N": "scenes/interactables/comms_terminal.tscn",
 	"Q": "scenes/interactables/robot_printer.tscn",
+	"E": "scenes/interactables/home_chest.tscn",
+	"J": "scenes/interactables/stash_lever.tscn",
+	"h": "scenes/interactables/shrine.tscn",
+	"i": "scenes/interactables/shrine_2.tscn",
+	"j": "scenes/interactables/shrine_3.tscn",
 }
 const VICTORY:String = "victory"
 const FREE_DISTANCE:int = 116
@@ -348,7 +356,8 @@ func _run_resources(out:SceneText)->PackedStringArray:
 	var _run:PackedStringArray = []
 	for _resource:String in ["global_resources/score_resource.tres", "global_resources/meat_resource.tres",
 			"global_resources/slime_resource.tres", "global_resources/weapon_upgrade_resource.tres",
-			"ItemCollectionResource/weapon_inventory.tres", "global_resources/room_state_resource.tres"]:
+			"ItemCollectionResource/weapon_inventory.tres", "global_resources/inventory_grid.tres",
+			"global_resources/room_state_resource.tres"]:
 		_run.append(out.ext("Resource", TD + "resources/" + _resource))
 	return _run
 

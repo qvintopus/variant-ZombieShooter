@@ -1,0 +1,55 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/vfx/BossDeathBurst.gd" id="1_bdb"]
+[ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/inner_light.gdshader" id="2_sh"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/PoolNode.gd" id="3_pool"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/boss_death_hum.tres" id="4_hum"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/boss_death_blast.tres" id="5_blast"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/bomb_explosion_instance.tres" id="6_expl"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/room_clear_burst_instance.tres" id="7_burst"]
+[ext_resource type="Resource" uid="uid://dkb7r2v362yj" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="8_shake"]
+[ext_resource type="Resource" uid="uid://diqvd4u0lbw7h" path="res://addons/top_down/resources/CommandNodeResource/color_flash.tres" id="9_flash"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_cracks"]
+noise_type = 2
+frequency = 0.08
+cellular_distance_function = 1
+cellular_return_type = 3
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_cracks"]
+width = 64
+height = 64
+seamless = true
+normalize = true
+noise = SubResource("FastNoiseLite_cracks")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_light"]
+resource_local_to_scene = true
+shader = ExtResource("2_sh")
+shader_parameter/progress = 0.0
+shader_parameter/noise_tex = SubResource("NoiseTexture2D_cracks")
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+
+[node name="BossDeathBurst" type="Node2D" node_paths=PackedStringArray("body", "pool_node")]
+z_index = 4
+material = SubResource("CanvasItemMaterial_add")
+script = ExtResource("1_bdb")
+body = NodePath("Body")
+pool_node = NodePath("PoolNode")
+hum_sound = ExtResource("4_hum")
+explosion_vfx = ExtResource("6_expl")
+blast_burst = ExtResource("7_burst")
+camera_shake = ExtResource("8_shake")
+screen_flash = ExtResource("9_flash")
+blast_sound = ExtResource("5_blast")
+
+[node name="Body" type="Sprite2D" parent="."]
+z_index = -1
+use_parent_material = false
+material = SubResource("ShaderMaterial_light")
+
+[node name="PoolNode" type="Node" parent="." node_paths=PackedStringArray("ready_nodes")]
+script = ExtResource("3_pool")
+ready_nodes = [NodePath("..")]

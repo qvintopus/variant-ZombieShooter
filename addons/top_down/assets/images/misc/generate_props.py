@@ -2,6 +2,9 @@
 
   portal_32x32_strip6.png    frame 0 a dormant stone ring, frames 1-5 its vortex swirling
   loot_box_24x24_strip2.png  frame 0 closed, frame 1 open with the gold showing
+  storage_chest_24x24_strip2.png  home chest: frame 0 shut, frame 1 lid up, dark inside
+  shrine_24x32_sheet4x3.png  healing shrine: row = tier (1/2/3 uses: stone/silver/gold),
+                             column = uses left (0 spent ... 3), pips on the plinth
 
 Standard library only; rerun to regenerate (same pixels every run).
   python3 addons/top_down/assets/images/misc/generate_props.py
@@ -152,6 +155,138 @@ def loot_box_frame(frame):
 	return rows
 
 
+STEEL = [(30, 32, 44, 255), (62, 68, 88, 255), (104, 112, 134, 255), (150, 158, 178, 255)]
+TEAL = (90, 220, 210, 255)
+
+
+def storage_chest_frame(frame):
+	"""Wider steel locker of the home base, wood trim, a teal status light."""
+	rows = blank(BOX, BOX)
+
+	def put(x, y, color):
+		if 0 <= x < BOX and 0 <= y < BOX:
+			rows[y][x] = color
+
+	left, right, top, bottom = 2, 21, 11, 21
+	for y in range(top, bottom + 1):
+		for x in range(left, right + 1):
+			if x in (left, right) or y == bottom:
+				color = OUTLINE
+			elif x in (left + 3, right - 3):
+				color = WOOD[1]
+			elif y == top + 4:
+				color = STEEL[0]
+			else:
+				color = STEEL[2] if x < 13 else STEEL[1]
+			put(x, y, color)
+	# rivets on the trim
+	for x in (left + 3, right - 3):
+		put(x, top + 2, STEEL[3])
+		put(x, bottom - 2, STEEL[3])
+	if frame == 0:
+		for y in range(top - 4, top + 1):
+			for x in range(left, right + 1):
+				inset = max(0, 1 - (y - (top - 4)))
+				if x < left + inset or x > right - inset:
+					continue
+				edge = y == top - 4 or x in (left + inset, right - inset) or y == top
+				put(x, y, OUTLINE if edge else STEEL[3] if y < top - 2 else STEEL[2])
+		for y in range(top - 1, top + 3):
+			for x in range(10, 14):
+				put(x, y, IRON[2] if y == top - 1 else IRON[1])
+		put(11, top + 1, TEAL)
+		put(12, top + 1, TEAL)
+	else:
+		for y in range(top - 9, top - 3):
+			for x in range(left + 1, right):
+				edge = y in (top - 9, top - 4) or x in (left + 1, right - 1)
+				put(x, y, OUTLINE if edge else STEEL[1])
+		for x in range(left + 1, right):
+			put(x, top, OUTLINE)
+		for y in range(top - 3, top + 3):
+			for x in range(left + 1, right):
+				put(x, y, OUTLINE if y == top - 3 else STEEL[0])
+		for x in range(8, 16):
+			put(x, top + 2, TEAL if x % 3 == 0 else STEEL[1])
+	return rows
+
+
+SHRINE_W, SHRINE_H = 24, 32
+# Tier looks: plinth shades (dark..light), crystal shades (dark..light).
+SHRINE_TIERS = [
+	(STONE, [(30, 60, 120, 255), (60, 120, 220, 255), (130, 190, 255, 255), (220, 240, 255, 255)]),
+	([IRON[0], IRON[1], IRON[2], (210, 214, 226, 255)], [(20, 90, 60, 255), (50, 180, 110, 255), (130, 240, 170, 255), (225, 255, 235, 255)]),
+	([GOLD[0], (190, 136, 34, 255), GOLD[1], GOLD[2]], [(140, 40, 30, 255), (230, 90, 60, 255), (255, 170, 110, 255), (255, 240, 210, 255)]),
+]
+DEAD = [(28, 24, 34, 255), (52, 48, 62, 255), (80, 76, 92, 255), (100, 96, 110, 255)]
+
+
+def shrine_frame(tier, left):
+	"""Plinth with a basin and a floating crystal; `left` uses lit as pips."""
+	rows = blank(SHRINE_W, SHRINE_H)
+	stone, crystal = SHRINE_TIERS[tier - 1]
+	if left == 0:
+		crystal = DEAD
+
+	def put(x, y, color):
+		if 0 <= x < SHRINE_W and 0 <= y < SHRINE_H:
+			rows[y][x] = color
+
+	# Base step (wide) and plinth column, lit on the left.
+	for y in range(26, 31):
+		for x in range(3, 21):
+			edge = x in (3, 20) or y in (26, 30)
+			put(x, y, OUTLINE if edge else stone[2] if x < 11 else stone[1])
+	for y in range(15, 27):
+		for x in range(6, 18):
+			edge = x in (6, 17) or y == 15
+			put(x, y, OUTLINE if edge else stone[3] if x < 9 else stone[2] if x < 13 else stone[1])
+	# Basin lip on top of the column.
+	for y in range(13, 16):
+		for x in range(4, 20):
+			edge = x in (4, 19) or y in (13, 15)
+			put(x, y, OUTLINE if edge else stone[3] if x < 12 else stone[2])
+	for x in range(6, 18):
+		put(x, 14, crystal[1] if left else stone[0])
+	# Pips: one per possible use, lit while it is left.
+	for i in range(tier):
+		px = 12 - (tier - 1) * 2 + i * 4
+		for dy in (0, 1):
+			for dx in (-1, 0):
+				put(px + dx, 20 + dy, (crystal[3] if dy == 0 and dx == -1 else crystal[1]) if i < left else OUTLINE)
+	# Floating crystal: a diamond, lit top-left, glint; cracked and grey when spent.
+	cx, cy = 11.5, 6.5
+	for y in range(0, 13):
+		for x in range(SHRINE_W):
+			d = abs(x + 0.5 - cx - 0.5) / 4.5 + abs(y + 0.5 - cy) / 6.0
+			if d > 1.0:
+				continue
+			if d > 0.8:
+				color = OUTLINE
+			elif (x + 0.5 - cx) + (y + 0.5 - cy) < -1.5:
+				color = crystal[2]
+			elif x + 0.5 > cx + 1:
+				color = crystal[0]
+			else:
+				color = crystal[1]
+			put(x, y, color)
+	if left:
+		put(10, 4, crystal[3])
+		put(10, 5, crystal[3])
+		put(11, 4, crystal[3])
+	else:
+		for x, y in ((12, 3), (11, 5), (12, 6), (11, 8)):
+			put(x, y, OUTLINE)
+	return rows
+
+
+def sheet(frame_rows):
+	rows = []
+	for frames in frame_rows:
+		rows.extend(strip(frames))
+	return rows
+
+
 def strip(frames):
 	rows = [[] for _ in frames[0]]
 	for frame in frames:
@@ -163,6 +298,8 @@ def strip(frames):
 def main():
 	write_png(os.path.join(HERE, 'portal_32x32_strip6.png'), strip([portal_frame(i) for i in range(PORTAL_FRAMES)]))
 	write_png(os.path.join(HERE, 'loot_box_24x24_strip2.png'), strip([loot_box_frame(i) for i in range(2)]))
+	write_png(os.path.join(HERE, 'storage_chest_24x24_strip2.png'), strip([storage_chest_frame(i) for i in range(2)]))
+	write_png(os.path.join(HERE, 'shrine_24x32_sheet4x3.png'), sheet([[shrine_frame(t, min(u, t)) for u in range(4)] for t in (1, 2, 3)]))
 
 
 if __name__ == '__main__':

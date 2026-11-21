@@ -129,7 +129,11 @@ func _ready()->void:
 	_stairs = _room.get_node("Behind/Stairs")
 	check(!_stairs.visible, "N00 fists: stairs hidden until the gun is picked up")
 
-	# A won run brings its weapons home
+	# A won run brings its weapons home (and its coins, meat and slime)
+	_counter("meat").value = 50
+	_counter("slime").value = 30
+	_counter("coin").value = 7
+	_counter("meat").updated.emit()
 	_inventory.append(_shotgun)
 	_campaign.ng_plus_unlocked = false
 	await _load_room(VICTORY)
@@ -140,8 +144,96 @@ func _ready()->void:
 	check(_campaign.ng_plus_unlocked, "victory: New Game+ unlocked")
 	await _load_room(HOME)
 	check(_inventory.list.size() == 1 && _inventory.list[0] == _shotgun, "home after victory: shotgun in hand")
+	check(_counter("meat").value == 50 && _counter("slime").value == 30 && _counter("coin").value == 7, "home after victory: coins, meat and slime carried home")
+	var _player_grid:InventoryGridResource = _home_base().inventory_grid
+	check(_player_grid.total_of(&"meat") == 50 && _player_grid.total_of(&"slime") == 30, "home after victory: stacks in the inventory grid")
 	await _check_ng_plus_stairs()
+	await _check_chest()
 	_finish()
+
+func _counter(id:String)->ScoreResource:
+	return LootItems.counter(id)
+
+## The home chest beside the inventory, Ctrl transfers, saving, and the stash
+## lever putting meat and slime into it at a run start.
+func _check_chest()->void:
+	var _meta:MetaUpgradeResource = load("res://game/resources/meta_upgrade_resource.tres")
+	var _owned:Array = _meta.owned.duplicate()
+	_meta.owned = []
+	_meta.updated.emit()
+	var _chest:HomeChest = _room.get_node("WallLayer_Ysorted/HomeChest1")
+	var _lever:StashLever = _room.get_node("WallLayer_Ysorted/StashLever1")
+	await _frames(2)
+	check(!_lever.visible, "lever: hidden until the meta upgrade is owned")
+	var _screen:InventoryScreen = InventoryScreen.find(get_tree())
+	check(_screen != null, "chest: inventory screen found")
+	if _screen == null:
+		return
+	var _grid:InventoryGridResource = _screen.grid
+	var _box:InventoryGridResource = _chest.chest_grid
+	check(_box.width() == 3 && _box.height() == 6 && !_box.counter_backed, "chest: 3 wide, 6 tall, holds its own amounts")
+	_chest._use()
+	await _frames(2)
+	check(_screen.is_open() && _screen.side_grid == _box && _screen.side_panel.visible, "chest: opens beside the inventory")
+	check(_screen.side_cells.size() == 18, "chest: 18 cells")
+	check(is_equal_approx(_screen.side_scroll.custom_minimum_size.y, 4 * _screen.style.cell_size.y + 3 * _screen.style.cell_gap), "chest: 4 rows visible, the rest scroll")
+	check(_chest.sprite.frame == 1, "chest: lid open")
+	var _m:int = _grid.cells_of(&"meat")[0]
+	check(_screen.transfer(_screen.grid_cells[_m]), "chest: Ctrl transfer to the chest")
+	check(_counter("meat").value == 0 && _box.total_of(&"meat") == 50 && _grid.cells_of(&"meat").is_empty(), "chest: all 50 meat in the chest")
+	var _c:int = _box.cells_of(&"meat")[0]
+	var _free:int = _grid.first_free()
+	check(_screen.place(_screen.side_cells[_c], _screen.grid_cells[_free], true), "chest: half a stack back into the grid")
+	check(_counter("meat").value == 25 && _box.total_of(&"meat") == 25 && _grid.amount_at(_free) == 25, "chest: 25 / 25 split across")
+	var _coin:int = _grid.cells_of(&"coin")[0]
+	check(_screen.transfer(_screen.grid_cells[_coin]) && _counter("coin").value == 0 && _box.total_of(&"coin") == 7, "chest: coins go in too")
+	_c = _box.cells_of(&"coin")[0]
+	check(_screen.transfer(_screen.side_cells[_c]) && _counter("coin").value == 7 && _box.total_of(&"coin") == 0, "chest: and back with Ctrl")
+	_screen.close()
+	await _frames(2)
+	check(!_screen.side_panel.visible && _screen.side_grid == null && _chest.sprite.frame == 0, "chest: closes with the screen")
+	check(!_screen.place(_screen.grid_cells[0], _screen.grid_cells[0]), "chest: nothing to place onto itself")
+	_home_base().save_state()
+	check(Array(_home.chest).has("meat:25"), "chest: saved with the home base")
+	check(int(_home.carried.get("meat", 0)) == 25 && int(_home.carried.get("slime", 0)) == 30, "carry: what's in hand is saved too")
+
+	# stash lever: built by the meta upgrade, on -> meat and slime go into the chest at a run start
+	_meta.owned = ["stash_lever"]
+	_meta.updated.emit()
+	await _frames(2)
+	check(_lever.visible, "lever: built by the meta upgrade")
+	_lever._use()
+	check(_home.auto_stash && _lever.value_label.text == _lever.on_text, "lever: switched on")
+	_home_base().depart()
+	await _load_room(N00)
+	check(_counter("meat").value == 0 && _counter("slime").value == 0, "lever on: meat and slime stashed at the run start")
+	check(_counter("coin").value == 7, "lever on: coins come along")
+	var _stashed:InventoryGridResource = InventoryGridResource.new()
+	_stashed.database = _box.database
+	_stashed.counter_backed = false
+	_stashed.base_width = 3
+	_stashed.base_height = 6
+	_stashed.load_layout(_home.chest, _database)
+	check(_stashed.total_of(&"meat") == 50 && _stashed.total_of(&"slime") == 30, "lever on: the chest holds them (%d meat)" % _stashed.total_of(&"meat"))
+	check(_home.carried.is_empty(), "carry: used up by the run start")
+
+	# death: everything in hand is gone for good (Try Again = fresh run, home = empty hands); chest keeps its stash
+	var _weapons:ItemCollectionResource = load("res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres")
+	_weapons.append(_item("Shotgun"))
+	_counter("coin").value = 9
+	RunSession.end_run()
+	await _load_room(N00)
+	check(_counter("coin").value == 0 && _weapons.list.is_empty(), "death -> Try Again: no coins, no weapons")
+	_counter("coin").value = 9
+	_weapons.append(_item("Shotgun"))
+	RunSession.end_run()
+	await _load_room(HOME)
+	check(_counter("coin").value == 0 && _counter("meat").value == 0 && _weapons.list.is_empty() && _home.loadout.is_empty(), "death -> home: nothing comes back")
+	check(_home_base().chest_grid.total_of(&"meat") == 50, "death: chest stash kept")
+	_home.auto_stash = false
+	_meta.owned = _owned
+	_meta.updated.emit()
+
 
 ## The NEW GAME+ stairs: there once New Game+ is unlocked, leading to room_P00.
 func _check_ng_plus_stairs()->void:

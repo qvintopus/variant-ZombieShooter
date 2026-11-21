@@ -6,6 +6,8 @@ extends Node
 @export var pause_root:CanvasItem
 @export var resume_button:Button
 @export var menu_traverse_manager:MenuTraverseManager
+## While any of these is on (inventory screen) the pause key belongs to it
+@export var blocking_screens:Array[BoolResource]
 
 func _ready()->void:
 	pause_bool_resource.reset_resource()
@@ -16,6 +18,9 @@ func _ready()->void:
 	tree_exiting.connect(pause_bool_resource.set_value.bind(false))
 
 func _input(event:InputEvent)->void:
+	for _screen:BoolResource in blocking_screens:
+		if _screen != null && _screen.value:
+			return
 	if event.is_action_released(action_resource.pause_action) || event.is_action_released("ui_cancel"):
 		if pause_bool_resource.value == false:
 			pause_bool_resource.set_value(true)

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="InventoryItemDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryItemDef.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"weapon"
+display_name = "Weapon"
+kind = 1
+stack_size = 1
+sort_order = 100

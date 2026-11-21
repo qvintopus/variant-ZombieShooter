@@ -1,4 +1,4 @@
-## Shared room progress: cleared rooms and sections, opened loot boxes.
+## Shared room progress: cleared rooms and sections, opened loot boxes, shrine uses.
 class_name RoomProgressComponent
 extends RunSaveComponent
 
@@ -8,6 +8,8 @@ const ROOM_STATE:RoomStateResource = preload("res://addons/top_down/resources/gl
 ## room_id -> PackedInt32Array of cleared section indices
 @export var cleared_sections:Dictionary
 @export var looted:PackedStringArray
+## shrine key -> uses taken
+@export var shrine_used:Dictionary
 
 func id()->StringName:
 	return &"room_progress"
@@ -26,12 +28,16 @@ func capture()->void:
 	looted = PackedStringArray()
 	for _key:Variant in _state.looted:
 		looted.append(String(_key))
+	shrine_used = {}
+	for _key:Variant in _state.shrine_used:
+		shrine_used[String(_key)] = int(_state.shrine_used[_key])
 
 func apply()->void:
 	var _state:RoomStateResource = ROOM_STATE
 	_state.cleared_rooms.clear()
 	_state.cleared_sections.clear()
 	_state.looted.clear()
+	_state.shrine_used.clear()
 	for _id:String in cleared_rooms:
 		_state.cleared_rooms[StringName(_id)] = true
 	for _room:Variant in cleared_sections:
@@ -41,4 +47,6 @@ func apply()->void:
 		_state.cleared_sections[StringName(_room)] = _set
 	for _key:String in looted:
 		_state.looted[_key] = true
+	for _key:Variant in shrine_used:
+		_state.shrine_used[String(_key)] = int(shrine_used[_key])
 	_state.updated.emit()

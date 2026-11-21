@@ -32,6 +32,9 @@ const DIFFICULTY:DifficultyResource = preload("res://addons/top_down/resources/g
 ## Using export allows to duplicate and maintain reference.
 @export var report_callback:Callable
 
+## Who dealt it (e.g. &"ability": abilities don't refill on their own damage)
+@export var source_tag:StringName
+
 ## Kickback given to damage target, manipulated in ProjectileSetup
 ## Set by projectile uppon hitting a target.
 @export var kickback_strength:float
@@ -81,7 +84,7 @@ func process(resource_node:ResourceNode)->void:
 	if _damage_resource == null:
 		failed()
 		return
-	if _damage_resource.can_receive_damage == false || _damage_resource.immune:
+	if _damage_resource.is_blocked():
 		try_again()
 		return
 	
@@ -97,7 +100,7 @@ func process(resource_node:ResourceNode)->void:
 	hit_list.append(_damage_resource.owner)
 	
 	if _damage_resource.forward_hit.is_valid():
-		_forward(_damage_resource)
+		_forward(_damage_resource, _health_resource)
 		return
 	
 	var _push_resource:PushResource = resource_node.get_resource("push")
@@ -130,7 +133,7 @@ func process(resource_node:ResourceNode)->void:
 	success()
 
 ## A copy of an actor another machine owns: work out the damage, let the owner apply it.
-func _forward(damage_resource:DamageResource)->void:
+func _forward(damage_resource:DamageResource, health_resource:HealthResource = null)->void:
 	if !base_damage.is_empty():
 		if randf() < critical_chance:
 			is_critical = true
@@ -143,6 +146,9 @@ func _forward(damage_resource:DamageResource)->void:
 		damage_resource.forward_hit.call(self)
 	if total_damage > 0.0:
 		damage_resource.receive_points(total_damage, is_critical)
+	# the owning machine decides; this is the best guess for the report
+	if health_resource != null:
+		is_kill = total_damage > 0.0 && health_resource.hp - total_damage <= 0.0
 	if report_callback.is_valid():
 		report_callback.call(self)
 	success()

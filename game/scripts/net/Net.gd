@@ -80,6 +80,8 @@ var players:NetPlayers
 var entities:NetEntities
 ## The host's home base contraptions as guests see them (/root/Net/Home).
 var home:NetHome
+## Shared healing shrine uses (/root/Net/Shrines).
+var shrines:NetShrines
 ## Ping and link health per peer (/root/Net/Stats).
 var stats:NetStats
 ## Short id the host makes per session; guests get it on welcome, so the host's
@@ -109,6 +111,9 @@ func _ready()->void:
 	home = NetHome.new()
 	home.name = "Home"
 	add_child(home)
+	shrines = NetShrines.new()
+	shrines.name = "Shrines"
+	add_child(shrines)
 	stats = NetStats.new()
 	stats.name = "Stats"
 	add_child(stats)

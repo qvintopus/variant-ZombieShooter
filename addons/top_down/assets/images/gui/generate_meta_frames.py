@@ -4,7 +4,7 @@
   meta_frame_golden_28x28_strip3.png   keystone node frame, gold with studs and spikes
       both strips: frame 0 locked, 1 available, 2 owned
   meta_cursor_16x16.png                focus brackets, used as a 9-patch (margins 6)
-  meta_icons_12x12_strip10.png         star, heart, sword, boot, dash, shield, coin, meat, slime, crystal
+  meta_icons_12x12_strip11.png         star, heart, sword, boot, dash, shield, coin, meat, slime, crystal, bag
       (coin/meat/slime/crystal are frame 0 of the 8x8 item strips, centred)
 
 Standard library only; rerun to regenerate (same pixels every run).
@@ -210,6 +210,18 @@ ICON_SHAPES = {
 		'aa...aa...',
 		'a....a....',
 	],
+	'bag': [
+		'...hhhh...',
+		'..h....h..',
+		'.BBBBBBBB.',
+		'BBwBBBBBBb',
+		'BBBBHHBBBb',
+		'BBBBHhBBBb',
+		'BBBBBBBBBb',
+		'BBBBBBBBBb',
+		'.bbbbbbbb.',
+		'..........',
+	],
 	'shield': [
 		'ssssssssss',
 		'sSSSSSSSSs',
@@ -230,7 +242,7 @@ ITEM_ICONS = {
 	'crystal': 'items/boss_crystal_8x8_strip3.png',
 }
 ## Order of the icon strip; MetaUpgrades.ICONS in game/scripts/meta/MetaUpgrades.gd must match.
-ICON_ORDER = ['star', 'heart', 'sword', 'boot', 'dash', 'shield', 'coin', 'meat', 'slime', 'crystal']
+ICON_ORDER = ['star', 'heart', 'sword', 'boot', 'dash', 'shield', 'coin', 'meat', 'slime', 'crystal', 'bag']
 
 
 def add_outline(rows):

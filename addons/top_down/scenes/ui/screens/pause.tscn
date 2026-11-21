@@ -3,6 +3,8 @@
 [ext_resource type="Theme" uid="uid://yctjuhnen1br" path="res://addons/top_down/resources/theme/game_gui_theme.theme" id="1_x1p1w"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/ui/title_screen/MenuManager.gd" id="2_0jy2c"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/ui/pause_screen/PausingManager.gd" id="2_c7vpd"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_open.tres" id="2_invopen"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/BoolResource.gd" id="2_boolscr"]
 [ext_resource type="Resource" uid="uid://ini50pn76erv" path="res://addons/top_down/resources/global_resources/pause_resource.tres" id="3_f7x5r"]
 [ext_resource type="Script" path="res://addons/top_down/scripts/ui/title_screen/AudioManager.gd" id="3_udjr5"]
 [ext_resource type="Resource" uid="uid://0ghwdk05y7am" path="res://addons/top_down/resources/global_resources/audio_settings_resource.tres" id="4_jh7so"]
@@ -21,6 +23,8 @@
 [ext_resource type="Script" uid="uid://6yvxabri80it" path="res://addons/top_down/scripts/ui/title_screen/DifficultyManager.gd" id="17_diffmgr"]
 [ext_resource type="Resource" uid="uid://st0m3unxtv15" path="res://addons/top_down/resources/global_resources/difficulty_resource.tres" id="18_diff"]
 [ext_resource type="Script" path="res://game/scripts/ui/CoopTitleButton.gd" id="19_coop"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/ui/title_screen/GameplayManager.gd" id="90_gpmgr"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/damage_numbers_settings.tres" id="91_dnset"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_n64qj"]
 bg_color = Color(0, 0, 0, 0.443137)
@@ -41,6 +45,7 @@ pause_bool_resource = ExtResource("3_f7x5r")
 pause_root = NodePath("..")
 resume_button = NodePath("../MarginContainer/Control/Body/PauseMenu/Resume/Button")
 menu_traverse_manager = NodePath("../MenuTraverseManager")
+blocking_screens = Array[ExtResource("2_boolscr")]([ExtResource("2_invopen")])
 
 [node name="MenuTraverseManager" type="Node" parent="."]
 script = ExtResource("2_0jy2c")
@@ -49,12 +54,14 @@ menu_path = {
 "./options": NodePath("../MarginContainer/Control/Body/OptionMenu"),
 "./options/audio": NodePath("../MarginContainer/Control/Body/AudioMenu"),
 "./options/controls": NodePath("../InputRebinding"),
+"./options/gameplay": NodePath("../MarginContainer/Control/Body/GameplayMenu"),
 "./options/graphics": NodePath("../MarginContainer/Control/Body/GraphicsMenu")
 }
 focused_node = {
 ".": NodePath("../MarginContainer/Control/Body/PauseMenu/Resume/Button"),
 "audio": NodePath("../MarginContainer/Control/Body/AudioMenu/Back"),
 "controls": NodePath("../InputRebinding/MarginContainer/VBoxContainer/MenuButton/Button"),
+"gameplay": NodePath("../MarginContainer/Control/Body/GameplayMenu/EnemyNumbers/Button"),
 "graphics": NodePath("../MarginContainer/Control/Body/GraphicsMenu/Fullscreen/Button"),
 "options": NodePath("../MarginContainer/Control/Body/OptionMenu/Graphics/Button")
 }
@@ -65,6 +72,23 @@ script = ExtResource("3_udjr5")
 slider_container = [NodePath("../MarginContainer/Control/Body/AudioMenu/Master"), NodePath("../MarginContainer/Control/Body/AudioMenu/Music"), NodePath("../MarginContainer/Control/Body/AudioMenu/Sounds")]
 audio_settings_resource = ExtResource("4_jh7so")
 save_button = NodePath("../MarginContainer/Control/Body/AudioMenu/Back/Button")
+
+[node name="GameplayManager" type="Node" parent="." node_paths=PackedStringArray("enemy_button", "enemy_label", "player_button", "player_label", "size_button", "size_label", "colors_button", "colors_label", "back_button", "preview_enemy", "preview_critical", "preview_player", "preview_heal")]
+script = ExtResource("90_gpmgr")
+settings = ExtResource("91_dnset")
+enemy_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/EnemyNumbers/Button")
+enemy_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/EnemyNumbers/Label")
+player_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/PlayerNumbers/Button")
+player_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/PlayerNumbers/Label")
+size_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberSize/Button")
+size_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberSize/Label")
+colors_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberColors/Button")
+colors_label = NodePath("../MarginContainer/Control/Body/GameplayMenu/NumberColors/Label")
+back_button = NodePath("../MarginContainer/Control/Body/GameplayMenu/Back/Button")
+preview_enemy = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Enemy")
+preview_critical = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Critical")
+preview_player = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Player")
+preview_heal = NodePath("../MarginContainer/Control/Body/GameplayMenu/Preview/Heal")
 
 [node name="GraphicsManager" type="Node" parent="." node_paths=PackedStringArray("fullscreen_button", "fullscreen_label", "save_button_button")]
 script = ExtResource("5_43th3")
@@ -187,6 +211,12 @@ layout_mode = 2
 [node name="Label" parent="MarginContainer/Control/Body/OptionMenu/Difficulty" index="1"]
 text = "Difficulty: Normal"
 
+[node name="Gameplay" parent="MarginContainer/Control/Body/OptionMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/OptionMenu/Gameplay" index="1"]
+text = "Gameplay"
+
 [node name="Back" parent="MarginContainer/Control/Body/OptionMenu" instance=ExtResource("8_j4n7a")]
 layout_mode = 2
 
@@ -198,6 +228,74 @@ menu_traverse_manager = NodePath("../../../../../../MenuTraverseManager")
 text = "Back"
 
 [node name="ButtonAnimation" parent="MarginContainer/Control/Body/OptionMenu/Back" index="2"]
+pressed_sound = null
+
+[node name="GameplayMenu" type="VBoxContainer" parent="MarginContainer/Control/Body"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 10
+theme_override_constants/separation = 0
+
+[node name="EnemyNumbers" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/EnemyNumbers" index="1"]
+text = "Enemy numbers: ON"
+
+[node name="PlayerNumbers" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/PlayerNumbers" index="1"]
+text = "Player numbers: ON"
+
+[node name="NumberSize" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/NumberSize" index="1"]
+text = "Number size: Medium"
+
+[node name="NumberColors" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/NumberColors" index="1"]
+text = "Number colors: Classic"
+
+[node name="Preview" type="HBoxContainer" parent="MarginContainer/Control/Body/GameplayMenu"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Enemy" type="Label" parent="MarginContainer/Control/Body/GameplayMenu/Preview"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+text = "12"
+
+[node name="Critical" type="Label" parent="MarginContainer/Control/Body/GameplayMenu/Preview"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+text = "24"
+
+[node name="Player" type="Label" parent="MarginContainer/Control/Body/GameplayMenu/Preview"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+text = "-5"
+
+[node name="Heal" type="Label" parent="MarginContainer/Control/Body/GameplayMenu/Preview"]
+layout_mode = 2
+theme_override_constants/outline_size = 2
+text = "+10"
+
+[node name="Back" parent="MarginContainer/Control/Body/GameplayMenu" instance=ExtResource("8_j4n7a")]
+layout_mode = 2
+
+[node name="Button" parent="MarginContainer/Control/Body/GameplayMenu/Back" index="0" node_paths=PackedStringArray("menu_traverse_manager")]
+script = ExtResource("16_k1wvn")
+menu_traverse_manager = NodePath("../../../../../../MenuTraverseManager")
+
+[node name="Label" parent="MarginContainer/Control/Body/GameplayMenu/Back" index="1"]
+text = "Back"
+
+[node name="ButtonAnimation" parent="MarginContainer/Control/Body/GameplayMenu/Back" index="2"]
 pressed_sound = null
 
 [node name="GraphicsMenu" type="VBoxContainer" parent="MarginContainer/Control/Body"]
@@ -283,6 +381,7 @@ script = ExtResource("16_k1wvn")
 menu_traverse_manager = NodePath("../../../../../MenuTraverseManager")
 
 [connection signal="pressed" from="MarginContainer/Control/Body/PauseMenu/Options/Button" to="MenuTraverseManager" method="open" binds= ["options"]]
+[connection signal="pressed" from="MarginContainer/Control/Body/OptionMenu/Gameplay/Button" to="MenuTraverseManager" method="open" binds= ["gameplay"]]
 [connection signal="pressed" from="MarginContainer/Control/Body/OptionMenu/Graphics/Button" to="MenuTraverseManager" method="open" binds= ["graphics"]]
 [connection signal="pressed" from="MarginContainer/Control/Body/OptionMenu/Audio/Button" to="MenuTraverseManager" method="open" binds= ["audio"]]
 [connection signal="pressed" from="MarginContainer/Control/Body/OptionMenu/Controls/Button" to="MenuTraverseManager" method="open" binds= ["controls"]]
@@ -296,6 +395,12 @@ menu_traverse_manager = NodePath("../../../../../MenuTraverseManager")
 [editable path="MarginContainer/Control/Body/OptionMenu/Controls"]
 [editable path="MarginContainer/Control/Body/OptionMenu/Difficulty"]
 [editable path="MarginContainer/Control/Body/OptionMenu/Back"]
+[editable path="MarginContainer/Control/Body/GameplayMenu/EnemyNumbers"]
+[editable path="MarginContainer/Control/Body/GameplayMenu/PlayerNumbers"]
+[editable path="MarginContainer/Control/Body/GameplayMenu/NumberSize"]
+[editable path="MarginContainer/Control/Body/GameplayMenu/NumberColors"]
+[editable path="MarginContainer/Control/Body/GameplayMenu/Back"]
+[editable path="MarginContainer/Control/Body/OptionMenu/Gameplay"]
 [editable path="MarginContainer/Control/Body/GraphicsMenu/Fullscreen"]
 [editable path="MarginContainer/Control/Body/GraphicsMenu/Back"]
 [editable path="MarginContainer/Control/Body/AudioMenu/Master"]

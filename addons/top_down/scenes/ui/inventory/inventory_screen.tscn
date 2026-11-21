@@ -1,0 +1,140 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryScreen.gd" id="1_screen"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/inventory/inventory_default.tres" id="2_style"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="3_grid"]
+[ext_resource type="Resource" uid="uid://btej3lqnjytbl" path="res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres" id="4_weapons"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/weapon_upgrade_resource.tres" id="5_upgrades"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_open.tres" id="6_open"]
+[ext_resource type="Resource" uid="uid://ini50pn76erv" path="res://addons/top_down/resources/global_resources/pause_resource.tres" id="7_pause"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/transition_bool_resource.tres" id="8_transition"]
+[ext_resource type="Resource" uid="uid://dsk5usbvnbqi3" path="res://addons/top_down/resources/global_resources/action_resource.tres" id="9_actions"]
+[ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="10_player"]
+
+[node name="InventoryScreen" type="Control" node_paths=PackedStringArray("dim", "panel", "title_label", "quick_row", "grid_container", "info_label", "hint_label", "held_icon", "side_panel", "side_title_label", "side_scroll", "side_grid_container")]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_screen")
+style = ExtResource("2_style")
+grid = ExtResource("3_grid")
+weapons = ExtResource("4_weapons")
+weapon_upgrades = ExtResource("5_upgrades")
+open_resource = ExtResource("6_open")
+pause_resource = ExtResource("7_pause")
+transition_resource = ExtResource("8_transition")
+action_resource = ExtResource("9_actions")
+player_reference = ExtResource("10_player")
+dim = NodePath("Dim")
+panel = NodePath("Center/Row/Panel")
+title_label = NodePath("Center/Row/Panel/VBox/Title")
+quick_row = NodePath("Center/Row/Panel/VBox/QuickRow")
+grid_container = NodePath("Center/Row/Panel/VBox/Grid")
+info_label = NodePath("Center/Row/Panel/VBox/Info")
+hint_label = NodePath("Center/Row/Panel/VBox/Hint")
+held_icon = NodePath("HeldIcon")
+side_panel = NodePath("Center/Row/ChestPanel")
+side_title_label = NodePath("Center/Row/ChestPanel/VBox/Title")
+side_scroll = NodePath("Center/Row/ChestPanel/VBox/Scroll")
+side_grid_container = NodePath("Center/Row/ChestPanel/VBox/Scroll/Grid")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Panel" type="PanelContainer" parent="Center/Row"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center/Row/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Center/Row/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+text = "INVENTORY"
+horizontal_alignment = 1
+
+[node name="QuickRow" type="HBoxContainer" parent="Center/Row/Panel/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="Separator" type="HSeparator" parent="Center/Row/Panel/VBox"]
+layout_mode = 2
+
+[node name="Grid" type="GridContainer" parent="Center/Row/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+columns = 6
+
+[node name="Info" type="Label" parent="Center/Row/Panel/VBox"]
+custom_minimum_size = Vector2(0, 9)
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Center/Row/Panel/VBox"]
+layout_mode = 2
+text = "Drag: move   Shift: half   Right click: quick move   Drop key: drop"
+horizontal_alignment = 1
+
+[node name="ChestPanel" type="PanelContainer" parent="Center/Row"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 0
+
+[node name="VBox" type="VBoxContainer" parent="Center/Row/ChestPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Center/Row/ChestPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+text = "CHEST"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Center/Row/ChestPanel/VBox"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="Grid" type="GridContainer" parent="Center/Row/ChestPanel/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+
+[node name="HeldIcon" type="TextureRect" parent="."]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+stretch_mode = 3

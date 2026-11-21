@@ -38,6 +38,18 @@ func _physics_process(delta:float)->void:
 		safe_tile = _tile_pos
 		return
 
+## World position of the safe tile's center.
+func safe_position()->Vector2:
+	if tile_map_layer == null:
+		return actor.global_position
+	return tile_map_layer.map_to_local(safe_tile) + tile_map_layer.global_position
+
+## Treat the tile at `pos` as the safe tile (after placing the actor there).
+func reset_to(pos:Vector2)->void:
+	if tile_map_layer == null:
+		return
+	safe_tile = tile_map_layer.local_to_map(pos - tile_map_layer.global_position)
+
 func move_to_safe_position()->void:
 	var _pos:Vector2 = tile_map_layer.map_to_local(safe_tile)
 	actor.global_position = _pos + tile_map_layer.global_position
