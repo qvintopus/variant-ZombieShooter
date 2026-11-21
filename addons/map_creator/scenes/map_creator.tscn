@@ -18,6 +18,9 @@
 [ext_resource type="Resource" path="res://addons/map_creator/resources/settings/mod_state.tres" id="16_mods"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapPrompt.gd" id="17_prompt"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CampaignGraph.gd" id="18_graph"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/WavesPanel.gd" id="19_waves"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/ProblemsPanel.gd" id="20_problems"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/HelpOverlay.gd" id="21_help"]
 
 [node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
 process_mode = 3
@@ -79,6 +82,16 @@ layout_mode = 1
 script = ExtResource("13_browser")
 creator = NodePath("../../..")
 
+[node name="WavesPanel" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("19_waves")
+creator = NodePath("../../..")
+
+[node name="ProblemsPanel" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("20_problems")
+creator = NodePath("../../..")
+
 [node name="CampaignGraph" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("18_graph")
@@ -87,4 +100,9 @@ creator = NodePath("../../..")
 [node name="Prompt" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
 layout_mode = 1
 script = ExtResource("17_prompt")
+creator = NodePath("../../..")
+
+[node name="HelpOverlay" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("21_help")
 creator = NodePath("../../..")

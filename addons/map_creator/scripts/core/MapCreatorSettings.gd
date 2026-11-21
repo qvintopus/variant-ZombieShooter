@@ -17,6 +17,10 @@ signal recent_changed
 var resume_editing:bool
 ## Ctrl+C payload (MapTools), kept across room switches. Not saved.
 var clipboard:Array = []
+## Room key -> [undo, redo] stacks of saved rooms, so history survives room switches.
+var histories:Dictionary = {}
+## Set by Test section: the reloaded room starts that fight (1-based). Not saved.
+var test_section:int
 
 func set_admin_enabled(value:bool)->void:
 	admin_enabled = value

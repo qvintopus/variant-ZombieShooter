@@ -13,6 +13,7 @@ extends PanelContainer
 @export var home_color:Color = Color(0.4, 0.6, 0.95)
 @export var external_color:Color = Color(1, 1, 1, 0.45)
 @export var problem_color:Color = Color(1, 0.45, 0.2)
+@export var start_zoom:float = 0.55
 
 var store:CampaignStore
 var campaign_id:String
@@ -62,7 +63,10 @@ func _ready()->void:
 	_graph = GraphEdit.new()
 	_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_graph.right_disconnects = true
-	_graph.show_zoom_label = true
+	# the built-in menu and minimap are too big at the game's resolution; wheel zooms
+	_graph.show_menu = false
+	_graph.minimap_enabled = false
+	_graph.zoom = start_zoom
 	_graph.connection_request.connect(_on_connect)
 	_graph.disconnection_request.connect(_on_disconnect)
 	_graph.end_node_move.connect(_save_positions)

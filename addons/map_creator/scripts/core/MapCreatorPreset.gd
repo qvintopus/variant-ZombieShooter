@@ -18,6 +18,17 @@ extends Resource
 ## Eyedropper (also Alt+click).
 @export var key_pick:Key = KEY_I
 @export var key_line:Key = KEY_L
+## Waves editor panel.
+@export var key_waves:Key = KEY_K
+## Live problems list.
+@export var key_problems:Key = KEY_O
+## Leave Edit mode with the player at the cursor.
+@export var key_play_here:Key = KEY_P
+@export var key_help:Key = KEY_F1
+## Seconds between autosaves of unsaved edits (0 = off).
+@export var autosave_seconds:float = 30.0
+## Seconds after an edit before the live checks run.
+@export var check_delay:float = 0.3
 ## Biggest area a fill covers (an open area stops the fill).
 @export var fill_max:int = 4000
 ## Ctrl + these

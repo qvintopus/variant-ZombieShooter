@@ -28,6 +28,11 @@ signal graph_requested
 signal prompt_requested(title:String, initial:String, answer:Callable)
 ## The workspace (active mod) changed.
 signal workspace_changed
+signal waves_requested
+signal problems_requested
+signal help_requested
+## `problems` was refreshed (MapChecks).
+signal problems_changed
 
 enum Tool { PAINT, ERASE, SELECT, MOVE, FILL, PICK }
 enum Brush { ONE, THREE, RECT, LINE }
@@ -72,6 +77,16 @@ var rooms:RoomManager
 var tools:MapTools
 ## Props the eyedropper picked up, used by the next placements of that item.
 var picked_props:Dictionary = {}
+## Live problems [{text, cell}] (MapChecks), refreshed check_delay after edits.
+var problems:Array[Dictionary] = []
+## Section (1-based) the overlay highlights (waves panel); 0 = none.
+var highlight_section:int
+## A cell the overlay flashes (problem jump); null = none.
+var flash_cell:Variant = null
+var _check_in:float = -1.0
+var _autosave_in:float
+## Edit camera spot kept while playing from the cursor.
+var _edit_camera_at:Variant = null
 ## Entity open in the inspector.
 var inspected:LayoutEntity
 ## Entities edited together with `inspected` (same item, from a selection).
@@ -115,9 +130,24 @@ func _ready()->void:
 	if settings != null && settings.resume_editing:
 		settings.resume_editing = false
 		set_editing.call_deferred(true)
+	if layout != null && settings != null:
+		var _history:Array = settings.histories.get(key, [])
+		if _history.size() == 2:
+			_undo.assign(_history[0])
+			_redo.assign(_history[1])
+		settings.histories.erase(key)
+	_offer_autosave.call_deferred()
+	if settings != null && settings.test_section > 0:
+		var _section:int = settings.test_section
+		settings.test_section = 0
+		_start_test.call_deferred(_section)
+	_check_in = 0.1
 
 func _exit_tree()->void:
 	set_editing(false)
+	# a saved room keeps its history for the next visit
+	if settings != null && layout != null && !dirty && (!_undo.is_empty() || !_redo.is_empty()):
+		settings.histories[key] = [_undo.duplicate(), _redo.duplicate()]
 
 ## Room key from its RoomController room_id (room_N02 -> N02), else the scene name.
 static func room_key(node:Node)->String:
@@ -165,6 +195,9 @@ func set_editing(value:bool)->void:
 		editing_flag.value = value
 	if camera != null:
 		camera.call(&"activate" if value else &"deactivate")
+		if value && _edit_camera_at != null:
+			camera.global_position = _edit_camera_at
+			_edit_camera_at = null
 	if overlay != null:
 		overlay.visible = value
 	mode_changed.emit(value)
@@ -387,6 +420,8 @@ func _handle_key(event:InputEventKey)->bool:
 			redo()
 		elif event.keycode == preset.key_save:
 			save()
+		elif event.keycode == KEY_R:
+			restore_autosave()
 		else:
 			return false
 		return true
@@ -395,6 +430,14 @@ func _handle_key(event:InputEventKey)->bool:
 		browse_requested.emit()
 	elif _key == preset.key_graph:
 		graph_requested.emit()
+	elif _key == preset.key_waves:
+		waves_requested.emit()
+	elif _key == preset.key_problems:
+		problems_requested.emit()
+	elif _key == preset.key_help:
+		help_requested.emit()
+	elif _key == preset.key_play_here:
+		play_here()
 	elif _key == preset.key_fill:
 		set_tool(Tool.FILL)
 	elif _key == preset.key_pick:
@@ -649,6 +692,7 @@ func _default_floor()->MapCatalogItem:
 
 func _mark_dirty()->void:
 	layout_changed.emit()
+	_check_in = preset.check_delay if preset != null else 0.3
 	if !dirty:
 		dirty = true
 		dirty_changed.emit()
@@ -695,6 +739,8 @@ func clean(progress:bool = true)->void:
 		await get_tree().process_frame
 	clean_progress.emit(-1.0)
 	busy = false
+	# colliders changed: the checks read them
+	_check_in = 0.05
 	if _clean_queued:
 		_clean_queued = false
 		clean(progress)
@@ -778,6 +824,7 @@ func save()->bool:
 		return false
 	dirty = false
 	dirty_changed.emit()
+	_drop_autosave()
 	message.emit("Saved room_%s to %s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
 	return true
 
@@ -1135,3 +1182,131 @@ func _go(path:String)->void:
 		scene_transition_resource.set_next_scene(path, switch_entry_tag)
 	else:
 		get_tree().change_scene_to_file(path)
+
+# --- checks, testing, autosave ----------------------------------------------------------
+
+func _process(delta:float)->void:
+	if _check_in >= 0.0:
+		_check_in -= delta
+		if _check_in < 0.0 && busy:
+			_check_in = 0.1
+		elif _check_in < 0.0:
+			run_checks()
+	if dirty && editing && preset != null && preset.autosave_seconds > 0.0:
+		_autosave_in -= delta
+		if _autosave_in <= 0.0:
+			_autosave_in = preset.autosave_seconds
+			autosave()
+
+func run_checks()->void:
+	problems = MapChecks.run(self) if can_edit() else ([] as Array[Dictionary])
+	problems_changed.emit()
+
+## Where this room's unsaved edits are autosaved (per workspace).
+func autosave_path()->String:
+	var _space:String = mod_state.active if mod_state != null && mod_state.is_active() else "_game"
+	return "user://map_creator/autosave/%s/room_%s.json" % [_space, key]
+
+func autosave()->void:
+	if !can_edit():
+		return
+	DirAccess.make_dir_recursive_absolute(autosave_path().get_base_dir())
+	var _file:FileAccess = FileAccess.open(autosave_path(), FileAccess.WRITE)
+	if _file != null:
+		_file.store_string(LayoutCodec.to_json(layout))
+		_file.close()
+
+func _drop_autosave()->void:
+	if FileAccess.file_exists(autosave_path()):
+		DirAccess.remove_absolute(autosave_path())
+
+func has_autosave()->bool:
+	return can_edit() && FileAccess.file_exists(autosave_path()) && FileAccess.get_file_as_string(autosave_path()) != LayoutCodec.to_json(layout)
+
+func _offer_autosave()->void:
+	if has_autosave():
+		message.emit("Unsaved edits of this room were autosaved: Ctrl+R restores them")
+
+## Ctrl+R: the autosaved layout replaces the current one (one undo step).
+func restore_autosave()->bool:
+	if !has_autosave():
+		message.emit("No autosave for this room")
+		return false
+	var _codec:LayoutCodec = LayoutCodec.new()
+	var _saved:RoomLayoutResource = _codec.from_json(FileAccess.get_file_as_string(autosave_path()), catalog)
+	if _saved == null:
+		return false
+	_saved.key = key
+	_push_undo(layout)
+	_restore(_saved)
+	message.emit("Autosave restored (Ctrl+Z undoes)")
+	return true
+
+## Leaves Edit mode with the player on the hovered cell; F2 comes back to the same view.
+func play_here()->void:
+	if !editing || !hover_valid:
+		return
+	var _player:Node2D = player_reference.node as Node2D if player_reference != null else null
+	if _player == null:
+		message.emit("No player to place")
+		return
+	if layout != null && !layout.floor.has(hover_cell):
+		message.emit("Play from a floor cell")
+		return
+	_edit_camera_at = camera.global_position if camera != null else null
+	_player.global_position = cell_center(hover_cell)
+	set_editing(false)
+
+## Saves, reloads this room and starts section `number` with the player at its trigger.
+func test_section(number:int)->void:
+	if !can_edit() || number < 1 || number > layout.sections.size():
+		return
+	if dirty && !save():
+		return
+	if settings != null:
+		settings.test_section = number
+	if !reload_room() && settings != null:
+		settings.test_section = 0
+
+## Loads this room again (its baked scene in the workspace), in Play mode.
+func reload_room()->bool:
+	var _path:String = scene_of(key)
+	if !ResourceLoader.exists(_path):
+		message.emit("No scene %s" % _path)
+		return false
+	_go(_path)
+	if settings != null:
+		settings.resume_editing = false
+	return true
+
+func _start_test(number:int)->void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	set_editing(false)
+	var _section:Node = room.get_node_or_null("EnemyManager/Section%d" % number)
+	if _section == null:
+		message.emit("No Section%d in the room" % number)
+		return
+	var _player:Node2D = player_reference.node as Node2D if player_reference != null else null
+	if _player != null && layout != null:
+		for _entity:LayoutEntity in layout.entities_of(&"trigger"):
+			if int(_entity.props.get("section", 1)) == number:
+				_player.global_position = cell_center(_entity.cell)
+				break
+	if _section.has_method(&"start_fight"):
+		_section.call(&"start_fight")
+	message.emit("Testing section %d (F2 back to editing)" % number)
+
+## Layers menu: 0 floor, 1 wall tiles, 2 holes, 3 entity markers (the overlay).
+func set_layer_visible(index:int, on:bool)->void:
+	var _alpha:float = 1.0 if on else 0.0
+	match index:
+		0:
+			floor_layer.self_modulate.a = _alpha
+		1:
+			walls_layer.self_modulate.a = _alpha
+		2:
+			holes_layer.self_modulate.a = _alpha
+		3:
+			if overlay != null:
+				overlay.set(&"show_entities", on)
