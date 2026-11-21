@@ -8,6 +8,7 @@
 script = ExtResource("3_80syh")
 id = &"water_gun_spot"
 display_name = "Water gun spot"
+icon_scene = "res://addons/top_down/scenes/weapons/water_gun.tscn"
 color = Color(0.3, 0.5, 1, 1)
 tags = PackedStringArray("water", "gun", "home")
 node_type = "Marker2D"

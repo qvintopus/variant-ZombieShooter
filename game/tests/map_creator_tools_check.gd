@@ -52,6 +52,7 @@ func _ready()->void:
 	_check_pick(_creator)
 	_check_clipboard(_creator)
 	_check_stamps(_creator)
+	_check_icons(_creator)
 	_creator.set_editing(false)
 	_room.queue_free()
 	await _frames(2)
@@ -168,3 +169,19 @@ func _check_stamps(creator:MapCreator)->void:
 	var _hostile:Array = MapTools.payload_from_data([{"type": "evil", "cell": [0, 0]}, {"type": "door", "cell": [0, 0], "props": {"tag": "a\"\n"}}, {"type": "wall", "cell": [99999, 0]}], creator.catalog)
 	check(_hostile.size() == 1 && !String(_hostile[0].entity.props.tag).contains("\""), "stamp JSON is cleaned")
 	DirAccess.remove_absolute(_path)
+
+## Menu icons: floor tile, wall tile, entity sprite (not the shadow), marker via icon_scene,
+## trigger none (swatch); categories fall back to an item's icon.
+func _check_icons(creator:MapCreator)->void:
+	var _floor:Texture2D = creator.icon_of(creator.catalog.item(&"floor_mossy"))
+	check(_floor is AtlasTexture && (_floor as AtlasTexture).atlas == (creator.floor_layer.tile_set.get_source(10) as TileSetAtlasSource).texture, "icon: floor look is its tile")
+	check(creator.icon_of(creator.catalog.item(&"wall")) != null, "icon: wall tile")
+	var _shrine:Texture2D = creator.icon_of(creator.catalog.item(&"shrine"))
+	check(_shrine is AtlasTexture && !(_shrine as AtlasTexture).atlas.resource_path.contains("shadow"), "icon: entity sprite frame, not shadow")
+	check(creator.icon_of(creator.catalog.item(&"spawn")) != null, "icon: spawn via icon_scene")
+	check(creator.icon_of(creator.catalog.item(&"trigger")) == null, "icon: trigger has none")
+	check(creator.icon_of(creator.catalog.item(&"door")) == creator.icon_of(creator.catalog.item(&"door")), "icon: cached")
+	for _category:MapCatalogCategory in creator.catalog.categories:
+		check(creator.category_icon(_category) != null, "icon: category %s" % _category.id)
+	var _ring:Array = creator.radial_slices(Vector2i(10, 10))
+	check(_ring.back().get("glyph") == "+", "icon: More... glyph")

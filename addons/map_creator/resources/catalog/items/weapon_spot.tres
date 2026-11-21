@@ -8,6 +8,7 @@
 script = ExtResource("3_n5644")
 id = &"weapon_spot"
 display_name = "Starting weapon"
+icon_scene = "res://addons/top_down/scenes/weapons/gun.tscn"
 color = Color(1, 0.6, 0.2, 1)
 description = "Start rooms: one random unlocked weapon; doors stay shut until it's picked up."
 tags = PackedStringArray("weapon", "start", "pickup")

@@ -111,7 +111,9 @@ func _build_top_row()->HBoxContainer:
 		_index += 1
 		var _b:Button = _button(_row, _category.display_name, "%s (%d)" % [_category.display_name, _index], creator.select_category.bind(_category))
 		_b.toggle_mode = true
-		_b.icon = _category.icon if _category.icon != null else _swatch(_category.color)
+		var _icon:Texture2D = creator.category_icon(_category)
+		_b.icon = _icon if _icon != null else _swatch(_category.color)
+		_b.add_theme_constant_override(&"icon_max_width", int(creator.preset.swatch_size.y))
 		_category_buttons[_category] = _b
 	var _spacer:Control = Control.new()
 	_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -242,7 +244,9 @@ func _on_item_changed()->void:
 func _add_item_button(item:MapCatalogItem, variant:bool)->void:
 	var _b:Button = _button(_item_strip, "" if variant else item.display_name, "%s%s" % [item.display_name, "\n" + item.description if !item.description.is_empty() else ""], creator.select_item.bind(item))
 	_b.toggle_mode = true
-	_b.icon = item.icon if item.icon != null else _swatch(item.color)
+	var _icon:Texture2D = creator.icon_of(item)
+	_b.icon = _icon if _icon != null else _swatch(item.color)
+	_b.add_theme_constant_override(&"icon_max_width", int(creator.preset.swatch_size.y))
 	_item_buttons[item] = _b
 
 func _fill_recent()->void:

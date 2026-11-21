@@ -27,6 +27,7 @@ hint = "Empty: the section's."
 script = ExtResource("3_xskck")
 id = &"spawn"
 display_name = "Enemy spawner"
+icon_scene = "res://addons/top_down/scenes/actors/zombie.tscn"
 color = Color(0.9, 0.2, 0.2, 1)
 tags = PackedStringArray("spawn", "spawner", "enemy")
 bake = 5

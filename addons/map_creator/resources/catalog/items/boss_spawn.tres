@@ -8,6 +8,7 @@
 script = ExtResource("3_kgigu")
 id = &"boss_spawn"
 display_name = "Boss spawner"
+icon_scene = "res://addons/top_down/scenes/actors/giant_zombie_boss.tscn"
 color = Color(0.6, 0, 0.1, 1)
 tags = PackedStringArray("spawn", "boss")
 bake = 6
