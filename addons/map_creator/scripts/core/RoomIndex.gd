@@ -147,3 +147,12 @@ func describe(key:String, catalog:MapCatalog)->String:
 		var _other:Dictionary = entries.get(_target.trim_prefix("room_"), {})
 		_lines.append("%s -> %s%s" % [_link.kind, _target, ("  " + _other.name) if !_other.is_empty() else ""])
 	return "\n".join(_lines)
+
+## describe() plus the doors / portals that lead here (`rooms` RoomManager, may be null).
+func details(key:String, catalog:MapCatalog, rooms:RoomManager)->String:
+	var _text:String = describe(key, catalog)
+	if rooms != null && !_text.is_empty():
+		var _links:PackedStringArray = rooms.links_to(key)
+		if !_links.is_empty():
+			_text += "\nLinked from: " + ", ".join(_links)
+	return _text

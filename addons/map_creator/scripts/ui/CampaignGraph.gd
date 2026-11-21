@@ -4,6 +4,9 @@
 ## link off clears it. Rooms outside the campaign that are linked show dimmed. Positions,
 ## the start room and new campaigns save to the workspace (CampaignStore).
 ## Double click a room to open it; toolbar: add room, set start, remove, auto layout.
+## The search box matches rooms like the room browser (others fade); the side panel shows
+## the selected room's details. Preview swaps the graph for the rooms drawn with their
+## tiles, placed by their stairs (CampaignPreview).
 class_name CampaignGraph
 extends PanelContainer
 
@@ -14,12 +17,26 @@ extends PanelContainer
 @export var external_color:Color = Color(1, 1, 1, 0.45)
 @export var problem_color:Color = Color(1, 0.45, 0.2)
 @export var start_zoom:float = 0.55
+@export var dim_alpha:float = 0.3
+## Width share of the details panel against the graph's 1.
+@export var info_ratio:float = 0.45
 
 var store:CampaignStore
 var campaign_id:String
 var _graph:GraphEdit
 var _campaigns:OptionButton
 var _status:Label
+var _search:LineEdit
+var _view:Button
+var _info:Label
+var preview:CampaignPreview
+## Searchable details of every room (rebuilt with the graph).
+var index:RoomIndex = RoomIndex.new()
+var selected_key:String
+## key -> problems of the shown rooms
+var _problems:Dictionary = {}
+## Shown keys the search matches.
+var matches:Dictionary = {}
 var _nodes:Dictionary = {}
 ## GraphNode name -> room key
 var _keys:Dictionary = {}
@@ -41,6 +58,13 @@ func _ready()->void:
 	_campaigns.tooltip_text = "Campaign (rooms whose layout names it)"
 	_campaigns.item_selected.connect(func (i:int)->void: show_campaign(store.campaigns[i].id))
 	_bar.add_child(_campaigns)
+	_search = LineEdit.new()
+	_search.placeholder_text = "Search rooms: name, key, enemy, look..."
+	_search.custom_minimum_size.x = 150
+	_search.clear_button_enabled = true
+	_search.text_changed.connect(func (_t:String)->void: apply_search())
+	_search.text_submitted.connect(func (_t:String)->void: _focus_first_match())
+	_bar.add_child(_search)
 	for _entry:Array in [
 			["New", "New campaign", _new_campaign],
 			["Add room", "Add a room (new key = new room, existing key = move it here)", _add_room],
@@ -48,6 +72,7 @@ func _ready()->void:
 			["Open", "Edit the selected room (double click)", _open_selected],
 			["Remove", "Take the selected room out of the campaign", _remove_selected],
 			["Auto", "Arrange by distance from the start", _auto_layout],
+			["Preview", "Switch between the link graph and the rooms drawn with their tiles, placed by their stairs", toggle_view],
 			["x", "Close (G / Esc)", close]]:
 		var _b:Button = Button.new()
 		_b.text = _entry[0]
@@ -55,13 +80,18 @@ func _ready()->void:
 		_b.focus_mode = Control.FOCUS_NONE
 		_b.pressed.connect(_entry[2])
 		_bar.add_child(_b)
+		if _entry[0] == "Preview":
+			_view = _b
 	_status = Label.new()
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_status.clip_text = true
 	_bar.add_child(_status)
+	var _body:HBoxContainer = HBoxContainer.new()
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_box.add_child(_body)
 	_graph = GraphEdit.new()
-	_graph.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_graph.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_graph.right_disconnects = true
 	# the built-in menu and minimap are too big at the game's resolution; wheel zooms
 	_graph.show_menu = false
@@ -70,7 +100,29 @@ func _ready()->void:
 	_graph.connection_request.connect(_on_connect)
 	_graph.disconnection_request.connect(_on_disconnect)
 	_graph.end_node_move.connect(_save_positions)
-	_box.add_child(_graph)
+	_graph.node_selected.connect(func (node:Node)->void:
+		if _keys.has(node.name):
+			select_room(_keys[node.name]))
+	_body.add_child(_graph)
+	preview = CampaignPreview.new()
+	preview.graph = self
+	preview.tile_set = creator.floor_layer.tile_set
+	var _floor:TileMapLayer = creator.floor_layer
+	preview.to_px = func (cell:Vector2i)->Vector2: return _floor.map_to_local(cell)
+	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview.visible = false
+	preview.room_selected.connect(func (key:String)->void: select_room(key))
+	preview.room_activated.connect(_open)
+	_body.add_child(preview)
+	var _scroll:ScrollContainer = ScrollContainer.new()
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_stretch_ratio = info_ratio
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_body.add_child(_scroll)
+	_info = Label.new()
+	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_info)
 	creator.graph_requested.connect(toggle)
 
 func toggle()->void:
@@ -88,9 +140,32 @@ func open()->void:
 	if store.find(_current).is_empty() && !store.campaigns.is_empty():
 		_current = store.campaigns[0].id
 	show_campaign(_current)
+	_search.grab_focus()
+	_search.select_all()
 
 func close()->void:
 	visible = false
+	_search.release_focus()
+
+## Graph <-> Preview.
+func toggle_view()->void:
+	set_preview(!preview.visible)
+
+func set_preview(on:bool)->void:
+	preview.visible = on
+	_graph.visible = !on
+	_view.text = "Graph" if on else "Preview"
+	if on:
+		_show_preview()
+
+func _show_preview()->void:
+	var _tints:Dictionary = {}
+	for _key:String in _nodes:
+		_tints[_key] = _nodes[_key].self_modulate
+	var _campaign:Dictionary = store.find(campaign_id)
+	preview.show_rooms(_nodes.keys(), String(_campaign.get("start", "")), _tints)
+	preview.set_dimmed(_dimmed())
+	preview.set_selected(selected_key)
 
 ## The layout the graph reads and edits: the open room's live copy, else the stored one.
 func layout_of(key:String)->RoomLayoutResource:
@@ -114,9 +189,11 @@ func rebuild()->void:
 		_node.free()
 	_nodes.clear()
 	_keys.clear()
+	index.build(creator.baker, creator.catalog, creator.mod_state)
 	var _campaign:Dictionary = store.find(campaign_id)
 	if _campaign.is_empty():
 		_status.text = "No campaign: New makes one"
+		_info.text = ""
 		return
 	var _rooms:PackedStringArray = store.rooms_of(campaign_id)
 	if creator.layout != null && String(creator.layout.campaign) == campaign_id && !_rooms.has(creator.key):
@@ -127,7 +204,7 @@ func rebuild()->void:
 			_missing_positions = true
 	if _missing_positions:
 		store.auto_layout(campaign_id)
-	var _problems:Dictionary = _problems_by_room(_rooms)
+	_problems = _problems_by_room(_rooms)
 	for _key:String in _rooms:
 		_add_node(_key, false, _campaign, _problems.get(_key, PackedStringArray()))
 	# linked rooms of other campaigns, dimmed, right of what links to them
@@ -140,13 +217,19 @@ func rebuild()->void:
 				_nodes[_to].position_offset = _nodes[_key].position_offset + Vector2(220, 40 * _i)
 	_connect_links()
 	_status.text = "%s: %d rooms, start room_%s" % [_campaign.display_name, _rooms.size(), _campaign.start]
+	if !_nodes.has(selected_key):
+		selected_key = creator.key if _nodes.has(creator.key) else String(_campaign.start)
+	apply_search()
+	select_room(selected_key)
+	if preview.visible:
+		_show_preview()
 
 func _add_node(key:String, external:bool, campaign:Dictionary, problems:PackedStringArray)->void:
 	var _layout:RoomLayoutResource = layout_of(key)
 	var _node:GraphNode = GraphNode.new()
 	_node.name = "room_" + key
 	_node.title = "%s %s" % [key, _layout.display_name if _layout.display_name != "room_" + key else ""]
-	_node.tooltip_text = "\n".join(problems) if !problems.is_empty() else ""
+	_node.tooltip_text = details_of(key)
 	if campaign.nodes.has(key):
 		_node.position_offset = Vector2(campaign.nodes[key][0], campaign.nodes[key][1])
 	var _flags:PackedStringArray = []
@@ -242,6 +325,57 @@ func _problems_by_room(rooms:PackedStringArray)->Dictionary:
 	_baker.quiet = _was_quiet
 	return _out
 
+# --- search / details -------------------------------------------------------------------
+
+## The room browser's details of `key` plus its graph problems.
+func details_of(key:String)->String:
+	var _text:String = index.details(key, creator.catalog, creator.rooms)
+	var _list:PackedStringArray = _problems.get(key, PackedStringArray())
+	if !_list.is_empty():
+		_text += "\nProblems:\n- " + "\n- ".join(_list)
+	return _text
+
+## Fades the shown rooms the search box doesn't match.
+func apply_search()->void:
+	matches.clear()
+	for _key:String in index.search(_search.text):
+		if _nodes.has(_key):
+			matches[_key] = true
+	for _key:String in _nodes:
+		_nodes[_key].modulate = Color.WHITE if matches.has(_key) else Color(1, 1, 1, dim_alpha)
+	if preview.visible:
+		preview.set_dimmed(_dimmed())
+	if !_search.text.strip_edges().is_empty():
+		var _campaign:Dictionary = store.find(campaign_id)
+		_status.text = "%d of %d rooms match" % [matches.size(), _nodes.size()] if !_campaign.is_empty() else ""
+
+func _dimmed()->Dictionary:
+	var _out:Dictionary = {}
+	for _key:String in _nodes:
+		if !matches.has(_key):
+			_out[_key] = true
+	return _out
+
+## Selects a room (graph node / preview) and shows its details; `center` scrolls to it.
+func select_room(key:String, center:bool = false)->void:
+	selected_key = key if _nodes.has(key) else ""
+	_info.text = details_of(selected_key) if !selected_key.is_empty() else "Select a room"
+	if selected_key.is_empty():
+		return
+	var _node:GraphNode = _nodes[selected_key]
+	if !_node.selected:
+		_graph.set_selected(_node)
+	preview.set_selected(selected_key)
+	if center:
+		_graph.scroll_offset = (_node.position_offset + _node.size * 0.5) * _graph.zoom - _graph.size * 0.5
+		preview.center_on(selected_key)
+
+func _focus_first_match()->void:
+	for _key:String in index.search(_search.text):
+		if _nodes.has(_key):
+			select_room(_key, true)
+			return
+
 # --- editing ----------------------------------------------------------------------------
 
 ## Out port `from_port` of room A -> in port `to_port` of room B.
@@ -301,6 +435,8 @@ func _on_disconnect(from_node:StringName, from_port:int, _to_node:StringName, _t
 	unlink(_keys[from_node], from_port)
 
 func _selected()->String:
+	if _nodes.has(selected_key):
+		return selected_key
 	for _key:String in _nodes:
 		if _nodes[_key].selected:
 			return _key
