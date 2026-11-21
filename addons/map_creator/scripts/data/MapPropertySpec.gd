@@ -16,6 +16,8 @@ enum Type { INT, FLOAT, BOOL, STRING, ENUM, ROOM, SECTION }
 @export var max_value:float = 10.0
 ## ENUM choices (stored as the index).
 @export var options:PackedStringArray = []
+## May be left unset (the inspector offers "default"; the baker falls back).
+@export var optional:bool
 @export_multiline var hint:String
 
 ## Value as text for a .tscn property line.

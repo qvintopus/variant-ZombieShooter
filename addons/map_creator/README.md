@@ -42,6 +42,14 @@ games and the co-op host, not for guests or a dedicated server. Edits are not sy
 | Ctrl+Z / Ctrl+Y | undo / redo (one step per stroke) |
 | Ctrl+S | save the layout + bake the room scene (+ balance.json entry) |
 
+Entities (stairs, portals, gates/barriers, spawners, triggers, contraptions, hazards,
+markers) are placed with Paint and removed with Erase, one per floor cell. They are
+built live through `LiveEntities` and drawn on the overlay with their legend letter.
+Starting weapon spots, the piston grid and plain markers apply after Save and a reload.
+The Select tool opens an entity in the **inspector**, which edits its `MapPropertySpec`
+props. With nothing selected the inspector edits the room: name, look, flags,
+side/boss section and the sections' waves as JSON.
+
 Painting a floor look adds floor cells. Wall and hole painting writes overrides. Erasing a
 hole brings back the room look's floor. With **Auto** on, every stroke is cleaned.
 Saving writes into `res://`, so it only works when running from the project, not from an
