@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_te0kr"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_vkea1"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_c12ve"]
+
+[sub_resource type="Resource" id="Resource_1gr7b"]
+script = ExtResource("2_vkea1")
+key = &"section"
+label = "Section"
+type = 6
+min_value = 1.0
+max_value = 2.0
+options = PackedStringArray()
+
+[resource]
+script = ExtResource("3_c12ve")
+id = &"gate"
+display_name = "Gate"
+color = Color(0.9, 0.8, 0.2, 1)
+description = "BlockWall up until its section is cleared."
+tags = PackedStringArray("block", "wall", "gate")
+bake = 4
+scene_path = "res://addons/top_down/scenes/obstacles/block_wall.tscn"
+defaults = {
+"mode": 1,
+"section": 1
+}
+properties = Array[ExtResource("2_vkea1")]([SubResource("Resource_1gr7b")])
+legend = "ab"

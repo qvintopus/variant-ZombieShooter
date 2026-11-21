@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_407xe"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_0g2mc"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_kgigu"]
+
+[resource]
+script = ExtResource("3_kgigu")
+id = &"boss_spawn"
+display_name = "Boss spawner"
+color = Color(0.6, 0, 0.1, 1)
+tags = PackedStringArray("spawn", "boss")
+bake = 6
+script_path = "res://addons/top_down/scripts/arena/SpawnPoint.gd"
+parent_path = "EnemySpawnPoints"
+legend = "B"

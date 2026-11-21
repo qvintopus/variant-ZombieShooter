@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_865pn"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_0r347"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_576ae"]
+
+[resource]
+script = ExtResource("3_576ae")
+id = &"robot_printer"
+display_name = "Robot printer"
+color = Color(0.7, 0.7, 0.9, 1)
+tags = PackedStringArray("robot", "printer", "coop", "home")
+scene_path = "res://addons/top_down/scenes/interactables/robot_printer.tscn"
+legend = "Q"

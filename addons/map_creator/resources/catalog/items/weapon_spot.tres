@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_s1isn"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_g5uqi"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_n5644"]
+
+[resource]
+script = ExtResource("3_n5644")
+id = &"weapon_spot"
+display_name = "Starting weapon"
+color = Color(1, 0.6, 0.2, 1)
+description = "Start rooms: one random unlocked weapon; doors stay shut until it's picked up."
+tags = PackedStringArray("weapon", "start", "pickup")
+bake = 9
+legend = "w"

@@ -6,7 +6,7 @@
 class_name Portal
 extends SceneEntry
 
-## Tag of the victory exit (build_rooms.gd VICTORY).
+## Tag of the victory exit (LayoutBaker.victory_tag).
 const EXTRACT_TAG:String = "victory"
 const EXTRACT_TEXT:String = "EXTRACT"
 const EXTRACT_TEXTURE:Texture2D = preload("res://addons/top_down/assets/images/misc/portal_extract_32x32_strip6.png")
@@ -18,7 +18,7 @@ const EXTRACT_COLOR:Color = Color(0.55, 1.0, 0.45)
 ## Frame 0 dormant, the rest the open vortex loop.
 @export var sprite:Sprite2D
 @export var frame_time:float = 0.1
-## Name of the room it leads to, written by build_rooms.gd.
+## Name of the room it leads to, written by LayoutBaker.
 @export var destination_name:String
 @export var label:Label
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_7ro8b"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_he12y"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_gv56s"]
+
+[resource]
+script = ExtResource("3_gv56s")
+id = &"acid_puddle"
+display_name = "Acid puddle"
+color = Color(0.6, 0.9, 0.1, 1)
+tags = PackedStringArray("acid", "puddle", "poison")
+scene_path = "res://addons/top_down/scenes/obstacles/acid_puddle.tscn"
+parent_path = "Behind"
+legend = "A"

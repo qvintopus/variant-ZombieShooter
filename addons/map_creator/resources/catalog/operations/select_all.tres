@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="MapCatalogOperation" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_k8fkl"]
+
+[resource]
+script = ExtResource("1_k8fkl")
+id = &"select_all"
+label = "Select all"
+context = 2

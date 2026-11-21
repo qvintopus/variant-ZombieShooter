@@ -1,6 +1,6 @@
 # Home base
 
-The home base (`game/scenes/room_H00.tscn`, **Home Base** on the title) is a room without fights. It is built by `game/tools/build_rooms.gd` from `game/tools/rooms_home.gd`.
+The home base (`game/scenes/room_H00.tscn`, **Home Base** on the title) is a room without fights. It is baked by `game/tools/build_rooms.gd` from `game/rooms/layouts/room_H00.tres`.
 
 ## Memory grid
 
@@ -61,4 +61,4 @@ An acid gun or a blood gun only needs a projectile inheriting `puddle_shot_proje
 
 ## Co-op terminal
 
-The **Comms Terminal** (`N` on the map, next to the spawn) opens the co-op dialog. There you can host a session for friends or join one by address. See `multiplayer.md`.
+The **Comms Terminal** (next to the spawn) opens the co-op dialog. There you can host a session for friends or join one by address. See `multiplayer.md`.

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_0uav1"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_c5mu0"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_7ucld"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_flesh_cracked_1.tres" id="4_22l5i"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_flesh_cracked_2.tres" id="5_byed7"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_flesh_cracked_3.tres" id="6_tr3qd"]
+
+[resource]
+script = ExtResource("3_7ucld")
+id = &"floor_flesh"
+display_name = "Flesh floor"
+color = Color(0.8, 0.45, 0.5, 1)
+kind = 0
+tags = PackedStringArray("flesh", "floor")
+floor_source = 50
+variants = Array[ExtResource("3_7ucld")]([ExtResource("4_22l5i"), ExtResource("5_byed7"), ExtResource("6_tr3qd")])
+legend = "."

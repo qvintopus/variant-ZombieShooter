@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_5hfh2"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_n4fxx"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_f12du"]
+
+[resource]
+script = ExtResource("3_f12du")
+id = &"victory"
+display_name = "Victory exit"
+color = Color(1, 0.85, 0.3, 1)
+description = "Boss room exit, shut until the room is cleared."
+tags = PackedStringArray("victory", "extract", "exit")
+bake = 3
+scene_path = "res://addons/top_down/scenes/obstacles/portal.tscn"
+parent_path = "Behind"
+legend = "V"

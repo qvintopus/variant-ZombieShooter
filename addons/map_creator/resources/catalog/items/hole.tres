@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_0ld16"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_2xavd"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_bmqmo"]
+
+[resource]
+script = ExtResource("3_bmqmo")
+id = &"hole"
+display_name = "Hole"
+color = Color(0.05, 0.05, 0.08, 1)
+kind = 2
+tags = PackedStringArray("hole", "pit")

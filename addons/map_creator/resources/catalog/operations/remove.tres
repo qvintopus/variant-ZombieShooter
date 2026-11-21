@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="MapCatalogOperation" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_m4kbb"]
+
+[resource]
+script = ExtResource("1_m4kbb")
+id = &"remove"
+label = "Remove"

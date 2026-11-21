@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_tovjn"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_wx3hd"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_5l2ha"]
+
+[resource]
+script = ExtResource("3_5l2ha")
+id = &"reset_button"
+display_name = "Reset button"
+color = Color(0.9, 0.3, 0.3, 1)
+tags = PackedStringArray("button", "grid", "home")
+scene_path = "res://addons/top_down/scenes/interactables/reset_button.tscn"
+legend = "C"
