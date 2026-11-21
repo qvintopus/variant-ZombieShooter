@@ -53,6 +53,7 @@ func _ready()->void:
 	_check_clipboard(_creator)
 	_check_stamps(_creator)
 	_check_icons(_creator)
+	_check_hole_look(_creator)
 	_creator.set_editing(false)
 	_room.queue_free()
 	await _frames(2)
@@ -185,3 +186,31 @@ func _check_icons(creator:MapCreator)->void:
 		check(creator.category_icon(_category) != null, "icon: category %s" % _category.id)
 	var _ring:Array = creator.radial_slices(Vector2i(10, 10))
 	check(_ring.back().get("glyph") == "+", "icon: More... glyph")
+
+## A hole in a painted look takes that look on every hole cell (also cells touching floor
+## only diagonally, and the inner ones), live and after Clean.
+func _check_hole_look(creator:MapCreator)->void:
+	var _metal:MapCatalogItem = _item(creator, &"floor_metal")
+	var _hole:MapCatalogItem = _item(creator, &"hole")
+	var _origin:Vector2i = creator.layout.floor.keys()[0]
+	for _y:int in 9:
+		for _x:int in 9:
+			creator.paint_at(_origin + Vector2i(_x, _y), _metal)
+	# a ragged hole: 3x3 block plus a notch out of its corner
+	var _cells:Array[Vector2i] = []
+	for _y:int in range(2, 6):
+		for _x:int in range(2, 6):
+			if Vector2i(_x, _y) != Vector2i(5, 5):
+				_cells.append(_origin + Vector2i(_x, _y))
+	for _cell:Vector2i in _cells:
+		creator.paint_at(_cell, _hole)
+	var _live:bool = true
+	for _cell:Vector2i in _cells:
+		_live = _live && creator.holes_layer.get_cell_source_id(_cell) == _metal.floor_source
+	check(_live, "hole look: painted hole cells take the metal look")
+	creator.clean(false)
+	var _wrong:Array = []
+	for _cell:Vector2i in creator.holes_layer.get_used_cells():
+		if _cells.has(_cell) && creator.holes_layer.get_cell_source_id(_cell) != _metal.floor_source:
+			_wrong.append(_cell)
+	check(_wrong.is_empty(), "hole look: after Clean every hole cell is metal %s" % [_wrong])

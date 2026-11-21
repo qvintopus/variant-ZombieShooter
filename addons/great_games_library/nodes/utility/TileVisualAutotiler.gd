@@ -211,13 +211,43 @@ func _floor_look_source(f:Vector2i, default_src:int)->int:
 	return default_src
 
 
-## Look for a hole gap: the first neighbouring floor cell with a painted look decides.
+## Look for a hole gap: the nearest floor's (a gap deep in a hole, or one touching floor
+## only diagonally, still matches the floor around it).
 func _gap_look_source(gap:Vector2i, default_src:int)->int:
-	for bit:int in _DELTAS:
-		var _src:int = _floor_look_source(gap + _DELTAS[bit], default_src)
-		if _src != default_src:
-			return _src
+	return nearest_look_source(floor_layer, tilemap_layer.tile_set, gap, default_src)
+
+
+## Look (source id) for a wall / hole marker at `cell`: the nearest floor cell's (the cell
+## itself first, then ring by ring outward, closest first) when `marker_set` has a source
+## with that id and it isn't the floor's default look; else `default_src`.
+static func nearest_look_source(floor_layer:TileMapLayer, marker_set:TileSet, cell:Vector2i, default_src:int, max_ring:int = 8)->int:
+	if floor_layer == null || marker_set == null:
+		return default_src
+	var _base:int = floor_layer.tile_set.get_source_id(0) if floor_layer.tile_set != null && floor_layer.tile_set.get_source_count() > 0 else -1
+	for _offset:Vector2i in _ring_offsets(max_ring):
+		var _src:int = floor_layer.get_cell_source_id(cell + _offset)
+		if _src == -1:
+			continue
+		return _src if _src != _base && marker_set.has_source(_src) else default_src
 	return default_src
+
+
+static var _offsets_cache:Dictionary = {}
+
+## Offsets within `max_ring` (Chebyshev), nearest first, ties in a fixed order.
+static func _ring_offsets(max_ring:int)->Array:
+	if _offsets_cache.has(max_ring):
+		return _offsets_cache[max_ring]
+	var _list:Array = []
+	for _y:int in range(-max_ring, max_ring + 1):
+		for _x:int in range(-max_ring, max_ring + 1):
+			_list.append(Vector2i(_x, _y))
+	_list.sort_custom(func (a:Vector2i, b:Vector2i)->bool:
+		var _da:int = a.length_squared()
+		var _db:int = b.length_squared()
+		return _da < _db || (_da == _db && (a.y < b.y || (a.y == b.y && a.x < b.x))))
+	_offsets_cache[max_ring] = _list
+	return _list
 
 
 ## Place marker tiles along the floor boundary. Existing cells are never overwritten.
