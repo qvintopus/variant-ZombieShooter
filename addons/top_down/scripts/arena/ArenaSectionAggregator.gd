@@ -72,6 +72,13 @@ func _restore_sections()->void:
 			_entered_offset += _section.waves.size()
 			_section.mark_cleared()
 
+## Every section with waves is cleared (the room is done).
+func all_cleared()->bool:
+	for _section:ArenaSection in sections:
+		if _section != null && !_section.waves.is_empty() && !_section.is_cleared:
+			return false
+	return true
+
 func _on_section_started(section:ArenaSection)->void:
 	# This section's first wave continues from the running offset.
 	_base_for[section] = _entered_offset

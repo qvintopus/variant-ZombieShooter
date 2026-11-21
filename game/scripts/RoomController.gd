@@ -29,6 +29,8 @@ extends Node
 ## Tracks whether a real fight has started, so the initial count==0 isn't
 ## mistaken for "cleared".
 var _was_fighting: bool = false
+## The room's sections (null in rooms without one).
+var _aggregator: ArenaSectionAggregator
 
 func _ready() -> void:
 	assert(room_state_resource != null)
@@ -38,8 +40,15 @@ func _ready() -> void:
 	assert(!String(room_id).is_empty())
 
 	room_state_resource.set_current(room_id)
+	var _found: Array[Node] = owner.find_children("*", "ArenaSectionAggregator", true, false) if owner != null else []
+	_aggregator = _found[0] as ArenaSectionAggregator if !_found.is_empty() else null
 
 	if room_state_resource.is_cleared(room_id):
+		# A cleared room has every section cleared (older saves could lack them,
+		# leaving gates shut): the aggregator's deferred restore opens them.
+		if _aggregator != null:
+			for _i: int in _aggregator.sections.size():
+				room_state_resource.mark_section_cleared(room_id, _i)
 		# Already done: never spawn waves again, show cleared state immediately.
 		if is_instance_valid(arena_entry):
 			arena_entry.queue_free()
@@ -62,6 +71,9 @@ func _on_remaining_waves_changed() -> void:
 	if fight_mode_resource.value:
 		return
 	if remaining_wave_count_resource.value > 0:
+		return
+	# Leaving mid-fight zeroes the counts too (aggregator _exit_tree): only real clears count.
+	if !is_inside_tree() || (_aggregator != null && !_aggregator.all_cleared()):
 		return
 	# All waves defeated.
 	room_state_resource.mark_cleared(room_id)
