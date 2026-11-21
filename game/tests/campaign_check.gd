@@ -1,7 +1,7 @@
 ## Checks every room baked from game/rooms/layouts (New Game N rooms, New Game+
 ## P rooms, the C boss path): door and portal links both ways, sections (waves, spawn
 ## points, triggers, requires chain, gates), boss waves, markers and interactables on
-## walkable floor, tile looks, colliders and the balance.json entries. Per campaign:
+## walkable floor, tile looks, colliders and the maps.json entries. Per campaign:
 ## every room reachable from its start, dead ends, the boss count, hub portals paired
 ## with the boss rooms and every interactable placed somewhere.
 ## Then plays: room_C10's gate opening only after Section1, a boss room's portal and
@@ -14,7 +14,7 @@ extends Node
 const TD:String = "res://addons/top_down/"
 const SCENES:String = "res://game/scenes/"
 const LAYOUTS:String = "res://game/rooms/layouts/"
-## Campaigns checked; boss_path rooms write no balance.json entry (not a campaign).
+## Campaigns checked; boss_path rooms write no maps.json entry (not a campaign).
 const CAMPAIGN_IDS:Array[String] = ["new_game", "new_game_plus", "boss_path"]
 const BOSS_COUNT:Dictionary = {"new_game": 2, "new_game_plus": 3, "boss_path": 3}
 const LOOK_SOURCE:Dictionary = {"base": 1, "mossy": 10, "bloody": 20, "metal": 30, "sandstone": 40, "flesh": 50}
@@ -41,6 +41,7 @@ func _ready()->void:
 	var _actions:ActionResource = load(TD + "resources/global_resources/action_resource.tres")
 	_actions.reset_resource()
 	_balance = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/balance.json"))
+	_balance.rooms = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/maps.json")).rooms
 	_state = load(TD + "resources/global_resources/room_state_resource.tres")
 
 	var _room_1:Node = _load_room("room_1")
@@ -193,10 +194,10 @@ func _check_room(name:String, spec:Dictionary, room:Node, entry:Dictionary)->voi
 		elif _i > 0:
 			check(_section.requires == _sections[_i - 1], "%s requires Section%d" % [_label, _i])
 		var _entry_waves:Array = entry.get("sections", {}).get("Section%d" % (_i + 1), {}).get("waves", [])
-		check(_entry_waves.size() == _section.waves.size(), "%s balance.json waves match the scene" % _label)
+		check(_entry_waves.size() == _section.waves.size(), "%s maps.json waves match the scene" % _label)
 		for _w:int in mini(_entry_waves.size(), _section.waves.size()):
 			check(int(_entry_waves[_w].count) == _section.waves[_w].count && _entry_waves[_w].get("is_boss", false) == _section.waves[_w].is_boss,
-				"%s wave %d matches balance.json" % [_label, _w + 1])
+				"%s wave %d matches maps.json" % [_label, _w + 1])
 	check(_boss_waves == (1 if spec.has("boss_section") else 0), "%s boss wave count" % name)
 
 	# Each BlockWall line closes its passage: its ends meet a wall collider or hole.

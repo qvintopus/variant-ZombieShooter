@@ -853,7 +853,7 @@ func _restore(snapshot:RoomLayoutResource)->void:
 	_mark_dirty()
 	clean(false)
 
-## Writes the layout and bakes the room scene (and its balance.json entry).
+## Writes the layout and bakes the room scene (and its maps.json entry).
 func save()->bool:
 	if !can_edit():
 		message.emit("No layout for this room: it's a hand-made scene.")

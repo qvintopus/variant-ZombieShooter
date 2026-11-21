@@ -1,7 +1,6 @@
-## Side panel of the map creator. With an entity inspected it shows that entity's catalog
-## properties as editors (MapPropertySpec: number, toggle, text, choice, room, section).
-## Otherwise it shows the room: name, look, start/home, side room, boss section and the
-## a button to the waves editor (WavesPanel). Every change is one undo step.
+## Side panel of the map creator, shown only while an entity is inspected: that entity's
+## catalog properties as editors (MapPropertySpec: number, toggle, text, choice, room,
+## section). Room settings live in the topbar (MapTopBar). Every change is one undo step.
 class_name MapInspector
 extends PanelContainer
 
@@ -32,33 +31,26 @@ func _ready()->void:
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_box.add_theme_constant_override(&"separation", 1)
 	_scroll.add_child(_box)
-	creator.inspected_changed.connect(func (_e:LayoutEntity)->void: rebuild())
+	creator.inspected_changed.connect(func (_e:LayoutEntity)->void:
+		_sync_visible()
+		rebuild())
 	creator.mode_changed.connect(func (_v:bool)->void: _sync_visible())
 	creator.history_changed.connect(_on_history)
 	_sync_visible()
 	rebuild()
 
 func _sync_visible()->void:
-	visible = creator.editing && creator.can_edit()
+	visible = creator.editing && creator.can_edit() && creator.inspected != null
 
 func _on_history()->void:
-	# undo/redo swaps the layout object: show its values
-	if creator.inspected == null && !_has_focus():
-		rebuild()
-
-func _has_focus()->bool:
-	var _focus:Control = get_viewport().gui_get_focus_owner()
-	return _focus != null && is_ancestor_of(_focus)
+	# undo/redo can drop the inspected entity
+	_sync_visible()
 
 func rebuild()->void:
 	for _child:Node in _box.get_children():
 		_child.queue_free()
-	if !creator.can_edit():
-		return
-	if creator.inspected != null:
+	if creator.can_edit() && creator.inspected != null:
 		_build_entity(creator.inspected)
-	else:
-		_build_room()
 
 func _title(text:String)->void:
 	var _label:Label = Label.new()
@@ -97,7 +89,8 @@ func _build_entity(entity:LayoutEntity)->void:
 	for _spec:MapPropertySpec in _item.properties:
 		_row(_spec.label if !_spec.label.is_empty() else String(_spec.key), _editor(entity, _spec, entity.props.get(_spec.key, _item.defaults.get(_spec.key, null))), _spec.hint)
 	var _close:Button = Button.new()
-	_close.text = "Room settings"
+	_close.text = "Close"
+	_close.tooltip_text = "Stop inspecting (Esc)"
 	_close.pressed.connect(creator.inspect.bind(null))
 	_box.add_child(_close)
 
@@ -153,38 +146,3 @@ func _editor(entity:LayoutEntity, spec:MapPropertySpec, value:Variant)->Control:
 		if _line.text != str(entity.props.get(spec.key, "")):
 			_set.call(_line.text))
 	return _line
-
-# --- room -------------------------------------------------------------------------------
-
-func _build_room()->void:
-	var _layout:RoomLayoutResource = creator.layout
-	_title("room_%s" % _layout.key)
-	var _name:LineEdit = LineEdit.new()
-	_name.text = _layout.display_name
-	_name.text_submitted.connect(func (t:String)->void:
-		creator.set_layout_field(&"display_name", t)
-		_name.release_focus())
-	_row("Name", _name)
-	var _look:OptionButton = OptionButton.new()
-	var _looks:PackedStringArray = []
-	for _item:MapCatalogItem in creator.catalog.all_items():
-		if _item.kind == MapCatalogItem.Kind.FLOOR && String(_item.id).count("_") == 1:
-			_looks.append(String(_item.id).trim_prefix("floor_"))
-	for _l:String in _looks:
-		_look.add_item(_l)
-		if _l == _layout.look:
-			_look.selected = _look.item_count - 1
-	_look.item_selected.connect(func (i:int)->void: creator.set_layout_field(&"look", _looks[i]))
-	_row("Look (default floor)", _look)
-	for _flag:Array in [[&"start", "Campaign start"], [&"home", "Home base"], [&"writes_balance", "Writes balance.json"]]:
-		var _check:CheckButton = CheckButton.new()
-		_check.text = _flag[1]
-		_check.button_pressed = _layout.get(_flag[0])
-		_check.toggled.connect(func (v:bool)->void: creator.set_layout_field(_flag[0], v))
-		_box.add_child(_check)
-	var _waves:Button = Button.new()
-	_waves.text = "Sections and waves... (%s)" % OS.get_keycode_string(creator.preset.key_waves)
-	_waves.tooltip_text = "%d sections. Opens the waves editor" % _layout.sections.size()
-	_waves.focus_mode = Control.FOCUS_NONE
-	_waves.pressed.connect(func ()->void: creator.waves_requested.emit())
-	_box.add_child(_waves)

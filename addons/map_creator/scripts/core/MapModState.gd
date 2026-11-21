@@ -11,7 +11,9 @@ signal mods_changed
 @export_dir var cache_dir:String = "user://map_creator/cache/"
 ## Where built-in rooms live; baked doors and portals always link here.
 @export_dir var canonical_dir:String = "res://game/scenes/"
-## Autoload given the mod rooms' balance entries (register_rooms / clear_registered).
+## Cache file of the mod rooms' maps.json "rooms" entries.
+const MAPS_FILE:String = "maps.json"
+## Autoload given the mod rooms' room entries (register_rooms / clear_registered).
 @export var balance_node:NodePath = ^"/root/Balance"
 
 ## Active mod id ("" = the base game).
@@ -111,9 +113,9 @@ func write_layout(info:MapModInfo, layout:RoomLayoutResource)->Error:
 func delete_layout(info:MapModInfo, key:String)->void:
 	DirAccess.remove_absolute(info.layout_file(key))
 	DirAccess.remove_absolute(cache_scene(info.id, key))
-	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join("balance.json"))
+	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join(MAPS_FILE))
 	_balance.erase("room_" + key)
-	_write_json(cache_folder(info.id).path_join("balance.json"), _balance)
+	_write_json(cache_folder(info.id).path_join(MAPS_FILE), _balance)
 	if info.id == active:
 		var _at:int = _active_keys.find(key)
 		if _at != -1:
@@ -154,7 +156,9 @@ func deactivate(baker:LayoutBaker = null)->void:
 ## Bakes every room of `info` whose layout (or the game version) changed.
 func ensure_baked(info:MapModInfo, baker:LayoutBaker)->void:
 	var _hashes:Dictionary = _read_json(cache_folder(info.id).path_join("hashes.json"))
-	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join("balance.json"))
+	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join(MAPS_FILE))
+	if !FileAccess.file_exists(cache_folder(info.id).path_join(MAPS_FILE)):
+		_hashes.clear() # older cache (room entries were in balance.json): rebake all
 	var _keys:PackedStringArray = info.keys()
 	for _key:String in _hashes.keys():
 		if !_keys.has(_key):
@@ -172,19 +176,19 @@ func ensure_baked(info:MapModInfo, baker:LayoutBaker)->void:
 		if _bake_into(info, _layout, baker, _balance):
 			_hashes[_key] = _hash
 	_write_json(cache_folder(info.id).path_join("hashes.json"), _hashes)
-	_write_json(cache_folder(info.id).path_join("balance.json"), _balance)
+	_write_json(cache_folder(info.id).path_join(MAPS_FILE), _balance)
 	if info.id == active:
 		_register_balance(_balance)
 
 ## Bakes one (just saved) mod room now; returns the bake context ({} on failure).
 func bake_room(info:MapModInfo, layout:RoomLayoutResource, baker:LayoutBaker)->Dictionary:
-	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join("balance.json"))
+	var _balance:Dictionary = _read_json(cache_folder(info.id).path_join(MAPS_FILE))
 	var _hashes:Dictionary = _read_json(cache_folder(info.id).path_join("hashes.json"))
 	var _ctx:Dictionary = _bake(info, layout, baker, _balance)
 	if !_ctx.is_empty():
 		_hashes[layout.key] = _layout_hash(info, layout.key)
 	_write_json(cache_folder(info.id).path_join("hashes.json"), _hashes)
-	_write_json(cache_folder(info.id).path_join("balance.json"), _balance)
+	_write_json(cache_folder(info.id).path_join(MAPS_FILE), _balance)
 	if info.id == active:
 		_register_balance(_balance)
 	return _ctx

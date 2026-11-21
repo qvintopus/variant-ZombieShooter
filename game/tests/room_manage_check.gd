@@ -48,11 +48,13 @@ func _test_baker()->GameLayoutBaker:
 	_baker.layouts_dir = OUT + "layouts/"
 	_baker.write_dir = OUT + "scenes/"
 	_baker.balance_path = OUT + "balance.json"
+	_baker.maps_path = OUT + "maps.json"
 	for _dir:String in [_baker.layouts_dir, _baker.write_dir]:
 		DirAccess.make_dir_recursive_absolute(_dir)
 	for _file:String in DirAccess.get_files_at("res://game/rooms/layouts/"):
 		DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/rooms/layouts/" + _file), ProjectSettings.globalize_path(_baker.layouts_dir + _file))
 	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/balance.json"), ProjectSettings.globalize_path(_baker.balance_path))
+	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/maps.json"), ProjectSettings.globalize_path(_baker.maps_path))
 	_baker.load_layouts()
 	return _baker
 
@@ -86,9 +88,9 @@ func _check_project(creator:MapCreator, baker:GameLayoutBaker)->void:
 	check(!baker.layouts.has("N02") && baker.layouts.has("N02R"), "rename moves the layout")
 	check(_rooms.links_to("N02").is_empty() && _rooms.links_to("N02R").size() == _links, "rename rewrites every link")
 	check(!FileAccess.file_exists(baker.layout_path("N02")) && !FileAccess.file_exists(baker.written_path("N02")), "rename removes the old files")
-	var _balance:String = FileAccess.get_file_as_string(baker.balance_path)
-	check(_balance.contains("\"room_N02R\"") && !_balance.contains("\"room_N02\""), "rename moves the balance entry")
-	check(JSON.parse_string(_balance) is Dictionary, "balance.json stays valid JSON")
+	var _balance:String = FileAccess.get_file_as_string(baker.maps_path)
+	check(_balance.contains("\"room_N02R\"") && !_balance.contains("\"room_N02\""), "rename moves the maps.json entry")
+	check(JSON.parse_string(_balance) is Dictionary, "maps.json stays valid JSON")
 	check(!_rooms.delete_room("N01"), "the open room can't be deleted")
 	check(_rooms.delete_room("T01") && !baker.layouts.has("T01") && !FileAccess.file_exists(baker.layout_path("T01")), "delete")
 

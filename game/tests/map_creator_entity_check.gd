@@ -43,11 +43,13 @@ func _test_baker()->GameLayoutBaker:
 	_baker.layouts_dir = OUT + "layouts/"
 	_baker.write_dir = OUT + "scenes/"
 	_baker.balance_path = OUT + "balance.json"
+	_baker.maps_path = OUT + "maps.json"
 	for _dir:String in [_baker.layouts_dir, _baker.write_dir]:
 		DirAccess.make_dir_recursive_absolute(_dir)
 	for _file:String in DirAccess.get_files_at("res://game/rooms/layouts/"):
 		DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/rooms/layouts/" + _file), ProjectSettings.globalize_path(_baker.layouts_dir + _file))
 	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/balance.json"), ProjectSettings.globalize_path(_baker.balance_path))
+	DirAccess.copy_absolute(ProjectSettings.globalize_path("res://game/balance/maps.json"), ProjectSettings.globalize_path(_baker.maps_path))
 	_baker.load_layouts()
 	return _baker
 
@@ -133,6 +135,19 @@ func _check_editing(baker:LayoutBaker)->void:
 		if _child is SpinBox || _child is LineEdit || _child is OptionButton || _child is CheckButton:
 			_editors += 1
 	check(_editors == _catalog.item(&"door").properties.size(), "the inspector shows the door's properties (%d)" % _editors)
+	_creator.inspect(null)
+	check(!_inspector.visible, "the inspector hides with nothing inspected")
+	var _bar:MapTopBar = _creator.get_node("UI/Root/TopBar")
+	var _start:Button = _bar._flags[&"start"]
+	check(!_start.tooltip_text.is_empty() && !_bar._flags[&"writes_balance"].tooltip_text.is_empty(), "topbar room flags have tooltips")
+	var _was:bool = _creator.layout.start
+	_start.button_pressed = !_was
+	check(_creator.layout.start == !_was, "topbar Start toggle sets the room flag")
+	_creator.undo()
+	check(_creator.layout.start == _was, "undo restores the flag")
+	await _frames(1)
+	check(_start.button_pressed == _was, "the toggle follows undo")
+	_door = _creator.layout.entity_at(_cell) # undo swapped the layout copy
 	var _target:Vector2i = _cell + Vector2i(1, 0)
 	_creator.edit(func ()->void: _door.cell = _target)
 	_node = _creator.entities.nodes_of(_door)[0]
