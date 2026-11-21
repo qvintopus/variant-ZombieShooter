@@ -131,6 +131,7 @@ func _ready()->void:
 		settings.visit(key)
 	if catalog != null && !catalog.categories.is_empty():
 		select_category(catalog.categories[0])
+		_select_look_floor()
 	if settings != null && settings.resume_editing:
 		settings.resume_editing = false
 		set_editing.call_deferred(true)
@@ -743,7 +744,22 @@ func set_entity_prop(entity:LayoutEntity, prop:StringName, value:Variant)->void:
 
 ## Sets a room-level layout field (look, side_room, sections...).
 func set_layout_field(field:StringName, value:Variant)->void:
+	var _follow:bool = field == &"look" && item != null && item == _default_floor()
 	edit(func ()->void: layout.set(field, value))
+	if _follow:
+		_select_look_floor()
+
+## Brush on the room look's plain floor (opening a room, changing its look).
+func _select_look_floor()->void:
+	if layout == null || catalog == null:
+		return
+	var _floor:MapCatalogItem = _default_floor()
+	if _floor == null:
+		return
+	var _category:MapCatalogCategory = catalog.category_of(_floor.id)
+	if _category != null && _category != category:
+		category = _category
+	select_item(_floor)
 
 func _set_marker(layer:TileMapLayer, cell:Vector2i)->void:
 	var _autotiler:TileVisualAutotiler = LayoutBaker.autotiler_of(layer)
