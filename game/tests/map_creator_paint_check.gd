@@ -199,7 +199,12 @@ func _check_painting(settings:MapCreatorSettings)->void:
 	check(_from_mod != null && _from_mod.floor.has(_island), "the mod layout has the edit")
 	_mods.deactivate(_baker)
 
+	var _prompt:MapPrompt = _room.get_node("MapCreator/UI/Root/Prompt")
 	_creator.set_editing(false)
+	check(!_creator.editing_flag.value == !_prompt.visible, "an open prompt (copy the original?) keeps the room paused in Play mode")
+	_prompt.close()
+	_creator.set_editing(false)
+	await _frames(1)
 	check(!_creator.editing_flag.value && _room.process_mode != Node.PROCESS_MODE_DISABLED, "Play mode resumes the room")
 	_room.queue_free()
 	await _frames(2)
