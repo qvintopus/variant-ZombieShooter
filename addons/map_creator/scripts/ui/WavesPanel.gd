@@ -1,7 +1,8 @@
 ## Waves editor (topbar Waves / K in Edit mode), a left side panel: the room's fight
 ## sections as color-coded cards (border = the section's map color), each with its flags
-## (boss, side room, spawn density, spawner cap), its linked map entities and its waves as
-## nested, cooler cards (count, alive cap, boss name, enemy rows from balance.json).
+## (boss, side room, spawn density = enemies each spawner keeps alive), its linked map entities and its waves as
+## nested, cooler cards (count = kills to clear, alive target, boss name, enemy rows).
+## Opening it scrolls to the inspected entity's section, else the fight the player started.
 ## Every change is one undo step (set_layout_field / creator.edit). Deleting asks first
 ## (creator.confirm_requested) and says what else goes: a section's triggers, spawners and
 ## barriers are deleted or moved to a neighbour section, later sections renumber (their
@@ -71,10 +72,29 @@ func open()->void:
 		creator.message.emit("No layout for this room")
 		return
 	visible = true
+	var _active:int = active_section()
 	if creator.inspected != null && _sectioned(creator.inspected):
 		_on_inspected(creator.inspected)
+	elif _active > 0:
+		open_section(_active)
 	else:
 		rebuild()
+
+## Section the player activated in the live room: the fight going on, else the last
+## cleared one; 0 = none.
+func active_section()->int:
+	if creator.room == null || !creator.can_edit():
+		return 0
+	var _cleared:int = 0
+	for _i:int in creator.layout.sections.size():
+		var _node:Node = creator.room.get_node_or_null("EnemyManager/Section%d" % (_i + 1))
+		if _node == null:
+			continue
+		if _node.get(&"fight_active") == true:
+			return _i + 1
+		if _node.get(&"is_cleared") == true:
+			_cleared = _i + 1
+	return _cleared
 
 ## Opens (or keeps open) on section `number`: expanded, highlighted, scrolled to.
 func open_section(number:int)->void:
@@ -535,20 +555,24 @@ func _build_section(index:int, section:Dictionary)->void:
 	_check(_flags, "Boss", _layout.boss_section == _number, "The boss fight (must be the last section)", set_flag.bind(&"boss_section", _number))
 	_check(_flags, "Side room", _layout.side_room == _number, "An optional alcove (must be the last section)", set_flag.bind(&"side_room", _number))
 	var _numbers:HBoxContainer = _hbox(_inner)
-	_spin(_numbers, "Density", int(section.get("spawn_density", 1)), 1, 6, "Spawn density", func (v:int)->void:
+	var _usage:Dictionary = section_usage(_number)
+	var _density:int = int(section.get("spawn_density", 1))
+	_spin(_numbers, "Density", _density, 1, 6,
+		"Enemies each spawner keeps alive at once (it refills when one dies).\n" +
+		"Now: %s x %d = %d alive (a spawner's own 'Max at once' can lower it).\n" % [_plural(_usage.spawners, "spawner"), _density, _usage.spawners * _density] +
+		"Twin Spawn (meta) doubles every spawn. A wave's Alive target overrides this.", func (v:int)->void:
 		change_section(index, func (s:Dictionary)->void:
 			if v == 1:
 				s.erase("spawn_density")
 			else:
 				s.spawn_density = v))
-	_spin(_numbers, "Cap", int(section.get("max_simultaneous", 1)), 1, 20, "Enemies alive per spawner (spawners without their own value)", func (v:int)->void:
-		change_section(index, func (s:Dictionary)->void:
-			if v == 1:
-				s.erase("max_simultaneous")
-			else:
-				s.max_simultaneous = v))
+	var _alive:Label = Label.new()
+	_alive.text = "= %d alive" % (_usage.spawners * _density)
+	_alive.tooltip_text = "Enemies on screen at once from this section's spawners (waves without an Alive target)"
+	_alive.mouse_filter = Control.MOUSE_FILTER_PASS
+	_alive.modulate.a = 0.6
+	_numbers.add_child(_alive)
 	# linked map entities
-	var _usage:Dictionary = section_usage(_number)
 	var _links:HBoxContainer = _hbox(_inner)
 	for _entry:Array in [[MapCatalogItem.Bake.TRIGGER, "triggers", "Trig"], [MapCatalogItem.Bake.SPAWN, "spawners", "Spawn"], [MapCatalogItem.Bake.BLOCK_WALL, "barriers", "Bar"]]:
 		var _n:int = _usage[_entry[1]]
@@ -583,9 +607,13 @@ func _build_wave(parent:Control, section:int, wave:int, data:Dictionary, wave_co
 	_button(_row, "v", "Move down", move_wave.bind(section, wave, 1)).disabled = wave == wave_count - 1
 	_danger(_button(_row, "Del", "Delete the wave (asks first)", ask_remove_wave.bind(section, wave)))
 	var _numbers:HBoxContainer = _hbox(_inner)
-	_spin(_numbers, "Count", int(data.get("count", 1)), 1, 200, "Enemies in the wave", func (v:int)->void:
+	_spin(_numbers, "Count", int(data.get("count", 1)), 1, 200,
+		"Kills needed to clear this wave (the 'enemies left' number when it starts).\n" +
+		"Scaled in game by the difficulty's wave_count_ratio, Swarm (meta, x2) and co-op players;\nboss waves stay as set.", func (v:int)->void:
 		change_wave(section, wave, func (w:Dictionary)->void: w.count = v))
-	_spin(_numbers, "Max", int(data.get("max_alive", 0)), 0, 50, "Alive at once (0 = no cap)", func (v:int)->void:
+	_spin(_numbers, "Alive", int(data.get("max_alive", 0)), 0, 50,
+		"Alive target: spawners keep this many of the wave alive at once, spawning past their\n" +
+		"Density (least busy spawner first) until Count is used up.\n0 = Density decides (each spawner keeps its slots).", func (v:int)->void:
 		change_wave(section, wave, func (w:Dictionary)->void:
 			if v == 0:
 				w.erase("max_alive")

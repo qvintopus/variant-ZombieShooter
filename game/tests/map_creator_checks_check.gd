@@ -148,6 +148,14 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	check(_panel.visible && _panel.focus_number == creator.section_of(_trigger) && creator.highlight_section == _panel.focus_number, "open-waves button opens the panel on its section")
 	await _frames(2)
 	creator.inspect(null)
+	# a fight the player started: opening the panel lands on it
+	var _live:Node = creator.room.get_node("EnemyManager/Section%d" % (_last + 1))
+	_panel.close()
+	_live.set(&"fight_active", true)
+	_panel.open()
+	check(_panel.active_section() == _last + 1 && _panel.focus_number == _last + 1 && creator.highlight_section == _last + 1, "open: scrolls to the active fight")
+	_live.set(&"fight_active", false)
+	await _frames(2)
 	# delete prompts
 	var _prompt:MapPrompt = creator.get_node("UI/Root/Prompt")
 	_panel.ask_remove_section(_last)
