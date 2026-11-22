@@ -36,12 +36,19 @@ func in_mod(key:String)->bool:
 ## "room_X door at (x, y)" for every entity linking to `key` (doors, portals, waits_for).
 func links_to(key:String)->PackedStringArray:
 	var _found:PackedStringArray = []
+	for _link:Dictionary in link_entries(key):
+		_found.append("room_%s %s at %s" % [_link.room, _link.kind, _link.cell])
+	return _found
+
+## {room (key), kind, cell, tag} of every entity in another room linking to `key`.
+func link_entries(key:String)->Array:
+	var _found:Array = []
 	for _other:String in _baker().layouts:
 		if _other == key:
 			continue
 		for _entity:LayoutEntity in _baker().layouts[_other].entities:
 			if _links(_entity, key):
-				_found.append("room_%s %s at %s" % [_other, _entity.item_id, _entity.cell])
+				_found.append({"room": _other, "kind": _entity.item_id, "cell": _entity.cell, "tag": String(_entity.props.get("tag", ""))})
 	return _found
 
 static func _links(entity:LayoutEntity, key:String)->bool:

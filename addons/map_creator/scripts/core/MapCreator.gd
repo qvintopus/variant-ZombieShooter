@@ -1313,6 +1313,15 @@ func switch_room(to_key:String, focus:Dictionary = {})->bool:
 	_go(_path)
 	return true
 
+## Opens `to_key` with `focus` {tags, back_to} selected (focus_exits); this room: only
+## the focus.
+func open_room(to_key:String, focus:Dictionary = {})->bool:
+	if to_key == key:
+		if !focus.is_empty():
+			focus_exits(focus.get("tags", PackedStringArray()), focus.get("back_to", ""))
+		return true
+	return switch_room(to_key, focus)
+
 # --- workspaces (mods) --------------------------------------------------------------------
 
 ## Makes mod `id` ("" = the base game) the workspace and reloads this room from it.

@@ -142,6 +142,23 @@ func _check_search(creator:MapCreator, graph:CampaignGraph)->void:
 	graph.select_room("N01")
 	check(graph._info.text.contains("room_N01") && graph._info.text.contains("Size:"), "details panel shows the room's details")
 	check(graph._nodes.N01.tooltip_text.contains("Size:"), "node tooltip has the details")
+	var _open:Array = graph._info.find_children("*", "Button", true, false).filter(func (b:Button)->bool: return b.icon == creator.open_room_icon())
+	var _expected:int = graph.index.entries.N01.links.size() + creator.rooms.link_entries("N01").size()
+	check(_expected > 0 && _open.size() == _expected, "details rows open each linked room (%d of %d)" % [_open.size(), _expected])
+	# a row of the open room: selects the linking stairs here, closes the graph
+	var _into:Array = creator.rooms.link_entries(creator.key).filter(func (l:Dictionary)->bool: return graph._nodes.has(l.room))
+	check(!_into.is_empty(), "a shown room links to the open room")
+	if !_into.is_empty():
+		graph.select_room(_into[0].room)
+	var _here:Array = graph._info.find_children("*", "Button", true, false).filter(func (b:Button)->bool: return b.tooltip_text.contains("room_%s " % creator.key))
+	if !_here.is_empty():
+		graph.visible = true
+		_here[0].pressed.emit()
+		check(!creator.selection.is_empty() && !graph.visible, "opening the current room selects the linked stairs and closes")
+		creator.selection.clear()
+		creator.inspect(null)
+		graph.visible = true
+	graph.select_room("N01")
 	var _look:String = creator.layout.look
 	graph._search.text = "N01"
 	graph.apply_search()
