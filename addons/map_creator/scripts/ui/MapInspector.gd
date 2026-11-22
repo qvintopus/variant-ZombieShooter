@@ -12,6 +12,7 @@ extends PanelContainer
 @export var width:float = 120.0
 
 var _box:VBoxContainer
+var _scroll:ScrollContainer
 ## Prop key -> tag users list expanded.
 var _expanded:Dictionary = {}
 var _rebuild_queued:bool
@@ -31,7 +32,7 @@ func _ready()->void:
 	anchor_bottom = 1.0
 	offset_left = -width
 	offset_top = 40
-	var _scroll:ScrollContainer = ScrollContainer.new()
+	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(_scroll)
 	_box = VBoxContainer.new()
@@ -123,6 +124,7 @@ func _editor(entity:LayoutEntity, spec:MapPropertySpec, value:Variant)->Control:
 	match spec.type:
 		MapPropertySpec.Type.INT, MapPropertySpec.Type.FLOAT, MapPropertySpec.Type.SECTION:
 			var _spin:SpinBox = SpinBox.new()
+			EditCamera.wheel_scrolls(_spin, _scroll)
 			_spin.min_value = spec.min_value - (1 if spec.optional else 0)
 			_spin.max_value = spec.max_value
 			if spec.type == MapPropertySpec.Type.SECTION:

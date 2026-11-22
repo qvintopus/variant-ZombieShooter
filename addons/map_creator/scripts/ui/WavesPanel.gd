@@ -703,4 +703,5 @@ func _spin(parent:Control, label:String, value:int, min_value:int, max_value:int
 	_s.custom_minimum_size.x = 34
 	_s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_s.value_changed.connect(func (v:float)->void: action.call(int(v)))
+	EditCamera.wheel_scrolls(_s, _scroll)
 	parent.add_child(_s)

@@ -385,6 +385,9 @@ func _unhandled_input(event:InputEvent)->void:
 		return
 	if !(event is InputEventMouseButton):
 		return
+	# a click falling through a panel isn't for the map
+	if event.pressed && camera != null && camera.has_method(&"over_ui") && camera.over_ui():
+		return
 	_update_hover()
 	if event.button_index == MOUSE_BUTTON_RIGHT && event.pressed:
 		if !moving.is_empty():

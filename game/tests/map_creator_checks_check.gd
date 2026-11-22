@@ -156,6 +156,23 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	check(_panel.active_section() == _last + 1 && _panel.focus_number == _last + 1 && creator.highlight_section == _last + 1, "open: scrolls to the active fight")
 	_live.set(&"fight_active", false)
 	await _frames(2)
+	# the wheel over the panel never zooms the map, over the map it does
+	var _cam:Camera2D = creator.camera
+	var _zoom:Vector2 = _cam.zoom
+	var _sections_before:String = str(creator.layout.sections)
+	var _spin_at:SpinBox = _visible_spin(_panel, _panel.get_global_rect())
+	var _over:Vector2 = _spin_at.get_global_rect().get_center()
+	_push_mouse(_over)
+	for _i:int in 6:
+		_push_wheel(_over, MOUSE_BUTTON_WHEEL_DOWN)
+	check(_cam.zoom == _zoom, "wheel over the waves panel doesn't zoom the map (%s -> %s)" % [_zoom, _cam.zoom])
+	check(str(creator.layout.sections) == _sections_before, "wheel over a number box scrolls, doesn't change it")
+	(creator.get_node("UI/Root/Prompt") as MapPrompt).close()
+	var _map:Vector2 = Vector2(_panel.get_global_rect().end.x + 60, _panel.get_global_rect().get_center().y)
+	_push_mouse(_map)
+	_push_wheel(_map, MOUSE_BUTTON_WHEEL_UP)
+	check(_cam.zoom != _zoom, "wheel over the map zooms")
+	_cam.zoom = _zoom
 	# delete prompts
 	var _prompt:MapPrompt = creator.get_node("UI/Root/Prompt")
 	_panel.ask_remove_section(_last)
@@ -200,6 +217,31 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	creator.undo()
 	_panel.close()
 	check(!_panel.visible && creator.highlight_section == 0, "close")
+
+func _push_mouse(at:Vector2)->void:
+	var _motion:InputEventMouseMotion = InputEventMouseMotion.new()
+	_motion.position = at
+	_motion.global_position = at
+	get_viewport().push_input(_motion, true)
+
+func _push_wheel(at:Vector2, button:MouseButton)->void:
+	for _pressed:bool in [true, false]:
+		var _wheel:InputEventMouseButton = InputEventMouseButton.new()
+		_wheel.button_index = button
+		_wheel.pressed = _pressed
+		_wheel.position = at
+		_wheel.global_position = at
+		get_viewport().push_input(_wheel, true)
+
+## A SpinBox under `node` whose center is inside `rect` (on screen, not scrolled away).
+func _visible_spin(node:Node, rect:Rect2)->SpinBox:
+	for _child:Node in node.get_children():
+		if _child is SpinBox && rect.has_point((_child as SpinBox).get_global_rect().get_center()):
+			return _child
+		var _found:SpinBox = _visible_spin(_child, rect)
+		if _found != null:
+			return _found
+	return null
 
 func _find_spin(node:Node)->SpinBox:
 	for _child:Node in node.get_children():
