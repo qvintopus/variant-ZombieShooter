@@ -12,6 +12,8 @@ const TD:String = "res://addons/top_down/"
 const ROOM_STATE_PATH:String = TD + "resources/global_resources/room_state_resource.tres"
 const TRANSITION_PATH:String = TD + "resources/global_resources/scene_transition_resource.tres"
 const CAMPAIGN_PATH:String = "res://game/resources/campaign_resource.tres"
+const MOD_STATE_PATH:String = "res://addons/map_creator/resources/settings/mod_state.tres"
+const BAKER_PATH:String = "res://game/resources/map_creator/layout_baker.tres"
 ## Run-scoped resources cleared before a resume is applied (same list as FreshStart's).
 const RUN_RESOURCE_PATHS:PackedStringArray = [
 	TD + "resources/global_resources/score_resource.tres",
@@ -19,6 +21,7 @@ const RUN_RESOURCE_PATHS:PackedStringArray = [
 	TD + "resources/global_resources/slime_resource.tres",
 	TD + "resources/global_resources/weapon_upgrade_resource.tres",
 	TD + "resources/ItemCollectionResource/weapon_inventory.tres",
+	TD + "resources/global_resources/inventory_grid.tres",
 	TD + "resources/global_resources/room_state_resource.tres",
 ]
 ## Shared run state stored in every checkpoint. New state: one script here.
@@ -53,6 +56,7 @@ func _ready()->void:
 	profile = PlayerProfile.new()
 	profile.load_resource()
 	profile.ensure_id()
+	profile.refresh_default()
 	players.add(PlayerState.create_local(profile.profile_id, profile.display_name))
 	var _room_state:RoomStateResource = load(ROOM_STATE_PATH)
 	_room_state.updated.connect(queue_checkpoint)
@@ -61,8 +65,10 @@ func _ready()->void:
 
 func _notification(what:int)->void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		checkpoint()
-		get_tree().quit()
+		# a server or the virtual LAN still up on this PC: ask first (QuitPrompt)
+		QuitPrompt.request(func ()->void:
+			checkpoint()
+			get_tree().quit())
 
 func local_player()->PlayerState:
 	return players.local()
@@ -101,6 +107,10 @@ func is_resuming()->bool:
 func resume()->bool:
 	var _save:RunSave = RunSave.read()
 	if _save == null:
+		return false
+	var _mods:MapModState = load(MOD_STATE_PATH)
+	if _mods.active != _save.mod_id && !_mods.activate(_save.mod_id, load(BAKER_PATH)):
+		push_warning("RunSession: the run's mod '%s' is missing" % _save.mod_id)
 		return false
 	apply_save(_save)
 	Transition.change_scene(_save.room_scene)
@@ -200,6 +210,7 @@ func capture()->RunSave:
 	var _campaign:CampaignResource = load(CAMPAIGN_PATH)
 	_save.campaign_start_scene = _campaign.restart_scene()
 	_save.room_scene = _room_scene
+	_save.mod_id = (load(MOD_STATE_PATH) as MapModState).active
 	_save.entry_tag = _entry_tag
 	for _state:PlayerState in players.all():
 		# a ghost that left at victory has no part in this run; the hidden

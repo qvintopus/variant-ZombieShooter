@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_gnmbk"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_c5dck"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_0r3v1"]
+
+[resource]
+script = ExtResource("3_0r3v1")
+id = &"wall"
+display_name = "Wall"
+color = Color(0.3, 0.3, 0.35, 1)
+kind = 1
+tags = PackedStringArray("wall")

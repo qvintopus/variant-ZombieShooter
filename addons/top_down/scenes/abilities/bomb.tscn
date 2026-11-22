@@ -1,0 +1,90 @@
+[gd_scene load_steps=24 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/Bomb.gd" id="1_bomb"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/projectile/bomb_16x16_strip4.png" id="2_idle"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/projectile/bomb_hot_16x16_strip2.png" id="3_hot"]
+[ext_resource type="Texture2D" uid="uid://bevk5id3o0bei" path="res://addons/top_down/assets/images/shadow.png" id="4_shadow"]
+[ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/color_flash.gdshader" id="5_flash"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/ShapeCastTransmitter2D.gd" id="6_cast"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/AreaTransmitter/DataChannelTransmitter.gd" id="7_chan"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageDataResource.gd" id="8_ddr"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/damage/properties/DamageTypeResource.gd" id="9_dtr"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/InstanceResource/PoolNode.gd" id="10_pool"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/bomb_tick.tres" id="11_tick"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/bomb_explode.tres" id="12_boom"]
+[ext_resource type="Resource" uid="uid://dedx0gi4fowby" path="res://addons/top_down/resources/global_resources/axis_multiplication_resource.tres" id="13_axis"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/bomb_explosion_instance.tres" id="14_expl"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/bomb_blast_burst_instance.tres" id="15_burst"]
+[ext_resource type="Resource" uid="uid://dkb7r2v362yj" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="16_shake"]
+[ext_resource type="Resource" uid="uid://diqvd4u0lbw7h" path="res://addons/top_down/resources/CommandNodeResource/color_flash.tres" id="17_flash"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bomb"]
+resource_local_to_scene = true
+shader = ExtResource("5_flash")
+shader_parameter/overlay = Color(1, 1, 1, 1)
+shader_parameter/blend = 0.0
+shader_parameter/extra_blend = 0.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_blast"]
+radius = 32.0
+
+[sub_resource type="Resource" id="Resource_dmgtype"]
+script = ExtResource("9_dtr")
+value = 30.0
+type = 0
+
+[sub_resource type="Resource" id="Resource_dmg"]
+resource_local_to_scene = true
+script = ExtResource("8_ddr")
+base_damage = Array[ExtResource("9_dtr")]([SubResource("Resource_dmgtype")])
+critical_chance = 0.1
+critical_multiply = 1.5
+source_tag = &"ability"
+kickback_strength = 160.0
+transmission_name = &"damage"
+
+[node name="Bomb" type="Node2D" node_paths=PackedStringArray("sprite", "pool_node", "damage_cast", "damage_channel")]
+script = ExtResource("1_bomb")
+sprite = NodePath("Sprite2D")
+pool_node = NodePath("PoolNode")
+idle_texture = ExtResource("2_idle")
+hot_texture = ExtResource("3_hot")
+tick_sound = ExtResource("11_tick")
+damage_cast = NodePath("DamageCast")
+damage_channel = NodePath("DamageCast/DamageDataTransmitter")
+axis_multiplication = ExtResource("13_axis")
+explosion_vfx = ExtResource("14_expl")
+blast_burst = ExtResource("15_burst")
+camera_shake = ExtResource("16_shake")
+screen_flash = ExtResource("17_flash")
+explode_sound = ExtResource("12_boom")
+
+[node name="Shadow" type="Sprite2D" parent="."]
+modulate = Color(0, 0, 0, 0.35)
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("4_shadow")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_bomb")
+texture = ExtResource("2_idle")
+offset = Vector2(0, -7)
+hframes = 4
+
+[node name="DamageCast" type="ShapeCast2D" parent="."]
+scale = Vector2(1, 0.5)
+enabled = false
+shape = SubResource("CircleShape2D_blast")
+target_position = Vector2(0, 0)
+collision_mask = 4
+collide_with_areas = true
+collide_with_bodies = false
+script = ExtResource("6_cast")
+
+[node name="DamageDataTransmitter" type="Node" parent="DamageCast"]
+script = ExtResource("7_chan")
+try_next_frame = false
+transmission_resource = SubResource("Resource_dmg")
+
+[node name="PoolNode" type="Node" parent="." node_paths=PackedStringArray("ready_nodes")]
+script = ExtResource("10_pool")
+ready_nodes = [NodePath("..")]

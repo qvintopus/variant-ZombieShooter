@@ -79,3 +79,7 @@ func _physics_process(_delta:float)->void:
 	
 	# Dashing
 	input_resource.set_action_2(Input.is_action_pressed(action_resource.action_2_action))
+	
+	# Abilities
+	if !action_resource.ability_1_action.is_empty() && InputMap.has_action(action_resource.ability_1_action):
+		input_resource.set_ability_1(Input.is_action_pressed(action_resource.ability_1_action))

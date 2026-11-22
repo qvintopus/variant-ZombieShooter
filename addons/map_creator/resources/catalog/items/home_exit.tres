@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_ewirh"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_hkcth"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_ippeq"]
+
+[resource]
+script = ExtResource("3_ippeq")
+id = &"home_exit"
+display_name = "Mission stairs"
+color = Color(0.6, 0.5, 0.3, 1)
+tags = PackedStringArray("home", "stairs", "mission")
+scene_path = "res://addons/top_down/scenes/home/home_exit.tscn"
+parent_path = "Behind"
+node_name = "HomeExit"
+fixed_props = {
+"home_base": "NodePath(\"../../HomeBase\")"
+}
+legend = ">"

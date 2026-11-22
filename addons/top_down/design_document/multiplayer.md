@@ -25,15 +25,25 @@
   - The local player's state uses the shared global resources (HUD, player scene).
   - Every guest has its own HP, inventory, weapon upgrades and wallet (`PlayerState.create_remote`).
 - `PlayerProfile` (`user://Profile.tres`) gives each install a random `profile_id` and a display name.
+  - Until the player types a name (`name_set`), the name follows `PlayerProfile.default_name()`: this PC's zs-vlan name (`ENetTransport.vlan_name()`, from the file `vlan_auto` writes), else `Player`. It's saved as `Player`, so it keeps following.
+  - A picked name is never replaced. CoopDialog only offers a *Use VLAN name* button.
+  - **Unique names:** the host's `_hello` runs every joining name through `Net.unique_name`. A name already in the session (any case, the hidden server player too) becomes `Name#2`, `#3`… within 24 characters. This is the same rule as `vlan_auto`'s guest list.
+    - The guest takes the name it was given from the roster, so it sees itself as everyone else does.
+    - Leaving restores the profile's name.
 
-### Comms Terminal (home base, map character `N`)
-- `CommsTerminal.gd` opens `CoopDialog.gd`.
-  - **Offline**, it shows two tabs:
-    - **Host:** set the port and press Open to friends.
-    - **Join:** type an address (`ip` or `ip:port`) or pick from recent hosts (`NetSettings`, `user://NetSettings.tres`), then connect.
-  - **In a session**, only the **Session** tab remains, and it opens on its own when you host, join, or reopen the dialog. It shows:
+### Comms Terminal (home base, map character `N`) and Main Menu Co-op
+- `CommsTerminal.gd` and the title's **Co-op** button (`CoopTitleButton.gd`) open `CoopDialog.gd` with `CoopDialog.open_layer()` (one at a time, layer 4). On the title the menu's buttons can't take the focus while it's open.
+  - Hosting from the title calls `NetPlayers.mark_scene_seen()` (being on the title isn't arriving at it, which ends a host's session) and goes on to the home base.
+  - Always there: **VLAN** (`CoopVlanTab.gd`, `VlanTool`: `vlan_auto --machine` on a thread; UAC per change on Windows, output read back via `--out`; pkexec for ufw on Linux) and **Server** (`CoopServerTab.gd`, `ServerProcess`: starts `--headless -- --server --control … --main local` in the background in the scripts' `zs-server` folder, waits for `info` to say `hosting=1`, then joins 127.0.0.1).
+  - Quitting (window close or the title's Quit) goes through `QuitPrompt`: if a server or the tunnel still runs, Stop all / Keep running / Cancel.
+  - Layout (`CoopStyle.gd` draws it: the game theme's own buttons are transparent): a header with a session chip and Close, a left rail of pages (**Play** / **Session**, **Internet (VLAN)**, **Server**), and a message bar that keeps errors until the next action. A join from the title that fails opens the dialog again in the home base with the reason.
+  - **Offline**, the **Play** page has your name and two cards:
+    - **Host a game:** set the port and press Host game.
+    - **Join a game:** type an address (`ip` or `ip:port`) or pick a recent host chip (`NetSettings`, `user://NetSettings.tres`), then Join.
+  - **In a session**, **Session** replaces Play, and it opens on its own when you host, join, or reopen the dialog. It shows:
     - the players, with the host marked and a Kick button on each guest for the host
-    - Invite: what a friend types, with a Copy button per address (internet when UPnP mapped the port, the network-card LAN addresses with Docker/VM/VPN interfaces filtered out, and 127.0.0.1 for the same computer), plus a port-forwarding hint when there's no internet address
+    - Invite: what a friend types, with a Copy button per address (the zs-vlan virtual LAN address when this PC has one, internet when UPnP mapped the port, the network-card LAN addresses with Docker/VM/VPN interfaces filtered out, and 127.0.0.1 for the same computer), plus a port-forwarding hint when there's no internet address
+    - Join, inside someone's zs-vlan: a *Virtual LAN host 10.77.0.1* quick pick
     - Leave session
 - While the dialog is open, player input is frozen. Escape closes the dialog without opening the pause menu, and the room keeps running.
 - The terminal's screen is lit while a session is open.
@@ -48,6 +58,7 @@
 - `game/tests/coop_terminal_check.tscn` covers the terminal, the dialog, the input freeze and Escape.
 - `game/tests/coop_home_check.tscn` covers a guest in the host's home base: tiers, shared floor weapons, levers and Write, weapons coming back, and crystals taken back.
 - `game/tests/dedicated_server_check.tscn` starts a real `--server` process and joins it.
+- `game/tests/server_process_check.tscn` covers `VlanTool` (parsing, a real read-only `status`), `ServerProcess` (settings in the scripts' format, start in the background, `server.sh status` sees it, joining as main, stop) and the title's Co-op button (tabs, Host from the title).
 - `net_loopback_check` also covers a second copy of the same install joining as a blank guest that writes no file.
 - `game/tests/coop_world_check.tscn` plays two real games together (the guest is `net_client.tscn` "world" mode). It covers:
   - characters, weapons, HP and the party panel
@@ -145,7 +156,8 @@ Test: `game/tests/coop_world_check.tscn` uses two real games, with the guest in 
 
 - Slot 0 (the host or single player) wears the plumber, and every guest wears the electrician (`characters/electrician_16x16_strip8.png`, the same layout).
 - The skin is applied to puppets (`RemotePlayer`), to the local body (`NetPlayers._dress_local`) and to the player's corpse effect.
-- On a dedicated server slot 0 is the hidden player, so everyone visible is an electrician.
+- On a dedicated server slot 0 is the hidden player. The plumber goes to its **main player** instead (`PlayerState.main`, see below), and the rest are electricians.
+- `PlayerSkin.is_plumber(state)` decides. A body remembers what it wears (meta `plumber`), and `NetPlayers._dress_local` re-dresses the local body and the copies when that changes.
 
 ## Join tiers (`GuestTier`)
 
@@ -243,7 +255,15 @@ It will become a meta upgrade later.
 
 ## Dedicated server (`DedicatedServer`, hidden player)
 
-- **Start:** `tools/run_server.sh [options]` from the project folder. It finds Godot through `$GODOT`, `godot` on the PATH, or a `Godot_v*_linux.x86_64` next to the project, imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
+- **Start:** a control menu, `tools/server.sh` on Linux and `tools\server.cmd` on Windows (`server.ps1`). It has start/stop/restart, status, players, follow the log, a console and settings. Each item also works as a subcommand (`server.sh start`, `stop`, `status`, `send <command>`, …).
+  - **Background:** the menu runs the server in the background (Windows: a hidden window). The log goes to `~/.local/state/zs-server/server.log` (`%LOCALAPPDATA%\zs-server`).
+  - **Control channel:** the server is started with `--control FILE`. `ServerConsole` then listens on `127.0.0.1` on a free port, and writes `pid`, `control_port` and a random `token` to the file.
+    - A request is `TOKEN <token>\n<command>\n`. The reply is that command's output (what `_say` printed, a VLAN command's once it's done), then the connection closes.
+    - `info` gives the menu's one-line summary.
+    - The file is removed on a clean stop. The launcher cleans up after a killed server by checking the pid.
+  - **In the window:** `server.sh run [options]`, or any `--option` first, still runs it in the window with the console on stdin, as before. `run_server.sh` is kept as an alias.
+  - It finds Godot through `$GODOT`, then `godot` on the PATH, then a binary in the project folder, the folder above it, `tools/` or a `Godot*` folder in those: `Godot_v*_linux.x86_64` / `godot` / `godot.x86_64`, or on Windows `Godot_v*_win64_console.exe` / `godot_console.exe` with the plain exe of the same name beside it. When nothing matches, it prints the exact names and the near-misses it saw.
+  - It imports a fresh checkout first, then runs `Godot --headless --path . -- --server [options]`.
 
   | option | default | |
   |---|---|---|
@@ -252,12 +272,50 @@ It will become a meta upgrade later.
   | `--save-dir PATH` | `user://server` | its own home base, meta and run save |
   | `--name NAME` | `Server` | name shown in the session list |
   | `--status S` | off | a `SERVERSTATUS` line every S seconds |
+  | `--control FILE` | off | the launcher menu's control channel (see above) |
+  | `--vlan` | off | also host the zs-vlan virtual LAN (below) |
+  | `--idle-kick MIN` | `5` | drop guests idle that long, and ghosts after 3× that; `0` = never |
+  | `--main first\|local` | `first` | who becomes the main player (below) |
 
-  - The server skips the title and hosts from its home base. Ready when it prints `DedicatedServer [INFO]: hosting on port … - OK`. Ctrl+C stops it.
+  - The server skips the title and hosts from its home base. It is ready when it prints `DedicatedServer [INFO]: hosting on port … - OK`, followed by the addresses to join at.
+  - **Idle kick (`Net.idle_kick_min`, host only, off for a normal host):**
+    - `Net._kick_idle` adds to each guest's `PlayerState.idle_time`.
+    - `NetPlayers._player_update` resets it while the guest moves, turns its aim, is down, or waits at a door.
+    - A ghost's time counts from `_going_ghost`, and `_ghost_return` resets it. Its limit is `IDLE_GHOST_FACTOR` (3×).
+    - Over the limit, the guest is kicked with "Idle for N minutes". During a run, the guest's run data goes into `RunSession.waiting_guests` first, the same as a guest of a continued run, so a rejoin restores it.
   - Players join from the Comms Terminal **Join** tab with the server's address (`ip` or `ip:port`). Over the internet use the VLAN (`tools/vlan/README.md`) and run the server on the VLAN host.
+- **Console (`ServerConsole`):** lines typed into the server window, or piped to its stdin.
+  - A reader thread waits on `OS.read_string_from_stdin`. A console blocks until Enter; a closed pipe reads as empty again and again, so the thread ends after `EOF_READS` of those.
+
+  | command | |
+  |---|---|
+  | `status`, `players` | room and players; slot, name, state, address |
+  | `kick <slot> [reason]` | `Net.kick` |
+  | `main`, `main <slot>`, `main free`, `main mode first\|local` | show / hand over / free the main seat, and how it is given (`Net.set_main`, `Net.main_mode`) |
+  | `home` | checkpoint, then back to the home base |
+  | `stop` / `quit` / `exit` | checkpoint, kick everyone with "The server stopped", `Net.leave()`, quit |
+  | `invite`, `add <reply>` (or a bare `zsr2.…`), `guests`, `revoke <N>` | zs-vlan, through `vlan_auto … --machine` |
+
+  - Ctrl+C kills Godot at once: it runs no shutdown code on SIGINT. Checkpoints are written as the run goes, so only the current room is lost.
+- **zs-vlan from the server:** `--vlan` makes the launcher run `vlan_auto host` before Godot starts, so a sudo prompt (ufw) or the Windows admin prompt happens there.
+  - **What starts the tunnel:** only `vlan_auto` does. It is off after a restart, and its watchdog takes it down after `VLAN_IDLE_MIN` (5) minutes without traffic.
+  - **A listening server keeps it up:** a socket on UDP 24565 counts as activity. That holds as long as the server runs. Once the server stops, its VLAN goes off 5 minutes later.
+  - **`invite` (= `vlan_auto host`) starts it again:** first it checks the public address. If that changed, it prints the new invite (one for all guests), with `moved=yes` in the `ZSVLAN` line.
+  - The VLAN console commands run `tools/vlan/vlan_auto.sh` (Linux, through `bash`) or `vlan_auto.ps1` (Windows, through `powershell -File`) on a worker thread, with `--machine`.
+  - Their text is printed as is. The last `ZSVLAN key=value …` line is parsed into `ServerConsole.vlan_result`.
+  - `ServerConsole.vlan_dir()` looks in the project's `tools/vlan`, then in `tools/vlan` next to the executable (for an exported game).
+- **Next: zs-vlan inside the game.** The game will drive `vlan_auto` the same way the server console does: `ServerConsole.vlan_command`/`parse_result`, with the exit codes from `tools/vlan/README.md`.
+  - It picks the script by `OS.get_name()`. Windows needs admin, so it relaunches elevated.
+  - It shows the preflight problems (exit 2) as on-screen hints, and lets players paste invite and reply codes in the Comms Terminal instead of a terminal.
   - Its saves go to `--save-dir` (`SaveableResource.save_dir`). The same-computer check (`GuestSandbox.data_dir_id`) includes the save folder, so a player on the server's PC joins with its own progress, not as a blank guest copy.
 - **Hidden player:** `game/scenes/actors/server_player.tscn`, the player scene with everything seen or used switched off (no layers, invisible, input, weapons and camera disabled). `Net` swaps it into the player instance resource.
   - `ServerAnchor` keeps it on the party leader and never lets it die, except on a party wipe.
   - It is `hidden` in the roster, so guests show no copy or panel row.
+- **Main player** (`Net.main_mode`, `Net.main_key`, `PlayerState.main`):
+  - Set in `_hello` (`_claim_main`). With `first`, the first guest to join gets it. With `local`, the first one whose `_hello.machine` equals the server's own `GuestSandbox.machine_id()` gets it, whether it joins over 127.0.0.1, the LAN or the VLAN.
+  - The seat is kept by key (`profile_id|machine`), so it waits while that player is away and others play on. Others don't take it over. When the last real player disconnects (`_on_peer_disconnected`), `main_key` is cleared, so the next player to join is the first again. The console can hand it over or free it.
+  - It travels in the roster as `main`, which drives the skin, the co-op dialog's "main" tag, and `ServerAnchor.leader()`. The hidden player follows the main player when it's active in a room, and otherwise the lowest active slot.
+  - The main player is never a ghost: it plays at the full (electrician) tier without Electrician Bay or a printed shell, so it is solid in the home base and keeps its loot and crystals (`GuestTier.full`). The other guests' tiers are unchanged.
+- **A guest dropping mid-run** (leaving, a crash, a lost link): `_on_peer_disconnected` parks its run data in `RunSession.waiting_guests` first, as the idle kick does, so a rejoin gets it back (`_return_saved_guests`). Mid-fight, a rejoin waits at the door (`WaitingAtDoor`). This applies to every host, not only the dedicated server.
 - Guests' copies trigger its doors and exit gate the way a host's teammates do.
 - Victory, game over, and the last player leaving mid-run all take it back to its home base.

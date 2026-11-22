@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="InventoryDatabase" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryDatabase.gd" id="1_db"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryItemDef.gd" id="1_def"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/inventory/items/coin.tres" id="2_it"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/inventory/items/meat.tres" id="3_it"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/inventory/items/slime.tres" id="4_it"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/inventory/items/boss_crystal.tres" id="5_it"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/inventory/items/weapon.tres" id="6_it"]
+
+[resource]
+script = ExtResource("1_db")
+items = Array[ExtResource("1_def")]([ExtResource("2_it"), ExtResource("3_it"), ExtResource("4_it"), ExtResource("5_it")])
+weapon_def = ExtResource("6_it")

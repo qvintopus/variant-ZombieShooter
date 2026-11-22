@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="InventoryStyle" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/inventory/InventoryStyle.gd" id="1_style"]
+[ext_resource type="Texture2D" uid="uid://cfbcojim6nc7s" path="res://addons/top_down/assets/images/gui/slot_frame_2.png" id="2_frame"]
+[ext_resource type="Texture2D" uid="uid://bxhm1lfn2xnbo" path="res://addons/top_down/assets/images/gui/slot_frame.png" id="3_sel"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/button_press.tres" id="4_press"]
+[ext_resource type="Resource" uid="uid://b1hy8aowwa5hq" path="res://addons/top_down/resources/sounds/menu_back.tres" id="5_back"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/interact_denied.tres" id="6_deny"]
+
+[resource]
+script = ExtResource("1_style")
+frame_texture = ExtResource("2_frame")
+selected_texture = ExtResource("3_sel")
+open_sound = ExtResource("4_press")
+close_sound = ExtResource("5_back")
+pick_sound = ExtResource("4_press")
+place_sound = ExtResource("4_press")
+invalid_sound = ExtResource("6_deny")

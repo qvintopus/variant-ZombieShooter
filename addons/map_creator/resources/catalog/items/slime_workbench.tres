@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_h3ku8"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_sn2is"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_oqfni"]
+
+[resource]
+script = ExtResource("3_oqfni")
+id = &"slime_workbench"
+display_name = "Slime workbench"
+color = Color(0.4, 0.8, 0.3, 1)
+tags = PackedStringArray("slime", "workbench", "upgrade")
+scene_path = "res://addons/top_down/scenes/interactables/slime_workbench.tscn"
+legend = "K"

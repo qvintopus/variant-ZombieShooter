@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_jhyqt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_e73v2"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_hmvxa"]
+
+[resource]
+script = ExtResource("3_hmvxa")
+id = &"floor_base_cracked_1"
+display_name = "Base cracked 1"
+color = Color(0.44000003, 0.44000003, 0.48000002, 1)
+kind = 0
+tags = PackedStringArray("base", "floor", "cracked")
+floor_atlas = Vector2i(1, 3)

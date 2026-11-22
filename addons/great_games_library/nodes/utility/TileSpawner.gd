@@ -1,6 +1,8 @@
 class_name TileSpawner
 extends Node
 
+const SPAWNED_META:StringName = &"tile_spawner"
+
 @export var tilemap_layer:TileMapLayer
 @export var parent_reference:ReferenceNodeResource
 @export var data_layer_name:String
@@ -46,4 +48,15 @@ func _on_parent_updated()->void:
 		var _pos:Vector2 = tilemap_layer.map_to_local(_tile_pos)
 		var _instance:Node2D = _scene.instantiate()
 		_instance.global_position = _pos
+		# lets a live tile edit (map creator) find and respawn them
+		_instance.set_meta(SPAWNED_META, get_instance_id())
 		parent_reference.node.add_child.call_deferred(_instance)
+
+
+## Frees what this spawner placed and spawns again from the current tiles.
+func respawn()->void:
+	if parent_reference.node != null:
+		for _child:Node in parent_reference.node.get_children():
+			if _child.get_meta(SPAWNED_META, 0) == get_instance_id():
+				_child.queue_free()
+	_on_parent_updated()

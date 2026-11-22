@@ -38,6 +38,8 @@
 [ext_resource type="Script" uid="uid://qvfebap4hjjc" path="res://addons/top_down/scripts/actor/boss/BossCharge.gd" id="38_charge"]
 [ext_resource type="Script" uid="uid://bljbwfbbpib" path="res://addons/top_down/scripts/actor/boss/BossSummon.gd" id="40_summon"]
 [ext_resource type="Resource" uid="uid://c05ys7ybsfv4u" path="res://addons/top_down/resources/InstanceResources/actors/zomby_instance_resource.tres" id="50_zombie"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/actor/boss/BossDeathFx.gd" id="95_bdfx"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/dead/boss_death_burst_instance.tres" id="96_bdburst"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 script = ExtResource("6_stats")
@@ -293,7 +295,9 @@ libraries/ = SubResource("AnimationLibrary_boss_anim")
 [node name="HoleDeath" parent="." index="10"]
 enabled = false
 
-[node name="ActorDamage" parent="." index="11"]
+[node name="ActorDamage" parent="." index="11" node_paths=PackedStringArray("death_fx")]
+dead_vfx_delay = 1.4
+death_fx = NodePath("../BossDeathFx")
 sound_resource_dead = ExtResource("18_killsnd")
 dead_vfx_instance_resource = ExtResource("31_deadvfx")
 
@@ -307,6 +311,7 @@ attack_distance = 20.0
 resource_node = NodePath("../ResourceNode")
 
 [node name="ItemDrop" type="Node" parent="." index="19" unique_id=627681749 node_paths=PackedStringArray("resource_node", "root_node")]
+delay = 1.4
 script = ExtResource("20_drop")
 resource_node = NodePath("../ResourceNode")
 root_node = NodePath("..")
@@ -446,3 +451,9 @@ script = ExtResource("26_shapecast")
 script = ExtResource("27_channel")
 try_next_frame = false
 transmission_resource = SubResource("Damage_charge")
+
+[node name="BossDeathFx" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("95_bdfx")
+sprite = NodePath("../Body/Stretch/Sprite2D")
+burst_instance = ExtResource("96_bdburst")
+

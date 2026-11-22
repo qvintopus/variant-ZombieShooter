@@ -62,9 +62,10 @@ func _ready()->void:
 	var _tabs:TabContainer = _dialog._tabs
 	check(_tabs.current_tab == _dialog.Tab.SESSION, "hosting opens the Session tab")
 	check(!_tabs.is_tab_hidden(_dialog.Tab.SESSION), "Session tab shown while hosting")
-	check(_tabs.is_tab_hidden(_dialog.Tab.HOST) && _tabs.is_tab_hidden(_dialog.Tab.JOIN), "Host and Join tabs hidden while hosting")
+	check(_tabs.is_tab_hidden(_dialog.Tab.PLAY), "Play page hidden while hosting")
+	check(!_dialog._nav[_dialog.Tab.PLAY].visible && _dialog._nav[_dialog.Tab.SESSION].visible && _dialog._nav[_dialog.Tab.SESSION].button_pressed, "the rail shows Session, selected")
 	check(_dialog._roster.get_child_count() == 1, "Session lists the host")
-	check(_text_of(_dialog._roster).contains("(host, you)"), "host marked as host and you")
+	check(_text_of(_dialog._roster).contains("HOST") && _text_of(_dialog._roster).contains("YOU"), "host marked as host and you")
 	check(_dialog._status.text.begins_with("Hosting on port %d" % PORT), "dialog shows the hosting status")
 	var _shared:bool = await _wait(func ()->bool: return !Net.share_addresses.is_empty(), 15.0)
 	check(_shared, "share addresses looked up")
@@ -119,11 +120,45 @@ func _ready()->void:
 	_again._on_leave_pressed()
 	await _frames(2)
 	check(_again._tabs.is_tab_hidden(_again.Tab.SESSION), "Session tab hidden after leaving")
-	check(!_again._tabs.is_tab_hidden(_again.Tab.HOST) && _again._tabs.current_tab == _again.Tab.HOST, "back to the Host tab after leaving")
+	check(!_again._tabs.is_tab_hidden(_again.Tab.PLAY) && _again._tabs.current_tab == _again.Tab.PLAY, "back to the Play page after leaving")
 	_again.close()
 	await _frames(2)
 	check(_sprite.frame == 0, "terminal dark again after leaving")
+	await _check_pause_menu(_pause, _input)
 	_finish()
+
+## Pause -> Co-op opens the same dialog over the pause menu; Escape closes only the
+## dialog and the pause menu gets its focus back.
+func _check_pause_menu(pause:BoolResource, input:PlayerInput)->void:
+	var _component:Node = _room.find_child("CoopComponent", true, false)
+	check(_component != null, "pause menu has a Co-op button")
+	if _component == null:
+		return
+	pause.set_value(true)
+	await _frames(2)
+	var _button:Button = _component.button
+	check(_button.is_visible_in_tree() && _component.label.text == "Co-op", "Co-op shown in the pause menu")
+	_button.pressed.emit()
+	await _frames(2)
+	var _layer:Node = get_tree().root.get_node_or_null("CoopDialogLayer")
+	check(_layer != null && _layer.get_child_count() == 1, "pause Co-op opens the dialog")
+	var _resume:Button = _room.find_child("PausingManager", true, false).resume_button
+	check(_resume.focus_mode == Control.FOCUS_NONE, "pause buttons can't take focus under the dialog")
+	var _escape:InputEventAction = InputEventAction.new()
+	_escape.action = &"ui_cancel"
+	_escape.pressed = true
+	Input.parse_input_event(_escape)
+	var _release:InputEventAction = InputEventAction.new()
+	_release.action = &"ui_cancel"
+	_release.pressed = false
+	Input.parse_input_event(_release)
+	await _frames(4)
+	check(get_tree().root.get_node_or_null("CoopDialogLayer") == null, "Escape closes the dialog from the pause menu")
+	check(pause.value, "still paused after closing the dialog")
+	check(_resume.focus_mode != Control.FOCUS_NONE && _button.has_focus(), "pause menu usable again, Co-op focused")
+	pause.set_value(false)
+	await _frames(2)
+	check(input.enabled, "player input back after resuming")
 
 func _finish()->void:
 	if Net.state != Net.State.OFFLINE:
@@ -139,7 +174,7 @@ func _finish()->void:
 
 func _text_of(node:Node)->String:
 	var _text:String = ""
-	if node is Label or node is Button:
+	if node is Label or node is Button or node is LineEdit:
 		_text += node.text + "\n"
 	for _child:Node in node.get_children():
 		if !_child.is_queued_for_deletion():

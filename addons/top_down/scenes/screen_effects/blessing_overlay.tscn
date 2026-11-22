@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/screen_effects/BlessingOverlay.gd" id="1_bo"]
+[ext_resource type="Shader" path="res://addons/top_down/scripts/shaders/blessing.gdshader" id="2_sh"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/room_blessing.tres" id="3_snd"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bl"]
+resource_local_to_scene = true
+shader = ExtResource("2_sh")
+shader_parameter/progress = 0.0
+
+[node name="BlessingOverlay" type="CanvasLayer" node_paths=PackedStringArray("rect")]
+layer = 2
+script = ExtResource("1_bo")
+rect = NodePath("Light")
+sound = ExtResource("3_snd")
+
+[node name="Light" type="ColorRect" parent="."]
+visible = false
+material = SubResource("ShaderMaterial_bl")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

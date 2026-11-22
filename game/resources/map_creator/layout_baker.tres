@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GameLayoutBaker" format=3]
+
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/default_catalog.tres" id="1_catalog"]
+[ext_resource type="Script" path="res://game/scripts/map/GameLayoutBaker.gd" id="2_baker"]
+
+[resource]
+script = ExtResource("2_baker")
+catalog = ExtResource("1_catalog")
+trigger_nodes = PackedStringArray("ArenaEntry", "ArenaSection1Entry", "ArenaSection2Entry")
+section_paths = PackedStringArray("../../EnemyManager/Section1", "../../EnemyManager/Section2", "../../EnemyManager/Section3")

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_1q7c7"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_6ivwj"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_pkw6l"]
+
+[resource]
+script = ExtResource("3_pkw6l")
+id = &"floor_sandstone_cracked_3"
+display_name = "Sandstone cracked 3"
+color = Color(0.64000005, 0.56, 0.35999998, 1)
+kind = 0
+tags = PackedStringArray("sandstone", "floor", "cracked")
+floor_source = 40
+floor_atlas = Vector2i(3, 3)

@@ -17,6 +17,8 @@
 [ext_resource type="PackedScene" uid="uid://cfaobhr3r5ymj" path="res://addons/top_down/scenes/arena/enemy_manager.tscn" id="12_iiw1i"]
 [ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="12_wnxyp"]
 [ext_resource type="Resource" uid="uid://ini50pn76erv" path="res://addons/top_down/resources/global_resources/pause_resource.tres" id="14_6pg65"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_open.tres" id="14_invopen"]
+[ext_resource type="Script" path="res://addons/great_games_library/resources/ValueResource/BoolResource.gd" id="14_boolscr"]
 [ext_resource type="Resource" uid="uid://ceuk0khv7rbvr" path="res://addons/top_down/resources/InstanceResources/actors/player_instance_resource.tres" id="14_bk0b2"]
 [ext_resource type="Resource" uid="uid://c5cbxaiec2jk1" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="15_j5kfh"]
 [ext_resource type="Script" uid="uid://cuv10g46asj42" path="res://addons/top_down/scripts/game/MusicSetter.gd" id="16_7p4gu"]
@@ -50,6 +52,21 @@
 [ext_resource type="PackedScene" path="res://zen/zs_meat_grinder.tscn" id="zen_meat_grinder"]
 [ext_resource type="PackedScene" path="res://zen/zs_weapon_upgrade.tscn" id="zen_weapon_upgrade"]
 [ext_resource type="PackedScene" path="res://zen/zs_workbench_unlocked.tscn" id="zen_workbench_unlocked"]
+[ext_resource type="Script" path="res://game/scripts/ClearFx.gd" id="90_clearfx"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/screen_effects/blessing_overlay.tscn" id="91_bless"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/wave_clear_burst_instance.tres" id="92_wburst"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/vfx/room_clear_burst_instance.tres" id="93_rburst"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/enemy_damage_shake.tres" id="94_wshake"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/CameraResources/player_damage_shake.tres" id="95_rshake"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/wave_clear_burst.tres" id="96_wsnd"]
+[ext_resource type="Script" path="res://addons/top_down/scripts/game/CameraPunch.gd" id="97_punch"]
+[ext_resource type="Resource" uid="uid://c5igju2sl4cdg" path="res://addons/top_down/resources/CameraResources/camera_reference.tres" id="98_camref"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_chest.tres" id="99_pchest"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_jackpot.tres" id="99_pjack"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/camera/punch_spin.tres" id="99_pspin"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/core/MapCreatorHook.gd" id="mc_hook"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="mc_settings"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/editing_flag.tres" id="mc_editing"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_pkurn"]
 points = PackedVector2Array(-16, 0, 0, 8, 16, 0, 0, -8)
@@ -185,6 +202,7 @@ bool_resource = ExtResource("14_6pg65")
 paused_nodes = [NodePath("..")]
 paused_state = 4
 keep_running_online = true
+extra_pause = Array[ExtResource("14_boolscr")]([ExtResource("14_invopen"), ExtResource("mc_editing")])
 
 [node name="TransitionProcessingComponent" type="Node" parent="." unique_id=2114243555 node_paths=PackedStringArray("paused_nodes")]
 script = ExtResource("18_igxve")
@@ -213,6 +231,25 @@ game_over_scene_path = "res://addons/top_down/scenes/ui/screens/game_over.tscn"
 overlay_scene = ExtResource("39_zen")
 wave_number_resource = ExtResource("41_wave")
 score_resource = ExtResource("42_score")
+
+[node name="BlessingOverlay" parent="." instance=ExtResource("91_bless")]
+
+[node name="ClearFx" type="Node" parent="." node_paths=PackedStringArray("blessing")]
+script = ExtResource("90_clearfx")
+player_reference = ExtResource("12_wnxyp")
+wave_burst = ExtResource("92_wburst")
+wave_shake = ExtResource("94_wshake")
+wave_sound = ExtResource("96_wsnd")
+room_burst = ExtResource("93_rburst")
+room_shake = ExtResource("95_rshake")
+blessing = NodePath("../BlessingOverlay")
+
+[node name="CameraPunch" type="Node" parent="."]
+script = ExtResource("97_punch")
+camera_reference = ExtResource("98_camref")
+chest = ExtResource("99_pchest")
+jackpot = ExtResource("99_pjack")
+spin = ExtResource("99_pspin")
 
 [node name="ZenAnnouncer" type="CanvasLayer" parent="." unique_id=1907755301]
 layer = 3
@@ -244,3 +281,7 @@ workbench_unlocked_scene = ExtResource("zen_workbench_unlocked")
 
 [node name="DebugDraw" type="Node2D" parent="." unique_id=638060485]
 script = ExtResource("26_l7fet")
+
+[node name="MapCreatorHook" type="Node" parent="."]
+script = ExtResource("mc_hook")
+settings = ExtResource("mc_settings")

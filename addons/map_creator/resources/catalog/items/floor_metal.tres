@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_1rbnr"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_s4emj"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_8i0gn"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_metal_cracked_1.tres" id="4_nm3so"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_metal_cracked_2.tres" id="5_8d8mt"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/floor_metal_cracked_3.tres" id="6_5j363"]
+
+[resource]
+script = ExtResource("3_8i0gn")
+id = &"floor_metal"
+display_name = "Metal floor"
+color = Color(0.5, 0.6, 0.7, 1)
+kind = 0
+tags = PackedStringArray("metal", "floor")
+floor_source = 30
+variants = Array[ExtResource("3_8i0gn")]([ExtResource("4_nm3so"), ExtResource("5_8d8mt"), ExtResource("6_5j363")])
+legend = "."

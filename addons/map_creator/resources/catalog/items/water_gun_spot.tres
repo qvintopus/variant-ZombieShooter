@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_amvyn"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_0sli5"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_80syh"]
+
+[resource]
+script = ExtResource("3_80syh")
+id = &"water_gun_spot"
+display_name = "Water gun spot"
+icon_scene = "res://addons/top_down/scenes/weapons/water_gun.tscn"
+color = Color(0.3, 0.5, 1, 1)
+tags = PackedStringArray("water", "gun", "home")
+node_type = "Marker2D"
+parent_path = "."
+node_name = "WaterGunSpot"
+legend = "g"

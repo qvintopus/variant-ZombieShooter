@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/interactables/Shrine.gd" id="script"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/action_resource.tres" id="action"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="player"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/interact_denied.tres" id="denied"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/room_blessing.tres" id="use"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/sounds/health_pickup.tres" id="heal"]
+[ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="state"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/pickup_events.tres" id="events"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/presets/shrine/shrine_default.tres" id="preset"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/shadow.png" id="shadow"]
+[ext_resource type="Texture2D" path="res://addons/top_down/assets/images/misc/shrine_24x32_sheet4x3.png" id="tex"]
+[ext_resource type="Script" path="res://addons/great_games_library/nodes/Navigation/AstarShapeObstacle.gd" id="astar_obstacle"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/arena_resources/obstacle_astargrid_resource.tres" id="astar_grid"]
+
+[sub_resource type="RectangleShape2D" id="body_shape"]
+size = Vector2(16, 6)
+
+[sub_resource type="CircleShape2D" id="area_shape"]
+radius = 24.0
+
+[node name="Shrine" type="Node2D" node_paths=PackedStringArray("area", "prompt_label", "shake_node", "sprite")]
+script = ExtResource("script")
+area = NodePath("Area2D")
+prompt_label = NodePath("PromptLabel")
+shake_node = NodePath("Visuals")
+action_resource = ExtResource("action")
+player_reference = ExtResource("player")
+sound_use = ExtResource("use")
+sound_denied = ExtResource("denied")
+room_state_resource = ExtResource("state")
+pickup_events = ExtResource("events")
+sprite = NodePath("Visuals/Sprite2D")
+preset = ExtResource("preset")
+sound_heal = ExtResource("heal")
+
+[node name="Shadow" type="Sprite2D" parent="."]
+modulate = Color(0, 0, 0, 0.35)
+scale = Vector2(1.5, 1)
+texture = ExtResource("shadow")
+
+[node name="Visuals" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="Visuals"]
+position = Vector2(0, -14)
+texture = ExtResource("tex")
+hframes = 4
+vframes = 3
+frame = 1
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(0, -2)
+shape = SubResource("body_shape")
+
+[node name="AstarShapeObstacle" type="Node" parent="." node_paths=PackedStringArray("body")]
+script = ExtResource("astar_obstacle")
+astargrid_resource = ExtResource("astar_grid")
+body = NodePath("../StaticBody2D")
+
+[node name="Area2D" type="Area2D" parent="."]
+scale = Vector2(1, 0.5)
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("area_shape")
+
+[node name="PromptLabel" type="Label" parent="."]
+z_index = 10
+offset_left = -60.0
+offset_top = -44.0
+offset_right = 60.0
+offset_bottom = -35.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 6
+text = "[E] Pray"
+horizontal_alignment = 1

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_0bvhf"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_3pdit"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_c668f"]
+
+[sub_resource type="Resource" id="Resource_iecfv"]
+script = ExtResource("2_3pdit")
+key = &"grid_size"
+label = "Grid size"
+min_value = 2.0
+max_value = 40.0
+options = PackedStringArray()
+
+[resource]
+script = ExtResource("3_c668f")
+id = &"piston_grid"
+display_name = "Piston grid"
+icon_scene = "res://addons/top_down/scenes/home/piston.tscn"
+color = Color(0.5, 0.5, 0.8, 1)
+description = "Corner piston (0, 0); pistons along -x/-y, lever column at +1 x and row at +1 y."
+tags = PackedStringArray("piston", "grid", "memory", "home")
+bake = 10
+script_path = "res://addons/top_down/scripts/home/PistonGrid.gd"
+fixed_props = {
+"lever_scene": "res://addons/top_down/scenes/home/grid_lever.tscn",
+"piston_scene": "res://addons/top_down/scenes/home/piston.tscn"
+}
+defaults = {
+"grid_size": 30
+}
+properties = Array[ExtResource("2_3pdit")]([SubResource("Resource_iecfv")])
+legend = "H"

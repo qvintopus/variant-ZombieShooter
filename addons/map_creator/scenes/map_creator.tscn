@@ -1,0 +1,109 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/core/MapCreator.gd" id="1_mc"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/default_catalog.tres" id="2_catalog"]
+[ext_resource type="Resource" path="res://game/resources/map_creator/layout_baker.tres" id="3_baker"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/map_creator_settings.tres" id="4_settings"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/presets/default_preset.tres" id="5_preset"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/editing_flag.tres" id="6_flag"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/EditCamera.gd" id="7_cam"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapOverlay.gd" id="8_overlay"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapTopBar.gd" id="9_topbar"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CleanProgress.gd" id="10_progress"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapInspector.gd" id="11_inspector"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RadialMenu.gd" id="12_radial"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/RoomBrowser.gd" id="13_browser"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="14_transition"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="15_player"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/settings/mod_state.tres" id="16_mods"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/MapPrompt.gd" id="17_prompt"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/CampaignGraph.gd" id="18_graph"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/WavesPanel.gd" id="19_waves"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/ProblemsPanel.gd" id="20_problems"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/ui/HelpOverlay.gd" id="21_help"]
+
+[node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay", "pause_panels")]
+process_mode = 3
+script = ExtResource("1_mc")
+catalog = ExtResource("2_catalog")
+baker = ExtResource("3_baker")
+mod_state = ExtResource("16_mods")
+settings = ExtResource("4_settings")
+preset = ExtResource("5_preset")
+editing_flag = ExtResource("6_flag")
+scene_transition_resource = ExtResource("14_transition")
+player_reference = ExtResource("15_player")
+camera = NodePath("EditCamera")
+overlay = NodePath("Overlay")
+pause_panels = [NodePath("UI/Root/RoomBrowser"), NodePath("UI/Root/WavesPanel"), NodePath("UI/Root/ProblemsPanel"), NodePath("UI/Root/CampaignGraph"), NodePath("UI/Root/Prompt"), NodePath("UI/Root/HelpOverlay"), NodePath("UI/Root/RadialMenu")]
+
+[node name="EditCamera" type="Camera2D" parent="."]
+enabled = false
+script = ExtResource("7_cam")
+preset = ExtResource("5_preset")
+
+[node name="Overlay" type="Node2D" parent="." node_paths=PackedStringArray("creator")]
+script = ExtResource("8_overlay")
+creator = NodePath("..")
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 90
+
+[node name="Root" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("9_topbar")
+creator = NodePath("../../..")
+
+[node name="Inspector" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("11_inspector")
+creator = NodePath("../../..")
+
+[node name="CleanProgress" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("10_progress")
+creator = NodePath("../../..")
+
+[node name="RadialMenu" type="Control" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("12_radial")
+creator = NodePath("../../..")
+
+[node name="RoomBrowser" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("13_browser")
+creator = NodePath("../../..")
+
+[node name="WavesPanel" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("19_waves")
+creator = NodePath("../../..")
+
+[node name="ProblemsPanel" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("20_problems")
+creator = NodePath("../../..")
+
+[node name="CampaignGraph" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("18_graph")
+creator = NodePath("../../..")
+
+[node name="Prompt" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("17_prompt")
+creator = NodePath("../../..")
+
+[node name="HelpOverlay" type="PanelContainer" parent="UI/Root" node_paths=PackedStringArray("creator")]
+layout_mode = 1
+script = ExtResource("21_help")
+creator = NodePath("../../..")

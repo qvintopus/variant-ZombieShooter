@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DamageNumbersSettings" format=3 uid="uid://fwgj4bf7wfoh"]
+
+[ext_resource type="Script" uid="uid://sux2imtywp2w" path="res://addons/top_down/scripts/ui/settings/DamageNumbersSettings.gd" id="1_dns"]
+[ext_resource type="Script" uid="uid://bkh6065blps5b" path="res://addons/top_down/scripts/ui/settings/DamageNumberColors.gd" id="2_dnc"]
+
+[sub_resource type="Resource" id="Resource_classic"]
+script = ExtResource("2_dnc")
+critical = Color(1, 0.9, 0.2, 1)
+
+[sub_resource type="Resource" id="Resource_vivid"]
+script = ExtResource("2_dnc")
+preset_name = "Vivid"
+enemy = Color(0.55, 0.9, 1, 1)
+critical = Color(1, 0.6, 0.1, 1)
+player = Color(1, 0.3, 0.85, 1)
+heal = Color(0.6, 1, 0.2, 1)
+
+[resource]
+resource_name = "Damage numbers settings"
+script = ExtResource("1_dns")
+color_presets = Array[ExtResource("2_dnc")]([SubResource("Resource_classic"), SubResource("Resource_vivid")])

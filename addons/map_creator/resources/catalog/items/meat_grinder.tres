@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_vcp68"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_lq7xg"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_qtl2l"]
+
+[resource]
+script = ExtResource("3_qtl2l")
+id = &"meat_grinder"
+display_name = "Meat grinder"
+color = Color(0.8, 0.3, 0.3, 1)
+tags = PackedStringArray("meat", "grinder", "workbench")
+scene_path = "res://addons/top_down/scenes/interactables/meat_grinder.tscn"
+legend = "M"

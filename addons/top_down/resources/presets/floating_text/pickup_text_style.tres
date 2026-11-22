@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FloatingTextStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/vfx/FloatingTextStyle.gd" id="1_fts"]
+
+[resource]
+resource_name = "Pickup text"
+script = ExtResource("1_fts")
+duration = 1.0
+rise = 14.0
+fall = 0.0
+drift = 2.0
+spread = 1.0
+fade_portion = 0.35
+pop_scale = 1.2

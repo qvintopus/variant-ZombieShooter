@@ -8,6 +8,7 @@
 [node name="MainCamera" type="Camera2D"]
 position = Vector2(252, 140)
 script = ExtResource("1_8q7hy")
+ignore_rotation = false
 target_position = ExtResource("2_3fde2")
 
 [node name="ReferenceNodeSetter" type="Node" parent="." node_paths=PackedStringArray("reference_node")]

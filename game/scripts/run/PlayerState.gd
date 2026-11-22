@@ -14,6 +14,8 @@ const HEALTH_PATH:String = TD + "resources/health_resource/player_health.tres"
 const INVENTORY_PATH:String = TD + "resources/ItemCollectionResource/weapon_inventory.tres"
 const UPGRADES_PATH:String = TD + "resources/global_resources/weapon_upgrade_resource.tres"
 const DATABASE_PATH:String = TD + "resources/ItemCollectionResource/weapon_database.tres"
+const ABILITIES_PATH:String = TD + "resources/global_resources/ability_charges.tres"
+const GRID_PATH:String = TD + "resources/global_resources/inventory_grid.tres"
 ## Run wallet items; boss crystals are meta progress and stay out of it.
 const WALLET_ITEMS:PackedStringArray = ["coin", "meat", "slime"]
 
@@ -30,6 +32,10 @@ var inventory:ItemCollectionResource
 var weapon_levels:WeaponUpgradeResource
 ## Loot item id -> ScoreResource
 var wallet:Dictionary
+## Ability charges / cooldowns
+var abilities:AbilityChargesResource
+## Inventory cell grid (currency stacks + backpack weapons)
+var grid:InventoryGridResource
 
 ## Mirrored from the network for remote players (PlayerNetSync): the room scene
 ## they are in and the name of the weapon in their hands ("" = fists).
@@ -47,8 +53,16 @@ var ghost_room:String
 var parked:bool
 ## Back from a ghost into a fight: standing at the door until the walls drop.
 var waiting:bool
+## Host (Net idle kick): seconds since this guest last did something; a ghost's
+## counts from when it left. last_aim tells a turned mouse from a still one.
+var idle_time:float
+var last_aim:Vector2
 ## The dedicated server's own player: invisible, never hurt, never counted.
 var hidden:bool
+## Dedicated server: the main player, who wears the host's plumber (Net.main_mode).
+var main:bool
+## Server: who this guest is across rejoins ("profile|machine"), for the main seat.
+var main_key:String
 ## Co-op guest tier (GuestTier): an electrician brings its loot home, a ghost
 ## (the default) is faint in the host's home base and keeps nothing.
 var electrician:bool
@@ -71,6 +85,8 @@ static func create_local(id:String, name:String)->PlayerState:
 	_state.weapon_levels = load(UPGRADES_PATH)
 	for _item:String in WALLET_ITEMS:
 		_state.wallet[_item] = LootItems.counter(_item)
+	_state.abilities = load(ABILITIES_PATH)
+	_state.grid = load(GRID_PATH)
 	return _state
 
 ## A co-op teammate: same templates, own copies.
@@ -83,6 +99,9 @@ static func create_remote(id:String, name:String, slot_index:int)->PlayerState:
 	_state.inventory = (load(INVENTORY_PATH) as ItemCollectionResource).duplicate()
 	_state.inventory.list = []
 	_state.weapon_levels = WeaponUpgradeResource.new()
+	_state.abilities = AbilityChargesResource.new()
+	# layout only (no database): a teammate's counters aren't ours
+	_state.grid = InventoryGridResource.new()
 	for _item:String in WALLET_ITEMS:
 		var _counter:ScoreResource = (LootItems.counter(_item) as ScoreResource).duplicate()
 		_counter.reset_resource()
@@ -114,6 +133,10 @@ func capture()->PlayerRunData:
 	for _item:String in wallet:
 		var _counter:ScoreResource = wallet[_item]
 		_data.wallet[_item] = {"value": _counter.value, "collected_total": _counter.collected_total}
+	if abilities != null:
+		_data.abilities = abilities.charges.duplicate()
+	if grid != null:
+		_data.inventory = grid.save_layout()
 	return _data
 
 ## Restores everything but hp, which the player node resets on spawn
@@ -133,12 +156,17 @@ func apply(data:PlayerRunData)->void:
 	inventory.set_selected(clampi(data.selected, 0, maxi(_list.size() - 1, 0)))
 	weapon_levels.levels = data.weapon_levels.duplicate()
 	weapon_levels.updated.emit()
+	if abilities != null:
+		abilities.reset()
+		abilities.charges = data.abilities.duplicate()
 	for _item:String in wallet:
 		var _counter:ScoreResource = wallet[_item]
 		var _entry:Dictionary = data.wallet.get(_item, {})
 		_counter.value = int(_entry.get("value", 0))
 		_counter.collected_total = int(_entry.get("collected_total", 0))
 		_counter.updated.emit()
+	if grid != null:
+		grid.load_layout(data.inventory, _database)
 
 ## Name of the weapon in hand ("" = fists), read from the inventory.
 func active_weapon_name()->String:
@@ -161,5 +189,9 @@ func reset()->void:
 	downed = false
 	inventory.reset_resource()
 	weapon_levels.reset_resource()
+	if abilities != null:
+		abilities.reset()
 	for _item:String in wallet:
 		(wallet[_item] as ScoreResource).reset_resource()
+	if grid != null:
+		grid.clear()

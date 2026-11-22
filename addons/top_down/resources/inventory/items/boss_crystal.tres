@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="InventoryItemDef" format=3 uid="uid://glve5mwcrkgp"]
+
+[ext_resource type="Script" uid="uid://dr1eavhl3dc0s" path="res://addons/top_down/scripts/inventory/InventoryItemDef.gd" id="1_def"]
+[ext_resource type="Texture2D" uid="uid://bw6ja5w3sw57p" path="res://addons/top_down/assets/images/items/boss_crystal_8x8_strip3.png" id="2_img"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/boss_crystal_resource.tres" id="3_cnt"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_icon"]
+atlas = ExtResource("2_img")
+region = Rect2(0, 0, 8, 8)
+
+[resource]
+script = ExtResource("1_def")
+id = &"boss_crystal"
+display_name = "Boss Crystals"
+icon = SubResource("AtlasTexture_icon")
+stack_size = 99
+counter = ExtResource("3_cnt")
+sort_order = 3
+run_scoped = false

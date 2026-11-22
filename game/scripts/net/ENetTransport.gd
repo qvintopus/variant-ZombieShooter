@@ -28,6 +28,9 @@ func create_client(address:String, port:int)->MultiplayerPeer:
 ## Blocking (UPnP discovery takes seconds): run it on a thread.
 func share_addresses(port:int)->Array:
 	var _list:Array = []
+	var _vlan:String = vlan_address()
+	if !_vlan.is_empty():
+		_list.append({"label": "Virtual LAN (zs-vlan)", "address": "%s:%d" % [_vlan, port]})
 	var _public:String = _open_port(port)
 	if !_public.is_empty():
 		_list.append({"label": "Over the internet", "address": "%s:%d" % [_public, port]})
@@ -45,11 +48,47 @@ static func lan_addresses()->PackedStringArray:
 		if _is_virtual(_name):
 			continue
 		for _ip:String in _interface.get("addresses", []):
-			if _ip.contains(":") || _ip.begins_with("127.") || _ip.begins_with("169.254."):
+			if _ip.contains(":") || _ip.begins_with("127.") || _ip.begins_with("169.254.") || _ip.begins_with(VLAN_PREFIX):
 				continue
 			if !_list.has(_ip):
 				_list.append(_ip)
 	return _list
+
+## The zs-vlan virtual LAN (tools/vlan): its host is .1, guests pick .2-.254.
+const VLAN_PREFIX:String = "10.77.0."
+const VLAN_HOST:String = "10.77.0.1"
+
+## This PC's address on the zs-vlan virtual LAN, "" when it isn't in one. Found by
+## address, not interface name (Windows names the adapter its own way).
+static func vlan_address()->String:
+	for _ip:String in IP.get_local_addresses():
+		if _ip.begins_with(VLAN_PREFIX):
+			return _ip
+	return ""
+
+## Tests point this at a file of their own ("" = where vlan_auto keeps it).
+static var vlan_name_file:String = ""
+
+## Where tools/vlan/vlan_auto keeps this PC's name on the virtual LAN (outside its admin/private
+## state folders, so the game can read it).
+static func vlan_name_path()->String:
+	if !vlan_name_file.is_empty():
+		return vlan_name_file
+	if OS.get_name() == "Windows":
+		return OS.get_environment("ProgramData").path_join("zs-vlan-name")
+	var _state:String = OS.get_environment("XDG_STATE_HOME")
+	if _state.is_empty():
+		_state = OS.get_environment("HOME").path_join(".local/state")
+	return _state.path_join("zs-vlan-name")
+
+## This PC's zs-vlan name ("" when vlan_auto never set one). Separate from the in-game name,
+## which uses it as its default while the player hasn't picked one (PlayerProfile).
+static func vlan_name()->String:
+	var _path:String = vlan_name_path()
+	if _path.is_empty() || !FileAccess.file_exists(_path):
+		return ""
+	var _name:String = FileAccess.get_file_as_string(_path).strip_edges().replace("\n", " ").left(Net.MAX_NAME_LENGTH).strip_edges()
+	return _name
 
 const VIRTUAL_PREFIXES:PackedStringArray = ["lo", "docker", "br-", "veth", "virbr", "vmnet", "vboxnet", "tun", "tap", "wg", "tailscale", "zt", "cni", "flannel", "podman", "lxc", "lxd", "vethernet"]
 

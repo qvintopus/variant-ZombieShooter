@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_2dpcl"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_if8wl"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_e33l0"]
+
+[sub_resource type="Resource" id="Resource_jnvli"]
+script = ExtResource("2_if8wl")
+key = &"section"
+label = "Section"
+type = 6
+min_value = 1.0
+max_value = 3.0
+options = PackedStringArray()
+
+[resource]
+script = ExtResource("3_e33l0")
+id = &"barrier"
+display_name = "Barrier"
+color = Color(0.9, 0.5, 0.2, 1)
+description = "BlockWall raised while its section fights."
+tags = PackedStringArray("block", "wall", "barrier")
+bake = 4
+scene_path = "res://addons/top_down/scenes/obstacles/block_wall.tscn"
+defaults = {
+"section": 1
+}
+properties = Array[ExtResource("2_if8wl")]([SubResource("Resource_jnvli")])
+legend = "123"

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="PickupEvents" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/pickups/PickupEvents.gd" id="1_pe"]
+
+[resource]
+resource_name = "Pickup events"
+script = ExtResource("1_pe")

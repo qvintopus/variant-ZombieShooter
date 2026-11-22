@@ -1,0 +1,492 @@
+[gd_resource type="Resource" script_class="RoomLayoutResource" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_07rgk"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_sklow"]
+
+[sub_resource type="Resource" id="Resource_her8p"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(11, 1)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_km3ej"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(27, 1)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_boa1x"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(43, 1)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_jfyam"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(59, 1)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_fi22g"]
+script = ExtResource("1_07rgk")
+item_id = &"barrier"
+cell = Vector2i(3, 4)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_smliq"]
+script = ExtResource("1_07rgk")
+item_id = &"trigger"
+cell = Vector2i(5, 4)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_blw4s"]
+script = ExtResource("1_07rgk")
+item_id = &"gate"
+cell = Vector2i(62, 4)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_pfrd4"]
+script = ExtResource("1_07rgk")
+item_id = &"door"
+cell = Vector2i(1, 5)
+props = {
+"connect_tag": "p30_p31",
+"room": "room_P30",
+"tag": "p31_p30"
+}
+
+[sub_resource type="Resource" id="Resource_5vy2j"]
+script = ExtResource("1_07rgk")
+item_id = &"barrier"
+cell = Vector2i(3, 5)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_sdm8r"]
+script = ExtResource("1_07rgk")
+item_id = &"player_spawn"
+cell = Vector2i(4, 5)
+
+[sub_resource type="Resource" id="Resource_5ow5g"]
+script = ExtResource("1_07rgk")
+item_id = &"trigger"
+cell = Vector2i(5, 5)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_li74x"]
+script = ExtResource("1_07rgk")
+item_id = &"gate"
+cell = Vector2i(62, 5)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_cp6lu"]
+script = ExtResource("1_07rgk")
+item_id = &"door"
+cell = Vector2i(64, 5)
+props = {
+"connect_tag": "p32_p31",
+"room": "room_P32",
+"tag": "p31_p32"
+}
+
+[sub_resource type="Resource" id="Resource_ncr4r"]
+script = ExtResource("1_07rgk")
+item_id = &"barrier"
+cell = Vector2i(3, 6)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_s55sf"]
+script = ExtResource("1_07rgk")
+item_id = &"trigger"
+cell = Vector2i(5, 6)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_dbjum"]
+script = ExtResource("1_07rgk")
+item_id = &"gate"
+cell = Vector2i(62, 6)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_vdn6p"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(19, 9)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_dskhq"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(35, 9)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_0l56p"]
+script = ExtResource("1_07rgk")
+item_id = &"spawn"
+cell = Vector2i(51, 9)
+props = {
+"section": 1
+}
+
+[resource]
+script = ExtResource("2_sklow")
+key = "P31"
+display_name = "Long Throat"
+campaign = &"new_game_plus"
+look = "flesh"
+sections = Array[Dictionary]([{
+"waves": [{
+"count": 12,
+"enemies": ["zombie", "zombie_crawler"]
+}, {
+"count": 10,
+"enemies": ["zombie_crawler", "bloater"]
+}, {
+"count": 8,
+"enemies": ["bloater"]
+}]
+}])
+floor = Dictionary[Vector2i, Vector3i]({
+Vector2i(0, 4): Vector3i(50, 0, 3),
+Vector2i(0, 5): Vector3i(50, 0, 3),
+Vector2i(0, 6): Vector3i(50, 0, 3),
+Vector2i(1, 4): Vector3i(50, 1, 3),
+Vector2i(1, 5): Vector3i(50, 0, 3),
+Vector2i(1, 6): Vector3i(50, 0, 3),
+Vector2i(2, 4): Vector3i(50, 0, 3),
+Vector2i(2, 5): Vector3i(50, 2, 3),
+Vector2i(2, 6): Vector3i(50, 0, 3),
+Vector2i(3, 4): Vector3i(50, 0, 3),
+Vector2i(3, 5): Vector3i(50, 0, 3),
+Vector2i(3, 6): Vector3i(50, 0, 3),
+Vector2i(4, 4): Vector3i(50, 3, 3),
+Vector2i(4, 5): Vector3i(50, 0, 3),
+Vector2i(4, 6): Vector3i(50, 0, 3),
+Vector2i(5, 4): Vector3i(50, 0, 3),
+Vector2i(5, 5): Vector3i(50, 0, 3),
+Vector2i(5, 6): Vector3i(50, 0, 3),
+Vector2i(6, 4): Vector3i(50, 0, 3),
+Vector2i(6, 5): Vector3i(50, 2, 3),
+Vector2i(6, 6): Vector3i(50, 0, 3),
+Vector2i(7, 4): Vector3i(50, 0, 3),
+Vector2i(7, 5): Vector3i(50, 0, 3),
+Vector2i(7, 6): Vector3i(50, 0, 3),
+Vector2i(8, 4): Vector3i(50, 0, 3),
+Vector2i(8, 5): Vector3i(50, 0, 3),
+Vector2i(8, 6): Vector3i(50, 0, 3),
+Vector2i(9, 4): Vector3i(50, 0, 3),
+Vector2i(9, 5): Vector3i(50, 0, 3),
+Vector2i(9, 6): Vector3i(50, 0, 3),
+Vector2i(10, 0): Vector3i(50, 0, 3),
+Vector2i(10, 1): Vector3i(50, 0, 3),
+Vector2i(10, 2): Vector3i(50, 0, 3),
+Vector2i(10, 3): Vector3i(50, 0, 3),
+Vector2i(10, 4): Vector3i(50, 0, 3),
+Vector2i(10, 5): Vector3i(50, 3, 3),
+Vector2i(10, 6): Vector3i(50, 0, 3),
+Vector2i(11, 0): Vector3i(50, 0, 3),
+Vector2i(11, 1): Vector3i(50, 0, 3),
+Vector2i(11, 2): Vector3i(50, 0, 3),
+Vector2i(11, 3): Vector3i(50, 0, 3),
+Vector2i(11, 4): Vector3i(50, 0, 3),
+Vector2i(11, 5): Vector3i(50, 0, 3),
+Vector2i(11, 6): Vector3i(50, 0, 3),
+Vector2i(12, 0): Vector3i(50, 0, 3),
+Vector2i(12, 1): Vector3i(50, 0, 3),
+Vector2i(12, 2): Vector3i(50, 0, 3),
+Vector2i(12, 3): Vector3i(50, 0, 3),
+Vector2i(12, 4): Vector3i(50, 0, 3),
+Vector2i(12, 5): Vector3i(50, 0, 3),
+Vector2i(12, 6): Vector3i(50, 0, 3),
+Vector2i(13, 0): Vector3i(50, 0, 3),
+Vector2i(13, 1): Vector3i(50, 0, 3),
+Vector2i(13, 2): Vector3i(50, 0, 3),
+Vector2i(13, 3): Vector3i(50, 0, 3),
+Vector2i(13, 4): Vector3i(50, 0, 3),
+Vector2i(13, 5): Vector3i(50, 0, 3),
+Vector2i(13, 6): Vector3i(50, 0, 3),
+Vector2i(14, 4): Vector3i(50, 0, 3),
+Vector2i(14, 5): Vector3i(50, 0, 3),
+Vector2i(14, 6): Vector3i(50, 0, 3),
+Vector2i(15, 4): Vector3i(50, 0, 3),
+Vector2i(15, 5): Vector3i(50, 0, 3),
+Vector2i(15, 6): Vector3i(50, 0, 3),
+Vector2i(16, 4): Vector3i(50, 0, 3),
+Vector2i(16, 5): Vector3i(50, 0, 3),
+Vector2i(16, 6): Vector3i(50, 0, 3),
+Vector2i(17, 4): Vector3i(50, 1, 3),
+Vector2i(17, 5): Vector3i(50, 0, 3),
+Vector2i(17, 6): Vector3i(50, 0, 3),
+Vector2i(18, 4): Vector3i(50, 2, 3),
+Vector2i(18, 5): Vector3i(50, 0, 3),
+Vector2i(18, 6): Vector3i(50, 0, 3),
+Vector2i(18, 7): Vector3i(50, 0, 3),
+Vector2i(18, 8): Vector3i(50, 0, 3),
+Vector2i(18, 9): Vector3i(50, 0, 3),
+Vector2i(18, 10): Vector3i(50, 0, 3),
+Vector2i(19, 4): Vector3i(50, 0, 3),
+Vector2i(19, 5): Vector3i(50, 0, 3),
+Vector2i(19, 6): Vector3i(50, 0, 3),
+Vector2i(19, 7): Vector3i(50, 0, 3),
+Vector2i(19, 8): Vector3i(50, 0, 3),
+Vector2i(19, 9): Vector3i(50, 0, 3),
+Vector2i(19, 10): Vector3i(50, 0, 3),
+Vector2i(20, 4): Vector3i(50, 0, 3),
+Vector2i(20, 5): Vector3i(50, 0, 3),
+Vector2i(20, 6): Vector3i(50, 0, 3),
+Vector2i(20, 7): Vector3i(50, 0, 3),
+Vector2i(20, 8): Vector3i(50, 0, 3),
+Vector2i(20, 9): Vector3i(50, 1, 3),
+Vector2i(20, 10): Vector3i(50, 0, 3),
+Vector2i(21, 4): Vector3i(50, 0, 3),
+Vector2i(21, 5): Vector3i(50, 0, 3),
+Vector2i(21, 6): Vector3i(50, 0, 3),
+Vector2i(21, 7): Vector3i(50, 0, 3),
+Vector2i(21, 8): Vector3i(50, 0, 3),
+Vector2i(21, 9): Vector3i(50, 0, 3),
+Vector2i(21, 10): Vector3i(50, 0, 3),
+Vector2i(22, 4): Vector3i(50, 0, 3),
+Vector2i(22, 5): Vector3i(50, 0, 3),
+Vector2i(22, 6): Vector3i(50, 0, 3),
+Vector2i(23, 4): Vector3i(50, 0, 3),
+Vector2i(23, 5): Vector3i(50, 0, 3),
+Vector2i(23, 6): Vector3i(50, 0, 3),
+Vector2i(24, 4): Vector3i(50, 1, 3),
+Vector2i(24, 5): Vector3i(50, 0, 3),
+Vector2i(24, 6): Vector3i(50, 3, 3),
+Vector2i(25, 4): Vector3i(50, 0, 3),
+Vector2i(25, 5): Vector3i(50, 0, 3),
+Vector2i(25, 6): Vector3i(50, 0, 3),
+Vector2i(26, 0): Vector3i(50, 0, 3),
+Vector2i(26, 1): Vector3i(50, 0, 3),
+Vector2i(26, 2): Vector3i(50, 0, 3),
+Vector2i(26, 3): Vector3i(50, 0, 3),
+Vector2i(26, 4): Vector3i(50, 0, 3),
+Vector2i(26, 5): Vector3i(50, 0, 3),
+Vector2i(26, 6): Vector3i(50, 0, 3),
+Vector2i(27, 0): Vector3i(50, 0, 3),
+Vector2i(27, 1): Vector3i(50, 0, 3),
+Vector2i(27, 2): Vector3i(50, 0, 3),
+Vector2i(27, 3): Vector3i(50, 0, 3),
+Vector2i(27, 4): Vector3i(50, 0, 3),
+Vector2i(27, 5): Vector3i(50, 0, 3),
+Vector2i(27, 6): Vector3i(50, 0, 3),
+Vector2i(28, 0): Vector3i(50, 0, 3),
+Vector2i(28, 1): Vector3i(50, 0, 3),
+Vector2i(28, 2): Vector3i(50, 0, 3),
+Vector2i(28, 3): Vector3i(50, 0, 3),
+Vector2i(28, 4): Vector3i(50, 0, 3),
+Vector2i(28, 5): Vector3i(50, 0, 3),
+Vector2i(28, 6): Vector3i(50, 0, 3),
+Vector2i(29, 0): Vector3i(50, 0, 3),
+Vector2i(29, 1): Vector3i(50, 0, 3),
+Vector2i(29, 2): Vector3i(50, 0, 3),
+Vector2i(29, 3): Vector3i(50, 0, 3),
+Vector2i(29, 4): Vector3i(50, 0, 3),
+Vector2i(29, 5): Vector3i(50, 0, 3),
+Vector2i(29, 6): Vector3i(50, 0, 3),
+Vector2i(30, 4): Vector3i(50, 0, 3),
+Vector2i(30, 5): Vector3i(50, 0, 3),
+Vector2i(30, 6): Vector3i(50, 0, 3),
+Vector2i(31, 4): Vector3i(50, 0, 3),
+Vector2i(31, 5): Vector3i(50, 0, 3),
+Vector2i(31, 6): Vector3i(50, 0, 3),
+Vector2i(32, 4): Vector3i(50, 0, 3),
+Vector2i(32, 5): Vector3i(50, 0, 3),
+Vector2i(32, 6): Vector3i(50, 0, 3),
+Vector2i(33, 4): Vector3i(50, 0, 3),
+Vector2i(33, 5): Vector3i(50, 0, 3),
+Vector2i(33, 6): Vector3i(50, 0, 3),
+Vector2i(34, 4): Vector3i(50, 0, 3),
+Vector2i(34, 5): Vector3i(50, 0, 3),
+Vector2i(34, 6): Vector3i(50, 0, 3),
+Vector2i(34, 7): Vector3i(50, 0, 3),
+Vector2i(34, 8): Vector3i(50, 0, 3),
+Vector2i(34, 9): Vector3i(50, 0, 3),
+Vector2i(34, 10): Vector3i(50, 0, 3),
+Vector2i(35, 4): Vector3i(50, 0, 3),
+Vector2i(35, 5): Vector3i(50, 0, 3),
+Vector2i(35, 6): Vector3i(50, 0, 3),
+Vector2i(35, 7): Vector3i(50, 0, 3),
+Vector2i(35, 8): Vector3i(50, 0, 3),
+Vector2i(35, 9): Vector3i(50, 0, 3),
+Vector2i(35, 10): Vector3i(50, 0, 3),
+Vector2i(36, 4): Vector3i(50, 0, 3),
+Vector2i(36, 5): Vector3i(50, 0, 3),
+Vector2i(36, 6): Vector3i(50, 0, 3),
+Vector2i(36, 7): Vector3i(50, 0, 3),
+Vector2i(36, 8): Vector3i(50, 0, 3),
+Vector2i(36, 9): Vector3i(50, 0, 3),
+Vector2i(36, 10): Vector3i(50, 0, 3),
+Vector2i(37, 4): Vector3i(50, 0, 3),
+Vector2i(37, 5): Vector3i(50, 0, 3),
+Vector2i(37, 6): Vector3i(50, 0, 3),
+Vector2i(37, 7): Vector3i(50, 0, 3),
+Vector2i(37, 8): Vector3i(50, 0, 3),
+Vector2i(37, 9): Vector3i(50, 0, 3),
+Vector2i(37, 10): Vector3i(50, 0, 3),
+Vector2i(38, 4): Vector3i(50, 0, 3),
+Vector2i(38, 5): Vector3i(50, 1, 3),
+Vector2i(38, 6): Vector3i(50, 0, 3),
+Vector2i(39, 4): Vector3i(50, 0, 3),
+Vector2i(39, 5): Vector3i(50, 0, 3),
+Vector2i(39, 6): Vector3i(50, 0, 3),
+Vector2i(40, 4): Vector3i(50, 0, 3),
+Vector2i(40, 5): Vector3i(50, 0, 3),
+Vector2i(40, 6): Vector3i(50, 0, 3),
+Vector2i(41, 4): Vector3i(50, 0, 3),
+Vector2i(41, 5): Vector3i(50, 0, 3),
+Vector2i(41, 6): Vector3i(50, 0, 3),
+Vector2i(42, 0): Vector3i(50, 0, 3),
+Vector2i(42, 1): Vector3i(50, 0, 3),
+Vector2i(42, 2): Vector3i(50, 0, 3),
+Vector2i(42, 3): Vector3i(50, 0, 3),
+Vector2i(42, 4): Vector3i(50, 1, 3),
+Vector2i(42, 5): Vector3i(50, 0, 3),
+Vector2i(42, 6): Vector3i(50, 0, 3),
+Vector2i(43, 0): Vector3i(50, 0, 3),
+Vector2i(43, 1): Vector3i(50, 0, 3),
+Vector2i(43, 2): Vector3i(50, 0, 3),
+Vector2i(43, 3): Vector3i(50, 0, 3),
+Vector2i(43, 4): Vector3i(50, 0, 3),
+Vector2i(43, 5): Vector3i(50, 0, 3),
+Vector2i(43, 6): Vector3i(50, 2, 3),
+Vector2i(44, 0): Vector3i(50, 0, 3),
+Vector2i(44, 1): Vector3i(50, 0, 3),
+Vector2i(44, 2): Vector3i(50, 0, 3),
+Vector2i(44, 3): Vector3i(50, 0, 3),
+Vector2i(44, 4): Vector3i(50, 0, 3),
+Vector2i(44, 5): Vector3i(50, 0, 3),
+Vector2i(44, 6): Vector3i(50, 0, 3),
+Vector2i(45, 0): Vector3i(50, 0, 3),
+Vector2i(45, 1): Vector3i(50, 0, 3),
+Vector2i(45, 2): Vector3i(50, 0, 3),
+Vector2i(45, 3): Vector3i(50, 0, 3),
+Vector2i(45, 4): Vector3i(50, 0, 3),
+Vector2i(45, 5): Vector3i(50, 0, 3),
+Vector2i(45, 6): Vector3i(50, 0, 3),
+Vector2i(46, 4): Vector3i(50, 0, 3),
+Vector2i(46, 5): Vector3i(50, 0, 3),
+Vector2i(46, 6): Vector3i(50, 0, 3),
+Vector2i(47, 4): Vector3i(50, 0, 3),
+Vector2i(47, 5): Vector3i(50, 0, 3),
+Vector2i(47, 6): Vector3i(50, 0, 3),
+Vector2i(48, 4): Vector3i(50, 3, 3),
+Vector2i(48, 5): Vector3i(50, 0, 3),
+Vector2i(48, 6): Vector3i(50, 0, 3),
+Vector2i(49, 4): Vector3i(50, 0, 3),
+Vector2i(49, 5): Vector3i(50, 2, 3),
+Vector2i(49, 6): Vector3i(50, 0, 3),
+Vector2i(50, 4): Vector3i(50, 0, 3),
+Vector2i(50, 5): Vector3i(50, 0, 3),
+Vector2i(50, 6): Vector3i(50, 0, 3),
+Vector2i(50, 7): Vector3i(50, 0, 3),
+Vector2i(50, 8): Vector3i(50, 0, 3),
+Vector2i(50, 9): Vector3i(50, 0, 3),
+Vector2i(50, 10): Vector3i(50, 2, 3),
+Vector2i(51, 4): Vector3i(50, 0, 3),
+Vector2i(51, 5): Vector3i(50, 3, 3),
+Vector2i(51, 6): Vector3i(50, 0, 3),
+Vector2i(51, 7): Vector3i(50, 0, 3),
+Vector2i(51, 8): Vector3i(50, 0, 3),
+Vector2i(51, 9): Vector3i(50, 0, 3),
+Vector2i(51, 10): Vector3i(50, 0, 3),
+Vector2i(52, 4): Vector3i(50, 0, 3),
+Vector2i(52, 5): Vector3i(50, 3, 3),
+Vector2i(52, 6): Vector3i(50, 0, 3),
+Vector2i(52, 7): Vector3i(50, 0, 3),
+Vector2i(52, 8): Vector3i(50, 0, 3),
+Vector2i(52, 9): Vector3i(50, 0, 3),
+Vector2i(52, 10): Vector3i(50, 0, 3),
+Vector2i(53, 4): Vector3i(50, 0, 3),
+Vector2i(53, 5): Vector3i(50, 0, 3),
+Vector2i(53, 6): Vector3i(50, 0, 3),
+Vector2i(53, 7): Vector3i(50, 0, 3),
+Vector2i(53, 8): Vector3i(50, 0, 3),
+Vector2i(53, 9): Vector3i(50, 0, 3),
+Vector2i(53, 10): Vector3i(50, 0, 3),
+Vector2i(54, 4): Vector3i(50, 0, 3),
+Vector2i(54, 5): Vector3i(50, 0, 3),
+Vector2i(54, 6): Vector3i(50, 0, 3),
+Vector2i(55, 4): Vector3i(50, 0, 3),
+Vector2i(55, 5): Vector3i(50, 2, 3),
+Vector2i(55, 6): Vector3i(50, 0, 3),
+Vector2i(56, 4): Vector3i(50, 0, 3),
+Vector2i(56, 5): Vector3i(50, 0, 3),
+Vector2i(56, 6): Vector3i(50, 0, 3),
+Vector2i(57, 4): Vector3i(50, 3, 3),
+Vector2i(57, 5): Vector3i(50, 0, 3),
+Vector2i(57, 6): Vector3i(50, 1, 3),
+Vector2i(58, 0): Vector3i(50, 0, 3),
+Vector2i(58, 1): Vector3i(50, 3, 3),
+Vector2i(58, 2): Vector3i(50, 0, 3),
+Vector2i(58, 3): Vector3i(50, 0, 3),
+Vector2i(58, 4): Vector3i(50, 0, 3),
+Vector2i(58, 5): Vector3i(50, 0, 3),
+Vector2i(58, 6): Vector3i(50, 0, 3),
+Vector2i(59, 0): Vector3i(50, 0, 3),
+Vector2i(59, 1): Vector3i(50, 0, 3),
+Vector2i(59, 2): Vector3i(50, 0, 3),
+Vector2i(59, 3): Vector3i(50, 0, 3),
+Vector2i(59, 4): Vector3i(50, 0, 3),
+Vector2i(59, 5): Vector3i(50, 0, 3),
+Vector2i(59, 6): Vector3i(50, 0, 3),
+Vector2i(60, 0): Vector3i(50, 0, 3),
+Vector2i(60, 1): Vector3i(50, 0, 3),
+Vector2i(60, 2): Vector3i(50, 0, 3),
+Vector2i(60, 3): Vector3i(50, 0, 3),
+Vector2i(60, 4): Vector3i(50, 0, 3),
+Vector2i(60, 5): Vector3i(50, 2, 3),
+Vector2i(60, 6): Vector3i(50, 0, 3),
+Vector2i(61, 0): Vector3i(50, 0, 3),
+Vector2i(61, 1): Vector3i(50, 0, 3),
+Vector2i(61, 2): Vector3i(50, 0, 3),
+Vector2i(61, 3): Vector3i(50, 0, 3),
+Vector2i(61, 4): Vector3i(50, 0, 3),
+Vector2i(61, 5): Vector3i(50, 0, 3),
+Vector2i(61, 6): Vector3i(50, 0, 3),
+Vector2i(62, 4): Vector3i(50, 0, 3),
+Vector2i(62, 5): Vector3i(50, 0, 3),
+Vector2i(62, 6): Vector3i(50, 0, 3),
+Vector2i(63, 4): Vector3i(50, 0, 3),
+Vector2i(63, 5): Vector3i(50, 0, 3),
+Vector2i(63, 6): Vector3i(50, 0, 3),
+Vector2i(64, 4): Vector3i(50, 0, 3),
+Vector2i(64, 5): Vector3i(50, 0, 3),
+Vector2i(64, 6): Vector3i(50, 0, 3),
+Vector2i(65, 4): Vector3i(50, 0, 3),
+Vector2i(65, 5): Vector3i(50, 0, 3),
+Vector2i(65, 6): Vector3i(50, 0, 3),
+Vector2i(66, 4): Vector3i(50, 0, 3),
+Vector2i(66, 5): Vector3i(50, 0, 3),
+Vector2i(66, 6): Vector3i(50, 0, 3)
+})
+entities = Array[ExtResource("1_07rgk")]([SubResource("Resource_her8p"), SubResource("Resource_km3ej"), SubResource("Resource_boa1x"), SubResource("Resource_jfyam"), SubResource("Resource_fi22g"), SubResource("Resource_smliq"), SubResource("Resource_blw4s"), SubResource("Resource_pfrd4"), SubResource("Resource_5vy2j"), SubResource("Resource_sdm8r"), SubResource("Resource_5ow5g"), SubResource("Resource_li74x"), SubResource("Resource_cp6lu"), SubResource("Resource_ncr4r"), SubResource("Resource_s55sf"), SubResource("Resource_dbjum"), SubResource("Resource_vdn6p"), SubResource("Resource_dskhq"), SubResource("Resource_0l56p")])

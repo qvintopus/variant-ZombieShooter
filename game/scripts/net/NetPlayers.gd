@@ -21,6 +21,7 @@ const PLAYER_INSTANCE_PATH:String = TD + "resources/InstanceResources/actors/pla
 const TRANSITION_PATH:String = TD + "resources/global_resources/scene_transition_resource.tres"
 const TRANSITION_BOOL_PATH:String = TD + "resources/global_resources/transition_bool_resource.tres"
 const PAUSE_PATH:String = TD + "resources/global_resources/pause_resource.tres"
+const INVENTORY_OPEN_PATH:String = TD + "resources/global_resources/inventory_open.tres"
 const DATABASE_PATH:String = TD + "resources/ItemCollectionResource/weapon_database.tres"
 const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 const HOME_BASE_PATH:String = "res://game/resources/home_base_resource.tres"
@@ -39,6 +40,7 @@ var player_reference:ReferenceNodeResource
 var scene_transition:SceneTransitionResource
 var transition_bool:BoolResource
 var pause_resource:BoolResource
+var inventory_open:BoolResource
 
 ## slot -> RemotePlayer puppet node (the player body)
 var puppets:Dictionary = {}
@@ -80,6 +82,8 @@ func _ready()->void:
 	transition_bool = load(TRANSITION_BOOL_PATH)
 	pause_resource = load(PAUSE_PATH)
 	pause_resource.updated.connect(_on_pause_changed)
+	inventory_open = load(INVENTORY_OPEN_PATH)
+	inventory_open.updated.connect(_on_pause_changed)
 	var _net:Node = get_parent()
 	_net.roster_changed.connect(_on_roster_changed)
 	_net.session_ended.connect(_on_session_ended)
@@ -89,6 +93,7 @@ func _ready()->void:
 	var _revive:ReviveAssist = ReviveAssist.new()
 	_revive.name = "ReviveAssist"
 	add_child(_revive)
+	PlayerFx.send_hook = send_fx
 
 func net()->Node:
 	return get_parent()
@@ -146,13 +151,24 @@ func _dress_local()->void:
 		var _visual:Node2D = _body.get_node_or_null("Body")
 		if _visual != null:
 			_visual.modulate.a = GuestTier.alpha(_local)
-	if _body == null || (_body == _dressed_body && _slot == _dressed_slot):
-		return
-	_dressed_body = _body
-	_dressed_slot = _slot
-	PlayerSkin.apply(_body, _slot)
+	if _body != null && (_body != _dressed_body || _slot != _dressed_slot || PlayerSkin.outdated(_body, _local)):
+		_dressed_body = _body
+		_dressed_slot = _slot
+		PlayerSkin.apply(_body, _local)
+	# a teammate became (or stopped being) the dedicated server's main player
+	for _puppet_slot:int in puppets:
+		if !is_instance_valid(puppets[_puppet_slot]):
+			continue   # freed: dropped below this frame
+		var _state:PlayerState = RunSession.players.get_state(_puppet_slot)
+		if _state != null && PlayerSkin.outdated(puppets[_puppet_slot], _state):
+			PlayerSkin.apply(puppets[_puppet_slot], _state)
 
 # --- Rooms --------------------------------------------------------------------
+
+## The current scene is already known (hosting from the title: being on it isn't
+## arriving at it, which would end the session; the next scene is then the party's room).
+func mark_scene_seen()->void:
+	_scene = get_tree().current_scene
 
 func _watch_scene()->void:
 	var _now:Node = get_tree().current_scene
@@ -342,6 +358,30 @@ func show_note(text:String)->void:
 			_layer.queue_free()
 	)
 
+# --- Player effects (PlayerFx) -----------------------------------------------------
+
+## Effect kinds a teammate copy may replay.
+const FX_KINDS:Array[StringName] = [&"pickup", &"fall"]
+const MAX_FX_ARGS:int = 8
+
+## The local player played a visual effect: its copies elsewhere replay it.
+func send_fx(kind:StringName, args:Array)->void:
+	if !net().is_online() || net().is_ghost() || local_body() == null:
+		return
+	_player_fx.rpc(kind, args)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _player_fx(kind:StringName, args:Array)->void:
+	if !FX_KINDS.has(kind) || args.size() > MAX_FX_ARGS:
+		return
+	var _state:PlayerState = _sender_state()
+	if _state == null:
+		return
+	var _puppet:Node = puppets.get(_state.slot)
+	if _puppet == null || !is_instance_valid(_puppet) || !_puppet.is_inside_tree():
+		return
+	PlayerFx.dispatch(_puppet, kind, args)
+
 # --- Player updates -------------------------------------------------------------
 
 func _send_local()->void:
@@ -377,6 +417,10 @@ func _player_update(data:Array)->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || _state.ghost || !_valid_update(data):
 		return
+	# moving, aiming, down or waiting at a door: not idle (Net idle kick)
+	if (data[2] as Vector2) != Vector2.ZERO || (data[3] as Vector2) != _state.last_aim || data[7] || data[9]:
+		_state.idle_time = 0.0
+	_state.last_aim = data[3]
 	apply_update(_state, data)
 
 func _sender_state()->PlayerState:
@@ -497,12 +541,13 @@ func reclaim_weapons(state:PlayerState)->void:
 	var _at:Vector2 = _puppet.global_position if _puppet != null && is_instance_valid(_puppet) else current_home().water_gun_spot.global_position
 	var _database:ItemCollectionResource = load(DATABASE_PATH)
 	var _i:int = 0
-	for _name:String in state.guest_run_data.weapons:
+	for _name:String in state.guest_run_data.all_weapons():
 		var _item:ItemResource = HomeBaseResource.find_item(_database, _name)
 		if _item != null:
 			Net.entities.drop_item(_item, _at + Vector2(6.0 * _i, 0.0))
 			_i += 1
 	state.guest_run_data.weapons = PackedStringArray()
+	state.guest_run_data.inventory = PackedStringArray()
 
 ## Host leaving its home base for a mission: weapons guests here hold beyond the
 ## one in hand (that one goes along).
@@ -515,6 +560,7 @@ func guest_spare_weapons()->PackedStringArray:
 		for _i:int in _weapons.size():
 			if _i != clampi(_state.guest_run_data.selected, 0, _weapons.size() - 1):
 				_names.append(_weapons[_i])
+		_names.append_array(InventoryGridResource.layout_weapons(_state.guest_run_data.inventory))
 	return _names
 
 # --- Co-op checkpoint ------------------------------------------------------------
@@ -620,6 +666,7 @@ func _going_ghost(parked:bool, data:Dictionary)->void:
 		return
 	reclaim_weapons(_state)
 	var _parsed:PlayerRunData = PlayerRunData.from_dict(data) if parked else null
+	_state.idle_time = 0.0   # a ghost's idle time is how long it's away
 	_state.ghost = true
 	_state.waiting = false
 	_state.ghost_room = ""
@@ -683,6 +730,7 @@ func _ghost_return()->void:
 	var _state:PlayerState = _sender_state()
 	if _state == null || !_state.ghost:
 		return
+	_state.idle_time = 0.0
 	_state.ghost = false
 	_state.ghost_room = ""
 	_remove_puppet(_state.slot)
@@ -737,14 +785,14 @@ func send_ghost_rewards()->void:
 		return
 	for _state:PlayerState in RunSession.players.all():
 		if _state.ghost && _state.parked && _state.guest_run_data != null:
-			_ghost_rewards.rpc_id(_state.peer_id, _state.guest_run_data.weapons)
+			_ghost_rewards.rpc_id(_state.peer_id, _state.guest_run_data.all_weapons().slice(0, PlayerRunData.MAX_WEAPONS))
 
 @rpc("authority", "call_remote", "reliable")
 func _ghost_rewards(weapons:PackedStringArray)->void:
 	if !net().is_ghost() || weapons.size() > PlayerRunData.MAX_WEAPONS:
 		return
 	# a ghost-tier guest keeps nothing from the host's run (GuestTier)
-	if !RunSession.local_player().electrician:
+	if !GuestTier.full(RunSession.local_player()):
 		return
 	var _database:ItemCollectionResource = load(DATABASE_PATH)
 	var _carried:ItemCollectionResource = ItemCollectionResource.new()
@@ -777,7 +825,7 @@ func _on_pause_changed()->void:
 	var _input:Node = _body.get_node_or_null("PlayerInput") if _body != null else null
 	if _input == null:
 		return
-	if !pause_resource.value:
+	if !pause_resource.value && !inventory_open.value:
 		_input.set_enabled(true)
 		return
 	if !net().is_online():

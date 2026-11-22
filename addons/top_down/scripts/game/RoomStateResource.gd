@@ -18,6 +18,12 @@ var cleared_sections: Dictionary = {}
 ## Opened one-use containers (loot boxes), keyed "<room scene>:<node name>".
 var looted: Dictionary = {}
 
+## Emitted when a shrine's use count changes (local use or the host's word).
+signal shrine_changed(key: String)
+
+## Uses taken from shrines, keyed like `looted`: key -> count.
+var shrine_used: Dictionary = {}
+
 ## Id of the room the player is currently in.
 var current_room_id: StringName = &""
 
@@ -26,6 +32,7 @@ func reset_resource() -> void:
 	cleared_rooms.clear()
 	cleared_sections.clear()
 	looted.clear()
+	shrine_used.clear()
 	current_room_id = &""
 	updated.emit()
 
@@ -34,6 +41,15 @@ func is_looted(key: String) -> bool:
 
 func mark_looted(key: String) -> void:
 	looted[key] = true
+
+func shrine_used_count(key: String) -> int:
+	return int(shrine_used.get(key, 0))
+
+func set_shrine_used(key: String, count: int) -> void:
+	if shrine_used_count(key) == count:
+		return
+	shrine_used[key] = count
+	shrine_changed.emit(key)
 
 func set_current(id: StringName) -> void:
 	if current_room_id == id:

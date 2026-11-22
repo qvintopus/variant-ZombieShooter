@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_w0nxh"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_yboiq"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_qmo8o"]
+
+[resource]
+script = ExtResource("3_qmo8o")
+id = &"player_spawn"
+display_name = "Player spawn"
+icon_scene = "res://addons/top_down/scenes/actors/player.tscn"
+color = Color(0.2, 0.9, 1, 1)
+description = "Where the player starts when the room is started directly."
+tags = PackedStringArray("player", "spawn", "start")
+bake = 8
+legend = "P"

@@ -1,4 +1,5 @@
-## Global gameplay balance, loaded once from res://game/balance/balance.json.
+## Global gameplay balance, loaded once from res://game/balance/balance.json, plus the
+## room entries ("rooms": waves, spawn caps, loot) from maps.json (written by the room baker).
 ##
 ## Every balanced scene carries a BalanceBinding node. When the scene root enters
 ## the tree the binding asks this autoload to write the scene's JSON entry onto
@@ -17,6 +18,7 @@
 extends Node
 
 const PATH:String = "res://game/balance/balance.json"
+const MAPS_PATH:String = "res://game/balance/maps.json"
 const INVENTORY_PATH:String = "res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres"
 
 ## JSON category -> table name
@@ -170,6 +172,11 @@ func _load()->void:
 		push_error("balance: ", PATH, " is not a valid JSON object")
 		return
 	data = _parsed
+	var _maps:Variant = JSON.parse_string(FileAccess.get_file_as_string(MAPS_PATH)) if FileAccess.file_exists(MAPS_PATH) else null
+	if _maps is Dictionary && _maps.get("rooms") is Dictionary:
+		data["rooms"] = _maps.rooms
+	else:
+		push_error("balance: missing or invalid ", MAPS_PATH)
 	for _category:String in CATEGORY_TABLES:
 		var _section:Dictionary = data.get(_category, {})
 		# player is a single entry, the rest are id -> entry
@@ -180,6 +187,25 @@ func _load()->void:
 			var _entry:Variant = _section[_id]
 			if _entry is Dictionary && _entry.has("scene"):
 				_by_scene[_entry.scene] = [_category, _id]
+
+## Extra "rooms" entries of the active mod (by their cached scene path): room id ->
+## entry with "scene". Kept apart from maps.json; clear_registered() drops them.
+func register_rooms(entries:Dictionary)->void:
+	var _rooms:Dictionary = data.get_or_add("rooms", {})
+	for _id:String in entries:
+		var _entry:Variant = entries[_id]
+		if !(_entry is Dictionary) || !_entry.has("scene"):
+			continue
+		var _key:String = "mod:" + str(_entry.scene)
+		_rooms[_key] = _entry
+		_by_scene[_entry.scene] = ["rooms", _key]
+
+func clear_registered()->void:
+	var _rooms:Dictionary = data.get("rooms", {})
+	for _key:String in _rooms.keys():
+		if _key.begins_with("mod:"):
+			_by_scene.erase(_rooms[_key].get("scene", ""))
+			_rooms.erase(_key)
 
 ## Dotted lookup, e.g. value("difficulty.easy.enemy_health_ratio", 1.0)
 func value(key:String, fallback:Variant = null)->Variant:

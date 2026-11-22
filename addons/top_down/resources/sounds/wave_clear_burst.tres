@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="SoundResource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/great_games_library/resources/SoundResource/SoundResource.gd" id="1_snd"]
+[ext_resource type="AudioStream" path="res://addons/top_down/assets/sounds/misc_0.wav" id="2_wav"]
+
+[resource]
+resource_name = "Wave clear burst"
+script = ExtResource("1_snd")
+pitch_min = 1.1
+pitch_max = 1.2
+volume = -3.0
+sound = ExtResource("2_wav")

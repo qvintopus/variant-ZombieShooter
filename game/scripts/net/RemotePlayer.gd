@@ -16,7 +16,7 @@ const PLAYER_SCENE:String = "res://addons/top_down/scenes/actors/player.tscn"
 ## Nodes that only make sense for the player at this keyboard.
 const LOCAL_ONLY:PackedStringArray = [
 	"PlayerInput", "DebugInput", "ReferencePlayer", "PlayerJuice", "ResetHealth",
-	"CameraPositionSetter", "MetaStats",
+	"CameraPositionSetter", "MetaStats", "PlayerInventory",
 ]
 var state:PlayerState
 ## The teammate's reported positions, played back a little behind (smooth
@@ -47,7 +47,7 @@ static func create(for_state:PlayerState, at:Vector2)->Node2D:
 				_receiver.remove_child(_child)
 				_child.free()
 	_use_state_resources(_player.get_node("ResourceNode"), for_state)
-	PlayerSkin.apply(_player, for_state.slot)
+	PlayerSkin.apply(_player, for_state)
 	var _driver:RemotePlayer = RemotePlayer.new()
 	_driver.name = "RemotePlayer"
 	_driver.state = for_state

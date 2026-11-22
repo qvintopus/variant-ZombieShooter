@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_tnobk"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_kpxk5"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_ujhlc"]
+
+[resource]
+script = ExtResource("3_ujhlc")
+id = &"loot_box"
+display_name = "Loot box"
+color = Color(0.85, 0.65, 0.2, 1)
+tags = PackedStringArray("loot", "chest", "box")
+scene_path = "res://addons/top_down/scenes/interactables/loot_box.tscn"
+legend = "L"

@@ -9,6 +9,7 @@
 ##   ghost     (coop_ghost_check) victory -> home as a ghost -> rejoin -> back
 ##   midwave   (coop_join_check) join from our home (two guns in the stash) while
 ##             the host is mid-fight: one gun along, wait at the door, released
+##   shrine    (coop_shrine_check) shared shrine uses: sync, use, refused, broadcast
 ##   endscreen (coop_join_check) join while the host is on its victory screen:
 ##             stay home, then follow it into its home base
 ## Prints "NETCLIENT <event> <detail>" lines for the host test to read.
@@ -55,6 +56,9 @@ func _ready()->void:
 	if _mode == "ghost":
 		_start_ghost(_address)
 		return
+	if _mode == "shrine":
+		_start_shrine(_address)
+		return
 	if _mode == "midwave" || _mode == "endscreen":
 		_start_join(_address)
 		return
@@ -62,7 +66,8 @@ func _ready()->void:
 	Net.session_ended.connect(func (reason:String)->void: _report("ended", reason); _quit())
 	Net.roster_changed.connect(func ()->void:
 		if Net.is_guest():
-			_report("roster", str(RunSession.players.count())))
+			_report("roster", str(RunSession.players.count()))
+			_report("name", RunSession.local_player().display_name))
 	Net.state_changed.connect(func ()->void:
 		if Net.is_guest():
 			_report("joined", str(RunSession.players.local_slot))
@@ -74,6 +79,28 @@ func _ready()->void:
 	var _err:Error = Net.join(_address)
 	_report("join", str(_err))
 	get_tree().create_timer(20.0).timeout.connect(func ()->void: _report("timeout", ""); _quit())
+
+## coop_shrine_check: shrine keys only (no room needed), host owns the counts.
+func _start_shrine(address:String)->void:
+	var _state:RoomStateResource = load("res://addons/top_down/resources/global_resources/room_state_resource.tres")
+	_state.reset_resource()
+	_state.shrine_changed.connect(func (key:String)->void: _report("state", "%s=%d" % [key, _state.shrine_used_count(key)]))
+	Net.session_ended.connect(func (_reason:String)->void: _report("ended", ""); _quit())
+	get_tree().create_timer(30.0).timeout.connect(func ()->void: _report("timeout", ""); _quit())
+	_report("join", str(Net.join(address)))
+	await _until(func ()->bool: return Net.is_guest() && RunSession.players.count() == 2)
+	await get_tree().create_timer(0.3).timeout
+	Net.shrines.request_sync("res://t.tscn:Pre")
+	await _until(func ()->bool: return _state.shrine_used_count("res://t.tscn:Pre") == 1)
+	var _answers:Array = []
+	Net.shrines.request_use("res://t.tscn:One", 1, func (granted:bool)->void: _answers.append(granted))
+	await _until(func ()->bool: return _answers.size() == 1)
+	_report("use1", "%s %d" % [_answers[0], _state.shrine_used_count("res://t.tscn:One")])
+	Net.shrines.request_use("res://t.tscn:One", 1, func (granted:bool)->void: _answers.append(granted))
+	await _until(func ()->bool: return _answers.size() == 2)
+	_report("use2", "%s %d" % [_answers[1], _state.shrine_used_count("res://t.tscn:One")])
+	await _until(func ()->bool: return _state.shrine_used_count("res://t.tscn:Host") == 2)
+	_report("done", "")
 
 ## coop_home_check: a guest in the host's home base, as a ghost then as an
 ## electrician. Each step waits for what the host set up; the host checks its side.

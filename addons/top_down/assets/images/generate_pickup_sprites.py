@@ -10,12 +10,17 @@ Output layout:
 - misc/meat_grinder_24x32_strip4.png     idle + 3 crank frames
 - misc/slime_workbench_32x24_strip2.png  idle + bubbling
 - misc/slot_machine_24x32_strip3.png     idle, spinning, lever pulled
+- projectile/bomb_16x16_strip4.png        bomb with a flickering fuse spark (ability)
+- projectile/bomb_hot_16x16_strip2.png    white-hot bomb about to blow
+- gui/ability_bomb_16x16.png              bomb ability HUD icon
+
+Only the bomb:  python3 generate_pickup_sprites.py --bomb
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from generate_enemy_sprites import HERE, PALETTE, add_outline, new_canvas, write_png, write_strip
+from generate_enemy_sprites import HERE, PALETTE, add_outline, ellipse, new_canvas, write_png, write_strip
 
 COLORS = dict(PALETTE)
 COLORS.update({
@@ -243,6 +248,58 @@ def slot_frame(symbols, lever_down):
 	return add_outline(canvas)
 
 
+BOMB_BODY = (44, 42, 56, 255)
+BOMB_MID = (70, 68, 88, 255)
+BOMB_SHINE = (150, 150, 176, 255)
+BOMB_CAP = (120, 112, 96, 255)
+FUSE = (150, 104, 66, 255)
+SPARK_HOT = (255, 250, 210, 255)
+SPARK_MID = (255, 196, 64, 255)
+SPARK_RED = (240, 90, 40, 255)
+
+## Spark shapes per frame: (dx, dy, color) around the fuse tip
+BOMB_SPARKS = [
+	[(0, 0, SPARK_HOT), (-1, 0, SPARK_MID), (1, -1, SPARK_MID), (0, -2, SPARK_RED)],
+	[(0, 0, SPARK_HOT), (1, 0, SPARK_MID), (-1, -1, SPARK_RED), (1, -2, SPARK_MID), (-2, -2, SPARK_RED)],
+	[(0, 0, SPARK_MID), (0, -1, SPARK_HOT), (-1, -2, SPARK_MID)],
+	[(0, 0, SPARK_HOT), (-1, -1, SPARK_MID), (1, -1, SPARK_MID), (0, -3, SPARK_RED), (2, -2, SPARK_RED)],
+]
+
+
+def bomb_frame(sparks, hot=0.0):
+	"""16x16 round bomb, fuse to the upper right; `hot` 0..1 blends the body toward white."""
+	def mix(color):
+		if hot <= 0.0:
+			return color
+		return tuple(int(c + (255 - c) * hot) for c in color[:3]) + (255,)
+	canvas = new_canvas(16, 16)
+	ellipse(canvas, 7.5, 9.5, 5.5, 5.5, mix(BOMB_BODY))
+	ellipse(canvas, 6.8, 8.6, 3.6, 3.6, mix(BOMB_MID))
+	ellipse(canvas, 5.6, 7.4, 1.4, 1.4, mix(BOMB_SHINE))
+	# cap
+	for x in range(8, 11):
+		canvas[4][x] = mix(BOMB_CAP)
+		canvas[5][x] = mix(BOMB_CAP)
+	# fuse
+	for x, y in [(10, 3), (11, 2), (12, 2)]:
+		canvas[y][x] = FUSE
+	tip_x, tip_y = 13, 2
+	framed = add_outline(canvas)
+	for dx, dy, color in sparks:
+		x, y = tip_x + dx, tip_y + dy
+		if 0 <= x < 16 and 0 <= y < 16:
+			framed[y][x] = color
+	return framed
+
+
+def bomb_main():
+	projectile = os.path.join(HERE, 'projectile')
+	gui = os.path.join(HERE, 'gui')
+	write_strip(os.path.join(projectile, 'bomb_16x16_strip4.png'), [bomb_frame(s) for s in BOMB_SPARKS])
+	write_strip(os.path.join(projectile, 'bomb_hot_16x16_strip2.png'), [bomb_frame(BOMB_SPARKS[0], 0.55), bomb_frame(BOMB_SPARKS[3], 0.9)])
+	write_png(os.path.join(gui, 'ability_bomb_16x16.png'), bomb_frame(BOMB_SPARKS[1]))
+
+
 def main():
 	items = os.path.join(HERE, 'items')
 	misc = os.path.join(HERE, 'misc')
@@ -307,6 +364,10 @@ def preview(path, scale=8):
 
 
 if __name__ == '__main__':
+	if '--bomb' in sys.argv:
+		bomb_main()
+		sys.exit(0)
 	main()
+	bomb_main()
 	if len(sys.argv) > 1:
 		preview(sys.argv[1])

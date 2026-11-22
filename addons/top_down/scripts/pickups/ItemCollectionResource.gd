@@ -66,5 +66,56 @@ func take()->ItemResource:
 	removed.emit(_item, false)
 	return _item
 
+## Inventory screen edits (list stays packed, `selected` stays valid).
+func insert_at(index:int, value:ItemResource)->void:
+	if value == null:
+		return
+	list.insert(clampi(index, 0, list.size()), value)
+	_clamp_selected()
+	updated.emit()
+
+## Takes the item at index out (not dropped: it moves elsewhere).
+func remove_at(index:int)->ItemResource:
+	if index < 0 || index >= list.size():
+		return null
+	var _item:ItemResource = list[index]
+	list.remove_at(index)
+	_clamp_selected()
+	updated.emit()
+	removed.emit(_item, false)
+	return _item
+
+## Puts value at index, handing back what was there.
+func replace_at(index:int, value:ItemResource)->ItemResource:
+	if index < 0 || index >= list.size():
+		insert_at(index, value)
+		return null
+	var _item:ItemResource = list[index]
+	list[index] = value
+	updated.emit()
+	if _item != null && _item != value:
+		removed.emit(_item, false)
+	return _item
+
+## Swaps two slots
+func move(from:int, to:int)->void:
+	if from < 0 || to < 0 || from >= list.size() || to >= list.size() || from == to:
+		return
+	var _tmp:ItemResource = list[to]
+	list[to] = list[from]
+	list[from] = _tmp
+	if selected == from:
+		selected = to
+	elif selected == to:
+		selected = from
+	updated.emit()
+	selected_changed.emit()
+
+func _clamp_selected()->void:
+	var _before:int = selected
+	selected = clampi(selected, 0, maxi(list.size() - 1, 0))
+	if selected != _before:
+		selected_changed.emit()
+
 func filter_empty(value:ItemResource)->bool:
 	return value != null

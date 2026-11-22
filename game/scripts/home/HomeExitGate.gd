@@ -53,7 +53,8 @@ func _refresh_lock()->void:
 		hint_label.visible = false
 
 func can_leave()->bool:
-	return weapon_inventory.list.size() <= 1
+	var _grid:InventoryGridResource = home_base.inventory_grid if home_base != null else null
+	return weapon_inventory.list.size() <= 1 && (_grid == null || _grid.weapons().is_empty())
 
 func _on_body_entered(_body:Node2D)->void:
 	if _leaving || (_transition_bool != null && _transition_bool.value):

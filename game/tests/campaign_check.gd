@@ -1,7 +1,7 @@
-## Checks every room built by game/tools/build_rooms.gd (New Game N rooms, New Game+
+## Checks every room baked from game/rooms/layouts (New Game N rooms, New Game+
 ## P rooms, the C boss path): door and portal links both ways, sections (waves, spawn
 ## points, triggers, requires chain, gates), boss waves, markers and interactables on
-## walkable floor, tile looks, colliders and the balance.json entries. Per campaign:
+## walkable floor, tile looks, colliders and the maps.json entries. Per campaign:
 ## every room reachable from its start, dead ends, the boss count, hub portals paired
 ## with the boss rooms and every interactable placed somewhere.
 ## Then plays: room_C10's gate opening only after Section1, a boss room's portal and
@@ -13,16 +13,14 @@ extends Node
 
 const TD:String = "res://addons/top_down/"
 const SCENES:String = "res://game/scenes/"
-const CAMPAIGNS:Dictionary = {
-	"new_game": preload("res://game/tools/rooms_new_game.gd"),
-	"new_game_plus": preload("res://game/tools/rooms_new_game_plus.gd"),
-	"boss_path": preload("res://game/tools/rooms_boss_path.gd"),
-}
+const LAYOUTS:String = "res://game/rooms/layouts/"
+## Campaigns checked; boss_path rooms write no maps.json entry (not a campaign).
+const CAMPAIGN_IDS:Array[String] = ["new_game", "new_game_plus", "boss_path"]
 const BOSS_COUNT:Dictionary = {"new_game": 2, "new_game_plus": 3, "boss_path": 3}
 const LOOK_SOURCE:Dictionary = {"base": 1, "mossy": 10, "bloody": 20, "metal": 30, "sandstone": 40, "flesh": 50}
 const INTERACTABLES_DIR:String = TD + "scenes/interactables/"
 ## Contraptions of the home base memory grid, never in a campaign room
-const HOME_ONLY:Array[String] = ["data_lever.tscn", "gate_lever.tscn", "reset_button.tscn", "write_button.tscn", "comms_terminal.tscn", "robot_printer.tscn"]
+const HOME_ONLY:Array[String] = ["data_lever.tscn", "gate_lever.tscn", "reset_button.tscn", "write_button.tscn", "comms_terminal.tscn", "robot_printer.tscn", "home_chest.tscn", "stash_lever.tscn"]
 const VICTORY:String = SCENES + "victory.tscn"
 const TRIGGERS:Array[String] = ["ArenaEntry", "ArenaSection1Entry", "ArenaSection2Entry"]
 const GATE:int = 1 # ArenaDoorBlock.WallMode.GATE
@@ -43,6 +41,7 @@ func _ready()->void:
 	var _actions:ActionResource = load(TD + "resources/global_resources/action_resource.tres")
 	_actions.reset_resource()
 	_balance = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/balance.json"))
+	_balance.rooms = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/maps.json")).rooms
 	_state = load(TD + "resources/global_resources/room_state_resource.tres")
 
 	var _room_1:Node = _load_room("room_1")
@@ -54,14 +53,15 @@ func _ready()->void:
 		check(!_wave.is_boss, "room_1 has no boss wave left")
 	_room_1.free()
 
-	for _campaign:String in CAMPAIGNS:
-		var _rooms:Dictionary = CAMPAIGNS[_campaign].ROOMS
+	var _campaigns:Dictionary = _layout_specs()
+	for _campaign:String in CAMPAIGN_IDS:
+		var _rooms:Dictionary = _campaigns[_campaign].rooms
 		for _key:String in _rooms:
 			var _name:String = "room_" + _key
 			var _room:Node = _load_room(_name)
 			_check_room(_name, _rooms[_key], _room, _balance.rooms.get(_name, {}))
 			_room.free()
-		if CAMPAIGNS[_campaign].CAMPAIGN:
+		if _campaigns[_campaign].campaign:
 			_check_campaign(_campaign, _rooms)
 
 	await _play_sections()
@@ -71,6 +71,19 @@ func _ready()->void:
 	await _play_campaign_start()
 	print("campaign_check: %d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
+
+## Campaign id -> {rooms: {key: spec}, campaign: writes balance}, from the layouts.
+func _layout_specs()->Dictionary:
+	var _campaigns:Dictionary = {}
+	for _id:String in CAMPAIGN_IDS:
+		_campaigns[_id] = {"rooms": {}, "campaign": false}
+	for _file:String in DirAccess.get_files_at(LAYOUTS):
+		var _layout:RoomLayoutResource = load(LAYOUTS + _file)
+		if !_campaigns.has(String(_layout.campaign)):
+			continue
+		_campaigns[_layout.campaign].rooms[_layout.key] = _layout.to_spec()
+		_campaigns[_layout.campaign].campaign = _layout.writes_balance
+	return _campaigns
 
 func _load_room(name:String)->Node:
 	return (load(SCENES + name + ".tscn") as PackedScene).instantiate()
@@ -181,10 +194,10 @@ func _check_room(name:String, spec:Dictionary, room:Node, entry:Dictionary)->voi
 		elif _i > 0:
 			check(_section.requires == _sections[_i - 1], "%s requires Section%d" % [_label, _i])
 		var _entry_waves:Array = entry.get("sections", {}).get("Section%d" % (_i + 1), {}).get("waves", [])
-		check(_entry_waves.size() == _section.waves.size(), "%s balance.json waves match the scene" % _label)
+		check(_entry_waves.size() == _section.waves.size(), "%s maps.json waves match the scene" % _label)
 		for _w:int in mini(_entry_waves.size(), _section.waves.size()):
 			check(int(_entry_waves[_w].count) == _section.waves[_w].count && _entry_waves[_w].get("is_boss", false) == _section.waves[_w].is_boss,
-				"%s wave %d matches balance.json" % [_label, _w + 1])
+				"%s wave %d matches maps.json" % [_label, _w + 1])
 	check(_boss_waves == (1 if spec.has("boss_section") else 0), "%s boss wave count" % name)
 
 	# Each BlockWall line closes its passage: its ends meet a wall collider or hole.

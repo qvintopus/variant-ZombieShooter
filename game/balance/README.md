@@ -2,6 +2,8 @@
 
 `balance.json` holds every tunable gameplay value. It is loaded at startup by the `Balance` autoload (`game/scripts/balance/Balance.gd`). Each balanced scene has a `BalanceBinding` node, which writes that scene's entry onto its components when the scene enters the tree.
 
+Room entries (`rooms`: section waves, spawn caps, loot multiplier) live in `maps.json` next to it. The room baker (`build_rooms.tscn`, map creator Save) writes them; `Balance` loads them as `data.rooms`.
+
 - **Typos are reported.** A misspelled key or a node that can't be found shows up as a `WARNING: balance: ...` line in the output.
 - **Removing a key is safe.** The scene's own authored value is used instead.
 - **Entries are matched by `scene`.** To balance a new scene, add an entry with its `scene` path. Scenes inheriting `actor.tscn`, `weapon.tscn` or `projectile.tscn` already carry the binding.

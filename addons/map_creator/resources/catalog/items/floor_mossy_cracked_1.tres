@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapCatalogItem" format=3]
+
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogOperation.gd" id="1_nbxnk"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapPropertySpec.gd" id="2_b8ur1"]
+[ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalogItem.gd" id="3_q12eo"]
+
+[resource]
+script = ExtResource("3_q12eo")
+id = &"floor_mossy_cracked_1"
+display_name = "Mossy cracked 1"
+color = Color(0.28, 0.48000002, 0.24000001, 1)
+kind = 0
+tags = PackedStringArray("mossy", "floor", "cracked")
+floor_source = 10
+floor_atlas = Vector2i(1, 3)

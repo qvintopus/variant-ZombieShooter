@@ -33,10 +33,13 @@ const STATS:Dictionary = {
 	"loot_ratio": "percent",
 	"shell_printer": "flag",
 	"guest_electricians": "flag",
+	"inventory_width": "flat",
+	"inventory_height": "flat",
+	"stash_lever": "flag",
 }
 
-## Frame order of meta_icons_12x12_strip10.png (set by generate_meta_frames.py).
-const ICONS:Array[String] = ["star", "heart", "sword", "boot", "dash", "shield", "coin", "meat", "slime", "crystal"]
+## Frame order of meta_icons_12x12_strip11.png (set by generate_meta_frames.py).
+const ICONS:Array[String] = ["star", "heart", "sword", "boot", "dash", "shield", "coin", "meat", "slime", "crystal", "bag"]
 
 static var _data:Dictionary
 

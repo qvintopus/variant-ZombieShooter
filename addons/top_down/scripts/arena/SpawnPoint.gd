@@ -22,3 +22,7 @@ func _ready()->void:
 		section.register_point(self)
 	else:
 		section.register_boss_point(self)
+
+func _exit_tree()->void:
+	if is_instance_valid(section):
+		section.unregister_point(self)

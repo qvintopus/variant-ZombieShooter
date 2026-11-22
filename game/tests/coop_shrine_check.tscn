@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://game/tests/coop_shrine_check.gd" id="1_check"]
+
+[node name="CoopShrineCheck" type="Node"]
+script = ExtResource("1_check")

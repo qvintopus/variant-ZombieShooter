@@ -3,9 +3,9 @@
 [ext_resource type="Texture2D" uid="uid://cih1f04hqm1fh" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor.png" id="1_ounjj"]
 [ext_resource type="Texture2D" uid="uid://dkfdx0h5mslxg" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_mossy.png" id="10_mossy"]
 [ext_resource type="Texture2D" uid="uid://dou8o33ag2dk3" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_bloody.png" id="20_bloody"]
-[ext_resource type="Texture2D" uid="uid://618ijp81ipk1" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_metal.png" id="30_metal"]
-[ext_resource type="Texture2D" uid="uid://dir8xhg54wav7" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_sandstone.png" id="40_sandstone"]
-[ext_resource type="Texture2D" uid="uid://bol76267jobe6" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_flesh.png" id="50_flesh"]
+[ext_resource type="Texture2D" uid="uid://c5bi7rlysms1w" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_metal.png" id="30_metal"]
+[ext_resource type="Texture2D" uid="uid://5s27nsbjw72w" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_sandstone.png" id="40_sandstone"]
+[ext_resource type="Texture2D" uid="uid://ebgiiwj1oetp" path="res://addons/top_down/assets/images/tilesets/tileset_isometric_floor_flesh.png" id="50_flesh"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_63ubm"]
 texture = ExtResource("1_ounjj")

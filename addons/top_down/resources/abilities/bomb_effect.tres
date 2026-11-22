@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="BombAbilityEffect" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://addons/top_down/scripts/abilities/BombAbilityEffect.gd" id="1_eff"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/InstanceResources/abilities/bomb_instance.tres" id="2_inst"]
+
+[resource]
+resource_name = "Bomb effect"
+script = ExtResource("1_eff")
+bomb_instance = ExtResource("2_inst")
