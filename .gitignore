@@ -5,7 +5,6 @@
 .import/
 .build/
 export.cfg
-export_presets.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation
@@ -28,3 +27,8 @@ addons/top_down/scripts/obstackles/BlockWall.gd.uid
 addons/top_down/scripts/arena/EnemySpawnPoints.gd.uid
 addons/top_down/scripts/arena/ArenaSectionAggregator.gd.uid
 addons/top_down/scripts/arena/ArenaSection.gd.uid
+
+# Exports: build folders are kept (Godot won't export into a missing folder), their contents aren't
+/build/**
+!/build/**/
+!/build/**/.gitkeep
