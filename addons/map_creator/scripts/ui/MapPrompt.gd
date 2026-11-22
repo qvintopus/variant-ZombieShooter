@@ -18,6 +18,9 @@ var _alt:Button
 var _alt_answer:Callable
 var _text_row:HBoxContainer
 var _choices:VBoxContainer
+## Inner width of the open prompt: wrapped labels / buttons get it before they are measured
+## (measured at 0 width, a never-shown label wraps per word and blows the panel up).
+var _inner_width:float
 
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -85,6 +88,7 @@ func ask(title:String, initial:String, answer:Callable, alt_label:String = "", a
 ## Choices: [{label, action:Callable, danger:bool}]; each closes the prompt, then runs.
 func ask_confirm(title:String, body:String, choices:Array)->void:
 	_set_confirm_mode(true)
+	_set_inner_width(confirm_width)
 	_title.text = title
 	_body.text = body
 	_body.visible = !body.is_empty()
@@ -102,6 +106,7 @@ func _choice_button(label:String, action:Callable, danger:bool)->void:
 	_b.focus_mode = Control.FOCUS_NONE
 	_b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_b.custom_minimum_size.x = _inner_width
 	if danger:
 		_b.add_theme_color_override(&"font_color", creator.preset.danger_color)
 		_b.add_theme_color_override(&"font_hover_color", creator.preset.danger_color.lightened(0.3))
@@ -131,7 +136,14 @@ func _set_confirm_mode(on:bool)->void:
 	if on:
 		_alt.visible = false
 
+func _set_inner_width(width:float)->void:
+	var _style:StyleBox = get_theme_stylebox(&"panel")
+	_inner_width = width - (_style.get_minimum_size().x if _style != null else 0.0)
+	_title.custom_minimum_size.x = _inner_width
+	_body.custom_minimum_size.x = _inner_width
+
 func _show(width:float)->void:
+	_set_inner_width(width)
 	visible = true
 	size = Vector2(width, 0)
 	custom_minimum_size.x = width

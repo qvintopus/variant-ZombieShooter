@@ -175,6 +175,15 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	_cam.zoom = _zoom
 	# delete prompts
 	var _prompt:MapPrompt = creator.get_node("UI/Root/Prompt")
+	# the first confirm ever shown fits its text (wrapped labels measured at 0 width blew it up)
+	_panel.ask_remove_wave(_last, 0)
+	await _frames(3)
+	var _first:Vector2 = _prompt.size
+	_prompt.close()
+	_panel.ask_remove_wave(_last, 0)
+	await _frames(3)
+	check(_first.is_equal_approx(_prompt.size) && _prompt.size.y < (_prompt.get_parent() as Control).size.y * 0.6, "first delete prompt sized like later ones (%s vs %s)" % [_first, _prompt.size])
+	_prompt.close()
 	_panel.ask_remove_section(_last)
 	check(_prompt.visible && _prompt.choice_labels().size() == 3 && _prompt.choice_labels()[0].contains("2 map entities"), "section delete asks: delete all / move / cancel %s" % [_prompt.choice_labels()])
 	_prompt.press_choice(2)
