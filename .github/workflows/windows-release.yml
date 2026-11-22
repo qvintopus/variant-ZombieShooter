@@ -1,0 +1,99 @@
+# Windows build + GitHub release for every commit that lands on master.
+# Feature branches merge into dev; only dev -> master merges are released.
+# The release tag is v<config/version> from project.godot: bump it before merging to master.
+name: Windows release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_STATUS: stable
+  PRESET: Windows Desktop
+  EXE_NAME: ZombieShooter.exe
+
+jobs:
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(sed -n 's/^config\/version="\(.*\)"$/\1/p' project.godot)
+          if [ -z "$version" ]; then
+            echo "::error::application/config/version is not set in project.godot"
+            exit 1
+          fi
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists: bump application/config/version in project.godot"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Cache Godot and export templates
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}
+
+      - name: Download Godot and export templates
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_STATUS}"
+          mkdir -p ~/godot
+          curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64 ~/godot/godot
+          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}
+          mkdir -p "$dest"
+          mv /tmp/templates/templates/windows_* /tmp/templates/templates/version.txt "$dest"/
+
+      - name: Import project
+        run: ~/godot/godot --headless --import || true
+
+      - name: Export Windows build
+        run: |
+          mkdir -p build/windows
+          ~/godot/godot --headless --export-release "$PRESET" "build/windows/$EXE_NAME"
+          test -f "build/windows/$EXE_NAME"
+
+      - name: Package
+        id: package
+        run: |
+          name="ZombieShooter-${{ steps.version.outputs.tag }}-windows"
+          stage="build/package/$name"
+          mkdir -p "$stage/tools/vlan"
+          cp "build/windows/$EXE_NAME" "$stage/"
+          # run beside the exe, not from the pck: VlanTool looks for tools/vlan next to it
+          cp tools/vlan/*.ps1 tools/vlan/*.cmd "$stage/tools/vlan/" 2>/dev/null || true
+          cp tools/*.cmd tools/*.ps1 "$stage/tools/" 2>/dev/null || true
+          (cd build/package && zip -qr "$name.zip" "$name")
+          echo "zip=build/package/$name.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" "${{ steps.package.outputs.zip }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
