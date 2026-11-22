@@ -142,6 +142,11 @@ func _ready()->void:
 			_redo.assign(_history[1])
 		settings.histories.erase(key)
 	_offer_autosave.call_deferred()
+	if settings != null && !settings.focus.is_empty():
+		var _focus:Dictionary = settings.focus
+		settings.focus = {}
+		if layout != null:
+			focus_exits.call_deferred(_focus.get("tags", PackedStringArray()), _focus.get("back_to", ""))
 	if settings != null && settings.test_section > 0:
 		var _section:int = settings.test_section
 		settings.test_section = 0
@@ -758,15 +763,47 @@ func section_entities(number:int, bake:MapCatalogItem.Bake)->Array[LayoutEntity]
 
 ## Selects them and inspects them together; false (and a message) when there are none.
 func select_section_entities(number:int, bake:MapCatalogItem.Bake)->bool:
-	var _entries:Array = []
-	for _entity:LayoutEntity in section_entities(number, bake):
-		_entries.append({"cell": _entity.cell, "type": _entity.item_id})
-	if _entries.is_empty():
+	if !select_entities(section_entities(number, bake)):
 		message.emit("Section %d has none" % number)
 		return false
-	selection.set_entries(_entries)
-	_inspect_selection()
 	return true
+
+## Selects `list`, inspects those of the first one's item together (barrier + gate: the
+## first kind) and moves the edit camera to the first. False when empty.
+func select_entities(list:Array[LayoutEntity])->bool:
+	if list.is_empty():
+		return false
+	var _entries:Array = []
+	var _group:Array[LayoutEntity] = []
+	for _entity:LayoutEntity in list:
+		_entries.append({"cell": _entity.cell, "type": _entity.item_id})
+		if _entity.item_id == list[0].item_id:
+			_group.append(_entity)
+	selection.set_entries(_entries)
+	inspect(_group[0], _group)
+	var _at:Vector2 = cell_center(list[0].cell)
+	if editing && camera != null:
+		camera.global_position = _at
+	else:
+		_edit_camera_at = _at
+	return true
+
+## Selects the entries whose tag or connect_tag is one of `tags`, else (none) those whose
+## room is `back_to` ("room_N01"): where a link from another room lands.
+func focus_exits(tags:PackedStringArray, back_to:String = "")->bool:
+	if layout == null:
+		return false
+	var _found:Array[LayoutEntity] = []
+	for _entity:LayoutEntity in layout.entities:
+		for _prop:String in ["tag", "connect_tag"]:
+			var _value:String = String(_entity.props.get(_prop, ""))
+			if !_value.is_empty() && tags.has(_value) && !_found.has(_entity):
+				_found.append(_entity)
+	if _found.is_empty() && !back_to.is_empty():
+		for _entity:LayoutEntity in layout.entities:
+			if String(_entity.props.get("room", "")) == back_to:
+				_found.append(_entity)
+	return select_entities(_found)
 
 ## Rooms with an entity whose tag or connect_tag is `tag` (this room's live layout):
 ## [{key, name, uses}] by key, uses like "Stairs tag", "Portal arrives".
@@ -1256,7 +1293,8 @@ func _catalog_slice(type:StringName, cell:Vector2i)->Dictionary:
 
 ## Goes to another room (solo only). Unsaved edits need a second call within 3 s to drop.
 ## The new room's editor comes back in Edit mode when this one was editing.
-func switch_room(to_key:String)->bool:
+## `focus` {tags, back_to}: what the next room selects (focus_exits).
+func switch_room(to_key:String, focus:Dictionary = {})->bool:
 	var _net:Node = get_node_or_null(^"/root/Net")
 	if _net != null && _net.call(&"is_online"):
 		message.emit("Room switching is off in co-op")
@@ -1270,6 +1308,8 @@ func switch_room(to_key:String)->bool:
 	if !ResourceLoader.exists(_path):
 		message.emit("No scene %s" % _path)
 		return false
+	if settings != null:
+		settings.focus = focus
 	_go(_path)
 	return true
 
