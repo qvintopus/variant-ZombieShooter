@@ -458,24 +458,22 @@ accent = "metal"
 side_room = 3
 sections = Array[Dictionary]([{
 "waves": [{
-"count": 8,
+"count": 6,
 "enemies": ["zombie", "zombie_crawler"]
 }, {
 "count": 8,
-"enemies": ["slime", "zombie"]
+"enemies": ["slime_small", "zombie", "zombie_crawler"]
 }]
 }, {
-"spawn_density": 2,
 "waves": [{
 "count": 10,
-"enemies": ["zombie", "bloater"]
+"enemies": ["zombie_crawler", "zombie", "slime_small"],
+&"max_alive": 20
 }]
 }, {
-"spawn_density": 3,
 "waves": [{
-"count": 16,
-"enemies": ["zombie_crawler", "slime"],
-"max_alive": 16
+"count": 2,
+"enemies": ["zombie_crawler"]
 }]
 }])
 floor = Dictionary[Vector2i, Vector3i]({

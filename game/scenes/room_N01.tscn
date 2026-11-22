@@ -18,11 +18,6 @@
 [sub_resource type="Resource" id="Resource_1"]
 script = ExtResource("5_SpawnWaveLis")
 count = 6
-instance_list = Array[ExtResource("6_InstanceReso")]([ExtResource("7_zomby_instan")])
-
-[sub_resource type="Resource" id="Resource_2"]
-script = ExtResource("5_SpawnWaveLis")
-count = 8
 instance_list = Array[ExtResource("6_InstanceReso")]([ExtResource("7_zomby_instan"), ExtResource("8_zomby_crawle")])
 
 [node name="Room" instance=ExtResource("1_room_templat")]
@@ -843,7 +838,7 @@ section = NodePath("../../EnemyManager/Section1")
 max_simultaneous = 6
 
 [node name="Section1" parent="EnemyManager"]
-waves = Array[ExtResource("5_SpawnWaveLis")]([SubResource("Resource_1"), SubResource("Resource_2")])
+waves = Array[ExtResource("5_SpawnWaveLis")]([SubResource("Resource_1")])
 
 [node name="RoomController" type="Node" parent="." node_paths=PackedStringArray("arena_entry")]
 script = ExtResource("9_RoomControll")

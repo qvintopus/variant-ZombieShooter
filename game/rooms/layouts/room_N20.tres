@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_g5jpk"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_msqlb"]
 
-[sub_resource type="Resource" id="Resource_m1jdk"]
+[sub_resource type="Resource" id="Resource_g5jpk"]
 script = ExtResource("1_g5jpk")
 item_id = &"door"
 cell = Vector2i(16, 1)
@@ -13,7 +13,7 @@ props = {
 "tag": "n20_n21"
 }
 
-[sub_resource type="Resource" id="Resource_ix3f6"]
+[sub_resource type="Resource" id="Resource_msqlb"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(15, 5)
@@ -21,7 +21,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_j2n4q"]
+[sub_resource type="Resource" id="Resource_m1jdk"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(16, 5)
@@ -29,7 +29,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_anlci"]
+[sub_resource type="Resource" id="Resource_ix3f6"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(17, 5)
@@ -37,7 +37,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_hlwpr"]
+[sub_resource type="Resource" id="Resource_j2n4q"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(10, 8)
@@ -45,7 +45,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_61b2t"]
+[sub_resource type="Resource" id="Resource_anlci"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(22, 8)
@@ -53,7 +53,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_h0tvn"]
+[sub_resource type="Resource" id="Resource_hlwpr"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(32, 10)
@@ -61,7 +61,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_fvqkm"]
+[sub_resource type="Resource" id="Resource_61b2t"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(40, 10)
@@ -69,7 +69,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_vsjw6"]
+[sub_resource type="Resource" id="Resource_h0tvn"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(3, 14)
@@ -77,7 +77,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_g13w5"]
+[sub_resource type="Resource" id="Resource_fvqkm"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(5, 14)
@@ -85,7 +85,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_fj5ut"]
+[sub_resource type="Resource" id="Resource_vsjw6"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(25, 14)
@@ -93,7 +93,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_kkbhj"]
+[sub_resource type="Resource" id="Resource_g13w5"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(27, 14)
@@ -101,7 +101,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_0te15"]
+[sub_resource type="Resource" id="Resource_fj5ut"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(29, 14)
@@ -109,7 +109,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_e1phk"]
+[sub_resource type="Resource" id="Resource_kkbhj"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(44, 14)
@@ -117,7 +117,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_wjsdh"]
+[sub_resource type="Resource" id="Resource_0te15"]
 script = ExtResource("1_g5jpk")
 item_id = &"door"
 cell = Vector2i(1, 15)
@@ -127,7 +127,7 @@ props = {
 "tag": "n20_n02"
 }
 
-[sub_resource type="Resource" id="Resource_s4gk3"]
+[sub_resource type="Resource" id="Resource_e1phk"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(3, 15)
@@ -135,12 +135,12 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_2vgkh"]
+[sub_resource type="Resource" id="Resource_wjsdh"]
 script = ExtResource("1_g5jpk")
 item_id = &"player_spawn"
 cell = Vector2i(4, 15)
 
-[sub_resource type="Resource" id="Resource_lhop5"]
+[sub_resource type="Resource" id="Resource_s4gk3"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(5, 15)
@@ -148,7 +148,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_d5avl"]
+[sub_resource type="Resource" id="Resource_2vgkh"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(16, 15)
@@ -156,7 +156,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_eoqf0"]
+[sub_resource type="Resource" id="Resource_lhop5"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(25, 15)
@@ -164,7 +164,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_884to"]
+[sub_resource type="Resource" id="Resource_d5avl"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(27, 15)
@@ -172,7 +172,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_2ts72"]
+[sub_resource type="Resource" id="Resource_eoqf0"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(29, 15)
@@ -180,7 +180,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_bm5ul"]
+[sub_resource type="Resource" id="Resource_884to"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(36, 15)
@@ -188,7 +188,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_7i1jy"]
+[sub_resource type="Resource" id="Resource_2ts72"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(44, 15)
@@ -196,7 +196,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_6acrt"]
+[sub_resource type="Resource" id="Resource_bm5ul"]
 script = ExtResource("1_g5jpk")
 item_id = &"door"
 cell = Vector2i(47, 15)
@@ -206,7 +206,7 @@ props = {
 "tag": "n20_n22"
 }
 
-[sub_resource type="Resource" id="Resource_1tcjy"]
+[sub_resource type="Resource" id="Resource_7i1jy"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(3, 16)
@@ -214,7 +214,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_mmubu"]
+[sub_resource type="Resource" id="Resource_6acrt"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(5, 16)
@@ -222,7 +222,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_rnabt"]
+[sub_resource type="Resource" id="Resource_1tcjy"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(25, 16)
@@ -230,7 +230,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_ph4hv"]
+[sub_resource type="Resource" id="Resource_mmubu"]
 script = ExtResource("1_g5jpk")
 item_id = &"barrier"
 cell = Vector2i(27, 16)
@@ -238,7 +238,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_u7cr3"]
+[sub_resource type="Resource" id="Resource_rnabt"]
 script = ExtResource("1_g5jpk")
 item_id = &"trigger"
 cell = Vector2i(29, 16)
@@ -246,7 +246,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_gh4hn"]
+[sub_resource type="Resource" id="Resource_ph4hv"]
 script = ExtResource("1_g5jpk")
 item_id = &"gate"
 cell = Vector2i(44, 16)
@@ -254,7 +254,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_vhnbq"]
+[sub_resource type="Resource" id="Resource_u7cr3"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(32, 20)
@@ -262,7 +262,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_ngc03"]
+[sub_resource type="Resource" id="Resource_gh4hn"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(40, 20)
@@ -270,7 +270,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_ull5h"]
+[sub_resource type="Resource" id="Resource_vhnbq"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(10, 22)
@@ -278,7 +278,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_6i1ae"]
+[sub_resource type="Resource" id="Resource_ngc03"]
 script = ExtResource("1_g5jpk")
 item_id = &"spawn"
 cell = Vector2i(22, 22)
@@ -295,18 +295,19 @@ look = "metal"
 sections = Array[Dictionary]([{
 "waves": [{
 "count": 8,
-"enemies": ["zombie", "slime"]
+"enemies": ["zombie", "slime_small"]
 }, {
 "count": 8,
-"enemies": ["acid_slime", "zombie_crawler"]
+"enemies": ["slime", "zombie_crawler", "zombie", "zombie", "slime_small"]
 }]
 }, {
 "waves": [{
-"count": 10,
-"enemies": ["bloater", "zombie"]
+"count": 8,
+"enemies": ["zombie", "zombie", "zombie_crawler", "slime_small", "slime"]
 }, {
 "count": 8,
-"enemies": ["skeleton", "zombie_crawler", "acid_slime"]
+"enemies": ["zombie", "zombie", "zombie_crawler", "slime_small", "slime"],
+&"max_alive": 16
 }]
 }])
 floor = Dictionary[Vector2i, Vector3i]({
@@ -887,4 +888,4 @@ Vector2i(49, 14): Vector3i(30, 0, 3),
 Vector2i(49, 15): Vector3i(30, 0, 3),
 Vector2i(49, 16): Vector3i(30, 0, 3)
 })
-entities = Array[ExtResource("1_g5jpk")]([SubResource("Resource_m1jdk"), SubResource("Resource_ix3f6"), SubResource("Resource_j2n4q"), SubResource("Resource_anlci"), SubResource("Resource_hlwpr"), SubResource("Resource_61b2t"), SubResource("Resource_h0tvn"), SubResource("Resource_fvqkm"), SubResource("Resource_vsjw6"), SubResource("Resource_g13w5"), SubResource("Resource_fj5ut"), SubResource("Resource_kkbhj"), SubResource("Resource_0te15"), SubResource("Resource_e1phk"), SubResource("Resource_wjsdh"), SubResource("Resource_s4gk3"), SubResource("Resource_2vgkh"), SubResource("Resource_lhop5"), SubResource("Resource_d5avl"), SubResource("Resource_eoqf0"), SubResource("Resource_884to"), SubResource("Resource_2ts72"), SubResource("Resource_bm5ul"), SubResource("Resource_7i1jy"), SubResource("Resource_6acrt"), SubResource("Resource_1tcjy"), SubResource("Resource_mmubu"), SubResource("Resource_rnabt"), SubResource("Resource_ph4hv"), SubResource("Resource_u7cr3"), SubResource("Resource_gh4hn"), SubResource("Resource_vhnbq"), SubResource("Resource_ngc03"), SubResource("Resource_ull5h"), SubResource("Resource_6i1ae")])
+entities = Array[ExtResource("1_g5jpk")]([SubResource("Resource_g5jpk"), SubResource("Resource_msqlb"), SubResource("Resource_m1jdk"), SubResource("Resource_ix3f6"), SubResource("Resource_j2n4q"), SubResource("Resource_anlci"), SubResource("Resource_hlwpr"), SubResource("Resource_61b2t"), SubResource("Resource_h0tvn"), SubResource("Resource_fvqkm"), SubResource("Resource_vsjw6"), SubResource("Resource_g13w5"), SubResource("Resource_fj5ut"), SubResource("Resource_kkbhj"), SubResource("Resource_0te15"), SubResource("Resource_e1phk"), SubResource("Resource_wjsdh"), SubResource("Resource_s4gk3"), SubResource("Resource_2vgkh"), SubResource("Resource_lhop5"), SubResource("Resource_d5avl"), SubResource("Resource_eoqf0"), SubResource("Resource_884to"), SubResource("Resource_2ts72"), SubResource("Resource_bm5ul"), SubResource("Resource_7i1jy"), SubResource("Resource_6acrt"), SubResource("Resource_1tcjy"), SubResource("Resource_mmubu"), SubResource("Resource_rnabt"), SubResource("Resource_ph4hv"), SubResource("Resource_u7cr3"), SubResource("Resource_gh4hn"), SubResource("Resource_vhnbq"), SubResource("Resource_ngc03")])

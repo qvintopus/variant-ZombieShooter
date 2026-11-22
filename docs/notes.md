@@ -13,3 +13,7 @@ things to do more:
 - need shrines placed somewhere in runs that replenish health (some just once, some twice or three times, should have visual difference)
 - need zoom-in camera effect on opening loot chests and having lootbox successful spins, have to have also slight fun camera tilt
 - 
+
+
+- need to think about challenge rooms, for agility, for evasion, for stamina, for skill
+- pray shrine should have bopping camera effect, and some blissful camera affects  
