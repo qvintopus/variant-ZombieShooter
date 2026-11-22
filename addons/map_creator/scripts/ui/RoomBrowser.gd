@@ -1,6 +1,7 @@
 ## Room search and switch (topbar Rooms / Tab in Edit mode). The search box matches every
 ## word against everything in a room (RoomIndex), the list shows the matches, and the info
-## panel shows the selected room's details. Go (double click / Enter) switches to it.
+## panel shows the selected room's details (its links open
+## the linked room with the stairs selected). Go (double click / Enter) switches to it.
 class_name RoomBrowser
 extends PanelContainer
 
@@ -10,7 +11,7 @@ extends PanelContainer
 var index:RoomIndex = RoomIndex.new()
 var _search:LineEdit
 var _list:ItemList
-var _info:Label
+var _info:RoomDetails
 var _keys:Array[String] = []
 var _actions:Dictionary = {}
 var _delete_armed:String
@@ -72,12 +73,11 @@ func _ready()->void:
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_split.add_child(_scroll)
-	_info = Label.new()
-	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_info)
 	if !creator.is_node_ready():
 		await creator.ready
+	_info = RoomDetails.new(creator, index)
+	_info.opened.connect(close)
+	_scroll.add_child(_info)
 	creator.browse_requested.connect(toggle)
 
 func toggle()->void:
@@ -122,7 +122,10 @@ func selected_key()->String:
 
 func _show_info()->void:
 	var _key:String = selected_key()
-	_info.text = index.details(_key, creator.catalog, creator.rooms) if !_key.is_empty() else "No room matches."
+	if _key.is_empty():
+		_info.show_message("No room matches.")
+	else:
+		_info.show_room(_key)
 	if _key.is_empty():
 		for _name:String in _actions:
 			_actions[_name].disabled = _name != "New"

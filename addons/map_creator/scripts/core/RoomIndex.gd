@@ -41,9 +41,11 @@ func _layout_entry(layout:RoomLayoutResource, baker:LayoutBaker, catalog:MapCata
 			_words.append(String(_item.id))
 			_words.append(_item.display_name)
 			_words.append_array(_item.tags)
-		if _entity.props.has("room"):
-			_links.append({"kind": _entity.item_id, "room": _entity.props.room, "tag": _entity.props.get("tag", "")})
-			_words.append(String(_entity.props.room))
+		for _prop:String in ["room", "waits_for"]:
+			if !String(_entity.props.get(_prop, "")).is_empty():
+				_links.append({"kind": _entity.item_id, "prop": _prop, "room": _entity.props[_prop], "cell": _entity.cell,
+					"tag": _entity.props.get("tag", ""), "connect_tag": _entity.props.get("connect_tag", "")})
+				_words.append(String(_entity.props[_prop]))
 	var _enemies:Array = []
 	for _section:Dictionary in layout.sections:
 		var _ids:Array = []
@@ -107,8 +109,9 @@ func search(query:String)->Array[String]:
 		return _ra < _rb || (_ra == _rb && a < b))
 	return _keys
 
-## Multi-line details of a room for the info panel.
-func describe(key:String, catalog:MapCatalog)->String:
+## Multi-line details of a room for the info panel (`with_links`: its door / portal
+## targets too; RoomDetails lists them as rows instead).
+func describe(key:String, catalog:MapCatalog, with_links:bool = true)->String:
 	var _e:Dictionary = entries.get(key, {})
 	if _e.is_empty():
 		return ""
@@ -142,11 +145,17 @@ func describe(key:String, catalog:MapCatalog)->String:
 		_by_category[_name] = _by_category.get(_name, []) + ["%s x%d" % [_item.display_name if _item != null else String(_id), _e.counts[_id]]]
 	for _name:String in _by_category:
 		_lines.append("%s: %s" % [_name, ", ".join(_by_category[_name])])
-	for _link:Dictionary in _e.links:
-		var _target:String = String(_link.room)
-		var _other:Dictionary = entries.get(_target.trim_prefix("room_"), {})
-		_lines.append("%s -> %s%s" % [_link.kind, _target, ("  " + _other.name) if !_other.is_empty() else ""])
+	if with_links:
+		for _link:Dictionary in _e.links:
+			_lines.append(link_text(_link))
 	return "\n".join(_lines)
+
+## "door n02_n01 -> room_N01  Name" (waits_for: "portal waits for room_X").
+func link_text(link:Dictionary)->String:
+	var _target:String = String(link.room)
+	var _other:Dictionary = entries.get(_target.trim_prefix("room_"), {})
+	var _how:String = "waits for" if link.get("prop", "room") == "waits_for" else ("%s ->" % link.tag if !String(link.get("tag", "")).is_empty() else "->")
+	return "%s %s %s%s" % [link.kind, _how, _target, ("  " + _other.name) if !_other.is_empty() else ""]
 
 ## describe() plus the doors / portals that lead here (`rooms` RoomManager, may be null).
 func details(key:String, catalog:MapCatalog, rooms:RoomManager)->String:

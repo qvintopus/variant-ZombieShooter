@@ -29,7 +29,7 @@ var _status:Label
 var _search:LineEdit
 var _view:Button
 var _portal_links:CheckButton
-var _info:Label
+var _info:RoomDetails
 var preview:CampaignPreview
 ## Searchable details of every room (rebuilt with the graph).
 var index:RoomIndex = RoomIndex.new()
@@ -128,9 +128,8 @@ func _ready()->void:
 	_scroll.size_flags_stretch_ratio = info_ratio
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_body.add_child(_scroll)
-	_info = Label.new()
-	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_info = RoomDetails.new(creator, index)
+	_info.opened.connect(close)
 	_scroll.add_child(_info)
 	creator.graph_requested.connect(toggle)
 
@@ -203,7 +202,7 @@ func rebuild()->void:
 	var _campaign:Dictionary = store.find(campaign_id)
 	if _campaign.is_empty():
 		_status.text = "No campaign: New makes one"
-		_info.text = ""
+		_info.show_message("")
 		return
 	var _rooms:PackedStringArray = store.rooms_of(campaign_id)
 	if creator.layout != null && String(creator.layout.campaign) == campaign_id && !_rooms.has(creator.key):
@@ -348,10 +347,12 @@ func _problems_by_room(rooms:PackedStringArray)->Dictionary:
 ## The room browser's details of `key` plus its graph problems.
 func details_of(key:String)->String:
 	var _text:String = index.details(key, creator.catalog, creator.rooms)
+	var _problems_text:String = _problem_text(key)
+	return _text + ("\n" + _problems_text if !_problems_text.is_empty() else "")
+
+func _problem_text(key:String)->String:
 	var _list:PackedStringArray = _problems.get(key, PackedStringArray())
-	if !_list.is_empty():
-		_text += "\nProblems:\n- " + "\n- ".join(_list)
-	return _text
+	return "Problems:\n- " + "\n- ".join(_list) if !_list.is_empty() else ""
 
 ## Fades the shown rooms the search box doesn't match.
 func apply_search()->void:
@@ -377,7 +378,10 @@ func _dimmed()->Dictionary:
 ## Selects a room (graph node / preview) and shows its details; `center` scrolls to it.
 func select_room(key:String, center:bool = false)->void:
 	selected_key = key if _nodes.has(key) else ""
-	_info.text = details_of(selected_key) if !selected_key.is_empty() else "Select a room"
+	if selected_key.is_empty():
+		_info.show_message("Select a room")
+	else:
+		_info.show_room(selected_key, _problem_text(selected_key))
 	if selected_key.is_empty():
 		return
 	var _node:GraphNode = _nodes[selected_key]
@@ -532,12 +536,7 @@ func _open_selected()->void:
 
 ## `focus` {tags, back_to}: what the room selects (MapCreator.focus_exits).
 func _open(key:String, focus:Dictionary = {})->void:
-	if key == creator.key:
-		close()
-		if !focus.is_empty():
-			creator.focus_exits(focus.get("tags", PackedStringArray()), focus.get("back_to", ""))
-		return
-	if creator.switch_room(key, focus):
+	if creator.open_room(key, focus):
 		close()
 
 func _unhandled_key_input(event:InputEvent)->void:
