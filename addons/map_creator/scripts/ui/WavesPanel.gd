@@ -55,6 +55,7 @@ func _ready()->void:
 	creator.history_changed.connect(_on_change)
 	creator.layout_changed.connect(_on_change)
 	creator.inspected_changed.connect(_on_inspected)
+	creator.waves_section_requested.connect(open_section)
 	creator.mode_changed.connect(func (editing:bool)->void:
 		if !editing:
 			close())
@@ -74,6 +75,21 @@ func open()->void:
 		_on_inspected(creator.inspected)
 	else:
 		rebuild()
+
+## Opens (or keeps open) on section `number`: expanded, highlighted, scrolled to.
+func open_section(number:int)->void:
+	if !creator.can_edit():
+		creator.message.emit("No layout for this room")
+		return
+	visible = true
+	if number < 1 || number > creator.layout.sections.size():
+		rebuild()
+		return
+	focus_number = number
+	_collapsed[number] = false
+	creator.highlight_section = number
+	rebuild()
+	scroll_to(number)
 
 func close()->void:
 	visible = false
@@ -130,12 +146,8 @@ func _on_inspected(entity:LayoutEntity)->void:
 	if entity == null || !_sectioned(entity):
 		return
 	focus_number = creator.section_of(entity)
-	if !visible || focus_number < 1 || focus_number > creator.layout.sections.size():
-		return
-	_collapsed[focus_number] = false
-	creator.highlight_section = focus_number
-	rebuild()
-	scroll_to(focus_number)
+	if visible:
+		open_section(focus_number)
 
 ## Brings section `number`'s card to the top of the panel and flashes it.
 func scroll_to(number:int)->void:

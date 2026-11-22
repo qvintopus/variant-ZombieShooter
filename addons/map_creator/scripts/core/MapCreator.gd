@@ -33,6 +33,8 @@ signal choice_requested(title:String, initial:String, answer:Callable, alt_label
 signal confirm_requested(title:String, body:String, choices:Array)
 signal workspace_changed
 signal waves_requested
+## Open the waves panel on section `number` (1-based), scrolled to and expanded.
+signal waves_section_requested(number:int)
 signal problems_requested
 signal help_requested
 ## `problems` was refreshed (MapChecks).

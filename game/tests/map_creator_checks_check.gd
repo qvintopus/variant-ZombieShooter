@@ -133,6 +133,21 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	check(_panel.focus_number == _last + 1 && creator.highlight_section == _last + 1 && !_panel._collapsed.get(_last + 1, false), "inspect: panel focuses its section")
 	await _frames(2)
 	creator.inspect(null)
+	# trigger inspector: button opens the waves panel on its section
+	_panel.close()
+	var _trigger:LayoutEntity = creator.layout.entities_of(&"trigger")[0]
+	creator.inspect(_trigger)
+	var _inspector:MapInspector = creator.get_node("UI/Root/Inspector")
+	var _open:Button = null
+	for _child:Node in _inspector._box.get_children():
+		if _child is Button && (_child as Button).text.begins_with("Edit section"):
+			_open = _child
+	check(_open != null, "trigger inspector has an open-waves button")
+	if _open != null:
+		_open.pressed.emit()
+	check(_panel.visible && _panel.focus_number == creator.section_of(_trigger) && creator.highlight_section == _panel.focus_number, "open-waves button opens the panel on its section")
+	await _frames(2)
+	creator.inspect(null)
 	# delete prompts
 	var _prompt:MapPrompt = creator.get_node("UI/Root/Prompt")
 	_panel.ask_remove_section(_last)
