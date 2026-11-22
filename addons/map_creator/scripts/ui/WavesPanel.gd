@@ -29,6 +29,10 @@ var _rebuild_queued:bool
 ## Section / wave / enemy counts the UI was built for (a changed shape always rebuilds).
 var _built_shape:String
 
+## Live difficulty / meta state, so the Density tooltip says what is on now.
+const DIFFICULTY:DifficultyResource = preload("res://addons/top_down/resources/global_resources/difficulty_resource.tres")
+const META:MetaUpgradeResource = preload("res://game/resources/meta_upgrade_resource.tres")
+
 func _ready()->void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
@@ -57,6 +61,8 @@ func _ready()->void:
 	creator.layout_changed.connect(_on_change)
 	creator.inspected_changed.connect(_on_inspected)
 	creator.waves_section_requested.connect(open_section)
+	DIFFICULTY.updated.connect(_on_change)
+	META.updated.connect(_on_change)
 	creator.mode_changed.connect(func (editing:bool)->void:
 		if !editing:
 			close())
@@ -558,9 +564,7 @@ func _build_section(index:int, section:Dictionary)->void:
 	var _usage:Dictionary = section_usage(_number)
 	var _density:int = int(section.get("spawn_density", 1))
 	_spin(_numbers, "Density", _density, 1, 6,
-		"Enemies each spawner keeps alive at once (it refills when one dies).\n" +
-		"Now: %s x %d = %d alive (a spawner's own 'Max at once' can lower it).\n" % [_plural(_usage.spawners, "spawner"), _density, _usage.spawners * _density] +
-		"Twin Spawn (meta) doubles every spawn. A wave's Alive target overrides this.", func (v:int)->void:
+		_density_tip(_density, _usage.spawners), func (v:int)->void:
 		change_section(index, func (s:Dictionary)->void:
 			if v == 1:
 				s.erase("spawn_density")
@@ -591,6 +595,37 @@ func _build_section(index:int, section:Dictionary)->void:
 		_none.modulate = Color(creator.preset.danger_color, 0.8)
 		_inner.add_child(_none)
 	_button(_hbox(_inner), "+ Wave", "Add a wave", add_wave.bind(index)).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+## Density tooltip: the base rule, then everything that can put more alive than
+## Density, each marked ON / off for the current difficulty and switched-on meta nodes.
+func _density_tip(density:int, spawners:int)->String:
+	var _normal_timers:int = DIFFICULTY.timed_spawners()
+	var _interval:float = DIFFICULTY.spawn_interval()
+	var _nests:int = int(META.stat("timed_spawners"))
+	var _rate:float = META.stat("spawn_rate_ratio")
+	var _twin:int = int(META.stat("spawner_count"))
+	var _timers_on:bool = _interval > 0.0 && _normal_timers + _nests > 0
+	var _lines:PackedStringArray = [
+		"Enemies each spawner keeps alive at once (it refills when one dies).",
+		"Now: %s x %d = %d alive (a spawner's own 'Max at once' can lower it)." % [_plural(spawners, "spawner"), density, spawners * density],
+		"",
+		"Can add more than Density (%s difficulty, owned + switched-on upgrades):" % DIFFICULTY.mode_name(),
+		"%s Timed spawner (Normal): %d random spawner(s) per wave also spawn every %ss," % [_on(_normal_timers > 0 && _interval > 0.0), _normal_timers if _interval > 0.0 else 0, _secs(_interval)],
+		"      even with their slots full. Easy has none.",
+		"%s Nest I-V (HORDE): +1 timed spawner each, Normal only (now +%d)." % [_on(_nests > 0 && _interval > 0.0), _nests],
+		"%s Frenzy I-II / Swarm (HORDE): faster timers%s." % [_on(_rate > 0.0 && _timers_on), " (now every %ss)" % _secs(_interval / maxf(1.0 + _rate, 0.1)) if _timers_on else ""],
+		"%s Twin Spawn (HORDE): +%d enemy from every spawn (slots too)." % [_on(_twin > 0), maxi(_twin, 1)],
+		"   Splitting enemies (slimes): their children are extra alive.",
+		"",
+		"A wave's Alive target caps all of these (spawners x Density = exactly Density each).",
+	]
+	return "\n".join(_lines)
+
+func _on(active:bool)->String:
+	return "[ON] " if active else "[off]"
+
+func _secs(value:float)->String:
+	return ("%.2f" % value).rstrip("0").rstrip(".")
 
 func _build_wave(parent:Control, section:int, wave:int, data:Dictionary, wave_count:int)->void:
 	var _boss:bool = data.get("is_boss", false)
