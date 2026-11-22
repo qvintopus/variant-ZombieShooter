@@ -9,6 +9,7 @@ script = ExtResource("2_uoqrt")
 key = &"tag"
 label = "Tag"
 type = 3
+lists_tag_users = true
 max_value = 0.0
 options = PackedStringArray()
 hint = "This entry's tag; the other side's connect_tag."
@@ -18,6 +19,7 @@ script = ExtResource("2_uoqrt")
 key = &"connect_tag"
 label = "Arrives at tag"
 type = 3
+lists_tag_users = true
 options = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_8mwxs"]

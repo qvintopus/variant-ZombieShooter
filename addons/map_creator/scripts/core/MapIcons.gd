@@ -98,3 +98,26 @@ static func sprite_frame(sprite:Sprite2D)->Texture2D:
 	_icon.atlas = sprite.texture
 	_icon.region = _rect
 	return _icon
+
+## Open-in-new-tab icon (box with an arrow out of its corner), white for modulating.
+const OPEN_ROOM_PIXELS:PackedStringArray = [
+	".....####",
+	".......##",
+	"###...#.#",
+	"#....#..#",
+	"#...#....",
+	"#..#..#..",
+	"#.....#..",
+	"#.....#..",
+	"#######..",
+]
+static var _open_room:Texture2D
+
+static func open_room()->Texture2D:
+	if _open_room == null:
+		var _image:Image = Image.create(OPEN_ROOM_PIXELS[0].length(), OPEN_ROOM_PIXELS.size(), false, Image.FORMAT_RGBA8)
+		for _y:int in OPEN_ROOM_PIXELS.size():
+			for _x:int in OPEN_ROOM_PIXELS[_y].length():
+				_image.set_pixel(_x, _y, Color.WHITE if OPEN_ROOM_PIXELS[_y][_x] == "#" else Color.TRANSPARENT)
+		_open_room = ImageTexture.create_from_image(_image)
+	return _open_room
