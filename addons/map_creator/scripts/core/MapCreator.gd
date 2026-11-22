@@ -742,6 +742,60 @@ func set_entity_prop(entity:LayoutEntity, prop:StringName, value:Variant)->void:
 			else:
 				_target.props[prop] = value)
 
+## Section (1-based) of an entity: its prop, else its item's default.
+func section_of(entity:LayoutEntity)->int:
+	var _item:MapCatalogItem = catalog.item(entity.item_id)
+	return int(entity.props.get("section", _item.defaults.get("section", 1) if _item != null else 1))
+
+## Entities of section `number` baked as `bake` (spawners, triggers...).
+func section_entities(number:int, bake:MapCatalogItem.Bake)->Array[LayoutEntity]:
+	var _list:Array[LayoutEntity] = []
+	for _entity:LayoutEntity in layout.entities:
+		var _item:MapCatalogItem = catalog.item(_entity.item_id)
+		if _item != null && _item.bake == bake && section_of(_entity) == number:
+			_list.append(_entity)
+	return _list
+
+## Selects them and inspects them together; false (and a message) when there are none.
+func select_section_entities(number:int, bake:MapCatalogItem.Bake)->bool:
+	var _entries:Array = []
+	for _entity:LayoutEntity in section_entities(number, bake):
+		_entries.append({"cell": _entity.cell, "type": _entity.item_id})
+	if _entries.is_empty():
+		message.emit("Section %d has none" % number)
+		return false
+	selection.set_entries(_entries)
+	_inspect_selection()
+	return true
+
+## Rooms with an entity whose tag or connect_tag is `tag` (this room's live layout):
+## [{key, name, uses}] by key, uses like "Stairs tag", "Portal arrives".
+func tag_users(tag:String)->Array:
+	var _out:Array = []
+	if tag.is_empty() || baker == null:
+		return _out
+	var _layouts:Dictionary = baker.layouts.duplicate()
+	if layout != null:
+		_layouts[key] = layout
+	var _keys:Array = _layouts.keys()
+	_keys.sort()
+	for _key:String in _keys:
+		var _layout:RoomLayoutResource = _layouts[_key]
+		var _uses:PackedStringArray = []
+		for _entity:LayoutEntity in _layout.entities:
+			var _item:MapCatalogItem = catalog.item(_entity.item_id)
+			var _name:String = _item.display_name if _item != null else String(_entity.item_id)
+			if String(_entity.props.get("tag", "")) == tag:
+				_uses.append("%s tag" % _name)
+			if String(_entity.props.get("connect_tag", "")) == tag:
+				_uses.append("%s arrives" % _name)
+		if !_uses.is_empty():
+			_out.append({"key": _key, "name": _layout.display_name, "uses": _uses})
+	return _out
+
+func open_room_icon()->Texture2D:
+	return preset.open_room_icon if preset != null && preset.open_room_icon != null else MapIcons.open_room()
+
 ## Sets a room-level layout field (look, side_room, sections...).
 func set_layout_field(field:StringName, value:Variant)->void:
 	var _follow:bool = field == &"look" && item != null && item == _default_floor()

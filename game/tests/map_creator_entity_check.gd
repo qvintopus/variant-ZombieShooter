@@ -32,6 +32,27 @@ func _ready()->void:
 	print("map_creator_entity_check: %d checks, %d failures" % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
 
+## Trigger inspector: waves of its section and Select spawners; spawner: Section details.
+func _check_sections(creator:MapCreator, inspector:MapInspector)->void:
+	var _triggers:Array[LayoutEntity] = creator.section_entities(1, MapCatalogItem.Bake.TRIGGER)
+	var _spawners:Array[LayoutEntity] = creator.section_entities(1, MapCatalogItem.Bake.SPAWN)
+	check(!_triggers.is_empty() && !_spawners.is_empty(), "section 1 has triggers and spawners")
+	if _triggers.is_empty() || _spawners.is_empty():
+		return
+	creator.inspect(_triggers[0])
+	var _waves:int = creator.layout.sections[0].waves.size()
+	var _texts:Array = inspector._box.find_children("*", "Label", true, false).map(func (l:Label)->String: return l.text)
+	check(_texts.any(func (t:String)->bool: return t.begins_with("Section 1: %d waves" % _waves)), "trigger shows its section's waves (%s)" % [_texts])
+	check(_texts.filter(func (t:String)->bool: return t.begins_with("W")).size() == _waves, "one line per wave")
+	check(creator.select_section_entities(1, MapCatalogItem.Bake.SPAWN), "select spawners")
+	check(creator.selection.size() == _spawners.size() && creator.inspected_group.size() == _spawners.size() && creator.inspected.item_id == &"spawn", "every section 1 spawner selected and inspected")
+	var _details:Array = inspector._box.find_children("*", "Button", true, false).filter(func (b:Button)->bool: return b.text.begins_with("Section 1 details"))
+	check(_details.size() == 1, "spawner inspector has Section details")
+	if !_details.is_empty():
+		_details[0].pressed.emit()
+	check(creator.selection.size() == _triggers.size() && creator.inspected != null && creator.inspected.item_id == &"trigger", "Section details selects the section's triggers")
+	creator.selection.clear()
+
 func _frames(count:int)->void:
 	for _i:int in count:
 		await get_tree().process_frame
@@ -131,10 +152,22 @@ func _check_editing(baker:LayoutBaker)->void:
 	var _inspector:MapInspector = _creator.get_node("UI/Root/Inspector")
 	check(_inspector.visible, "the inspector shows in Edit mode")
 	var _editors:int = 0
-	for _child:Node in _inspector._box.get_children():
-		if _child is SpinBox || _child is LineEdit || _child is OptionButton || _child is CheckButton:
+	for _child:Node in _inspector._box.find_children("*", "", true, false):
+		if (_child is SpinBox || _child is LineEdit || _child is OptionButton || _child is CheckButton) && _child.find_parent("@PopupMenu*") == null && !(_child.get_parent() is SpinBox):
 			_editors += 1
 	check(_editors == _catalog.item(&"door").properties.size(), "the inspector shows the door's properties (%d)" % _editors)
+	var _open_buttons:Array = _inspector._box.find_children("*", "Button", true, false).filter(func (b:Button)->bool: return b.icon == _creator.open_room_icon())
+	check(_open_buttons.size() == 1 && _open_buttons[0].tooltip_text.contains("room_N01"), "the room picker has an open button")
+	var _tag:String = String(_door.props.tag)
+	var _users:Array = _creator.tag_users(_tag)
+	check(_users.size() == 1 && _users[0].key == KEY, "tag users: this room's new door (%s)" % [_users])
+	_inspector._expanded[&"tag"] = true
+	_inspector.rebuild()
+	var _labels:Array = _inspector._box.find_children("*", "Label", true, false).filter(func (l:Label)->bool: return l.text.contains("room_" + KEY))
+	check(!_labels.is_empty(), "the expanded tag list shows the room")
+	var _linked:Array = _creator.tag_users(String(_creator.layout.entities_of(&"door")[0].props.get("connect_tag", "")))
+	check(_linked.all(func (u:Dictionary)->bool: return !u.uses.is_empty()), "tag users list their uses")
+	_check_sections(_creator, _inspector)
 	_creator.inspect(null)
 	check(!_inspector.visible, "the inspector hides with nothing inspected")
 	var _bar:MapTopBar = _creator.get_node("UI/Root/TopBar")

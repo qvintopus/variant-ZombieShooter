@@ -57,4 +57,6 @@ extends Resource
 @export var bar_color:Color = Color(0.08, 0.08, 0.1, 0.88)
 @export var active_color:Color = Color(0.35, 0.65, 1.0)
 @export var swatch_size:Vector2 = Vector2(8, 8)
+## Icon of the "open this room" buttons (empty: a drawn open-in-new-tab arrow).
+@export var open_room_icon:Texture2D
 @export var undo_limit:int = 100
