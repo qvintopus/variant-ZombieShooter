@@ -44,15 +44,6 @@ func _ready()->void:
 	_balance.rooms = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/maps.json")).rooms
 	_state = load(TD + "resources/global_resources/room_state_resource.tres")
 
-	var _room_1:Node = _load_room("room_1")
-	var _boss_door:Node = _room_1.get_node("Behind/Stairs4")
-	check(_boss_door.visible && _boss_door.monitoring, "room_1 Stairs4 is open")
-	check(_boss_door.scene_path == SCENES + "room_C00.tscn", "room_1 Stairs4 leads to room_C00")
-	_check_door_link("room_1", _boss_door)
-	for _wave:SpawnWaveList in _room_1.get_node("EnemyManager/Section1").waves:
-		check(!_wave.is_boss, "room_1 has no boss wave left")
-	_room_1.free()
-
 	var _campaigns:Dictionary = _layout_specs()
 	for _campaign:String in CAMPAIGN_IDS:
 		var _rooms:Dictionary = _campaigns[_campaign].rooms

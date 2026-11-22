@@ -1,4 +1,4 @@
-## Spawn pacing per difficulty and the HORDE meta stats, the max_alive target, in room_A02's first fight
+## Spawn pacing per difficulty and the HORDE meta stats, the max_alive target, in room_test_arena's first fight
 ## (4 spawn points). Every point refills its slots on both difficulties, so a full
 ## room stays full on Easy. Normal adds one timed point that also spawns every 2s
 ## whether or not its enemies are alive; each Nest upgrade adds a timed point with
@@ -10,7 +10,7 @@
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM:String = "res://game/scenes/room_A02.tscn"
+const ROOM:String = "res://game/tests/rooms/room_test_arena.tscn"
 ## The same resources ArenaSection preloads (vars: a const's properties can't be set).
 var DIFFICULTY:DifficultyResource = load("res://addons/top_down/resources/global_resources/difficulty_resource.tres")
 var META:MetaUpgradeResource = load("res://game/resources/meta_upgrade_resource.tres")

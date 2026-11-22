@@ -3,16 +3,6 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_vkgot"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_txvpl"]
 
-[sub_resource type="Resource" id="Resource_vb5ys"]
-script = ExtResource("1_vkgot")
-item_id = &"door"
-cell = Vector2i(14, 1)
-props = {
-"connect_tag": "boss_path",
-"room": "room_1",
-"tag": "c00_room1"
-}
-
 [sub_resource type="Resource" id="Resource_tbouh"]
 script = ExtResource("1_vkgot")
 item_id = &"barrier"
@@ -502,4 +492,4 @@ Vector2i(29, 13): Vector3i(10, 0, 3),
 Vector2i(29, 14): Vector3i(10, 0, 3),
 Vector2i(29, 15): Vector3i(10, 3, 3)
 })
-entities = Array[ExtResource("1_vkgot")]([SubResource("Resource_vb5ys"), SubResource("Resource_tbouh"), SubResource("Resource_i654j"), SubResource("Resource_hhiob"), SubResource("Resource_p0v5i"), SubResource("Resource_6v1hr"), SubResource("Resource_reo57"), SubResource("Resource_q6425"), SubResource("Resource_vcuwf"), SubResource("Resource_rc6kf"), SubResource("Resource_x6p8g"), SubResource("Resource_dm22w"), SubResource("Resource_c6mco"), SubResource("Resource_iotq2"), SubResource("Resource_wlhe2"), SubResource("Resource_uqffj"), SubResource("Resource_aahwu"), SubResource("Resource_oducy"), SubResource("Resource_lrqhp"), SubResource("Resource_16vgh"), SubResource("Resource_o10gy"), SubResource("Resource_02dfk"), SubResource("Resource_baqxa"), SubResource("Resource_k3j5f"), SubResource("Resource_8v7b6")])
+entities = Array[ExtResource("1_vkgot")]([SubResource("Resource_tbouh"), SubResource("Resource_i654j"), SubResource("Resource_hhiob"), SubResource("Resource_p0v5i"), SubResource("Resource_6v1hr"), SubResource("Resource_reo57"), SubResource("Resource_q6425"), SubResource("Resource_vcuwf"), SubResource("Resource_rc6kf"), SubResource("Resource_x6p8g"), SubResource("Resource_dm22w"), SubResource("Resource_c6mco"), SubResource("Resource_iotq2"), SubResource("Resource_wlhe2"), SubResource("Resource_uqffj"), SubResource("Resource_aahwu"), SubResource("Resource_oducy"), SubResource("Resource_lrqhp"), SubResource("Resource_16vgh"), SubResource("Resource_o10gy"), SubResource("Resource_02dfk"), SubResource("Resource_baqxa"), SubResource("Resource_k3j5f"), SubResource("Resource_8v7b6")])

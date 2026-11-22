@@ -6,7 +6,7 @@ extends Node
 
 const TD:String = "res://addons/top_down/"
 ## Rooms with contraptions: the hand-made test room and campaign side rooms
-const ROOMS:Array[String] = ["room_A02", "room_N02", "room_N21", "room_P01", "room_P21"]
+const ROOMS:Array[String] = ["res://game/tests/rooms/room_test_arena.tscn", "room_N02", "room_N21", "room_P01", "room_P21"]
 
 var failures:int = 0
 var checks:int = 0
@@ -21,10 +21,11 @@ func _ready()->void:
 	var _slime:ScoreResource = load(TD + "resources/global_resources/slime_resource.tres")
 	_slime.reset_resource()
 	for _room_name:String in ROOMS:
-		var _room:Node = (load("res://game/scenes/%s.tscn" % _room_name) as PackedScene).instantiate()
+		var _path:String = _room_name if _room_name.begins_with("res://") else "res://game/scenes/%s.tscn" % _room_name
+		var _room:Node = (load(_path) as PackedScene).instantiate()
 		add_child(_room)
 		await _frames(10)
-		await _check_room(_room_name, _room)
+		await _check_room(_path.get_file().get_basename(), _room)
 		_room.queue_free()
 		await _frames(3)
 	_finish()

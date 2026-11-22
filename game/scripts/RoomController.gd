@@ -8,7 +8,7 @@
 class_name RoomController
 extends Node
 
-## Unique id of this room, e.g. &"room_1".
+## Unique id of this room, e.g. &"room_N01".
 @export var room_id: StringName
 
 ## Shared progression state (same .tres across all rooms).

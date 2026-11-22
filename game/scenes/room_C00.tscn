@@ -678,12 +678,6 @@ mode = 1
 metadata/generated_by_scene_tile = true
 metadata/source_cell = Vector2i(15, 23)
 
-[node name="Stairs" parent="Behind" instance=ExtResource("3_door")]
-position = Vector2(224, 128)
-tag = "c00_room1"
-connect_tag = "boss_path"
-scene_path = "res://game/scenes/room_1.tscn"
-
 [node name="PlayerSpawner" parent="."]
 position = Vector2(144, 152)
 
@@ -711,7 +705,7 @@ script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
 max_simultaneous = 6
 
-[node name="Stairs2" parent="Behind" instance=ExtResource("3_door")]
+[node name="Stairs" parent="Behind" instance=ExtResource("3_door")]
 position = Vector2(-192, 128)
 tag = "c00_c10"
 connect_tag = "c10_c00"
@@ -723,7 +717,7 @@ script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
 max_simultaneous = 6
 
-[node name="Stairs3" parent="Behind" instance=ExtResource("3_door")]
+[node name="Stairs2" parent="Behind" instance=ExtResource("3_door")]
 position = Vector2(224, 336)
 tag = "c00_c20"
 connect_tag = "c20_c00"
@@ -741,7 +735,7 @@ script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
 max_simultaneous = 6
 
-[node name="Stairs4" parent="Behind" instance=ExtResource("3_door")]
+[node name="Stairs3" parent="Behind" instance=ExtResource("3_door")]
 position = Vector2(-192, 336)
 tag = "c00_c30"
 connect_tag = "c30_c00"

@@ -25,7 +25,7 @@
 [node name="Stairs" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="1"]
 tag = "from_next"
 connect_tag = "from_prev"
-scene_path = "res://game/scenes/room_1.tscn"
+scene_path = "res://game/tests/rooms/room_test_arena.tscn"
 
 [node name="WebTrap" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="2" unique_id=1991900479 instance=ExtResource("11_webtrap")]
 position = Vector2(158, 95)
@@ -38,7 +38,7 @@ position = Vector2(150, 140)
 
 [node name="RoomController" type="Node" parent="." index="21" unique_id=724244660]
 script = ExtResource("2_ctrl")
-room_id = &"room_start"
+room_id = &"room_test_run_start"
 room_state_resource = ExtResource("6_state")
 room_cleared_resource = ExtResource("7_cleared")
 fight_mode_resource = ExtResource("4_fight")
