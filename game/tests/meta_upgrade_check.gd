@@ -138,6 +138,22 @@ func _check_resource()->void:
 	_loaded.load_resource()
 	check(_loaded.owned == _meta.owned, "owned nodes load back (%s)" % [_loaded.owned])
 
+	# Toggling: UPGRADES / HORDE owned nodes switch off and on, CO-OP and roots never.
+	check(!_meta.can_toggle(MetaUpgrades.ROOT) && !_meta.can_toggle("vitality_3"), "roots and unowned nodes don't toggle")
+	check(_meta.toggle("vitality_2") && is_equal_approx(_meta.stat("max_hp"), 10.0), "a switched-off node's stats don't count")
+	check(_meta.state("vitality_2") == _State.OWNED && _meta.state("survivor") == _State.AVAILABLE, "an off node stays owned and unlocks")
+	_loaded.load_resource(true)
+	check(_loaded.disabled == PackedStringArray(["vitality_2"]), "off nodes load back")
+	check(_meta.toggle("vitality_2") && is_equal_approx(_meta.stat("max_hp"), 20.0), "switching back on restores it")
+	_meta.set_tree_enabled(MetaUpgrades.MAIN_TREE, false)
+	check(!_meta.any_enabled_in(MetaUpgrades.MAIN_TREE) && is_equal_approx(_meta.stat("max_hp"), 0.0), "All off switches the whole tree off")
+	_meta.set_tree_enabled(MetaUpgrades.MAIN_TREE, true)
+	check(_meta.disabled.is_empty() && is_equal_approx(_meta.stat("max_hp"), 20.0), "All on switches it back")
+	check(MetaUpgrades.is_toggleable("horde") && !MetaUpgrades.is_toggleable("coop"), "HORDE toggles, CO-OP doesn't")
+	_meta.owned.append("shell_printer")
+	check(!_meta.toggle("shell_printer") && _meta.stat("shell_printer") > 0.0, "CO-OP nodes can't be switched off")
+	_meta.owned.remove_at(_meta.owned.find("shell_printer"))
+
 	var _collected:int = _crystals.collected_total
 	_meta.refund_all()
 	check(_crystals.value == 3 && _meta.owned.is_empty(), "refund gives every crystal back")
@@ -231,6 +247,15 @@ func _check_screen()->void:
 	check(_screen.crystal_label.text == "0", "the crystal counter follows")
 	(_buttons["sharpen_2"] as MetaNodeButton).pressed.emit()
 	check(!_meta.is_owned("sharpen_2"), "pressing an unaffordable node does nothing")
+	(_buttons["sharpen_1"] as MetaNodeButton).grab_focus()
+	(_buttons["sharpen_1"] as MetaNodeButton).pressed.emit()
+	check(_meta.disabled.has("sharpen_1") && _screen.state_label.text == "Owned - OFF", "pressing an owned node switches it off")
+	check(_screen.toggle_all_button.visible && _screen.toggle_all_button.text == "All on", "All button offers to switch the tree on")
+	_screen.toggle_all()
+	check(!_meta.disabled.has("sharpen_1") && _screen.toggle_all_button.text == "All off", "All on switches it back")
+	_screen.show_tree("coop")
+	check(!_screen.toggle_all_button.visible, "no All button on CO-OP")
+	_screen.show_tree(MetaUpgrades.MAIN_TREE)
 	_screen.queue_free()
 	await _frames(2)
 

@@ -5,6 +5,8 @@
 ## focused node centred; dragging the background pans it by hand.
 ## The header's tree button (or Tab) switches between the main tree and its
 ## sister trees; only the shown tree's nodes are built into the focus walk.
+## In toggleable trees (UPGRADES, HORDE) pressing an owned node switches it
+## off / on, and the header's All button switches the whole tree.
 ## ui_cancel / pause goes back to the title.
 extends Control
 
@@ -17,6 +19,7 @@ const SHORT_TEXT:Color = Color(1.0, 0.42, 0.42)
 const COST_TEXT:Color = Color(1.0, 0.72, 0.94)
 const LOCKED_TEXT:Color = Color(0.6, 0.58, 0.68)
 const KEYSTONE_TEXT:Color = Color8(255, 214, 90)
+const OFF_TEXT:Color = Color(0.75, 0.7, 0.55)
 
 @export var meta_upgrade_resource:MetaUpgradeResource
 @export var boss_crystal_resource:ScoreResource
@@ -42,6 +45,9 @@ const KEYSTONE_TEXT:Color = Color8(255, 214, 90)
 @export var title_label:Label
 ## Switches to the next tree; reads that tree's title.
 @export var tree_button:Button
+## Switches every owned node of a toggleable tree off / on; hidden elsewhere.
+@export var toggle_all_button:Button
+@export var hint_label:Label
 
 ## id -> MetaNodeButton
 var buttons:Dictionary
@@ -76,6 +82,8 @@ func _ready()->void:
 	back_button.pressed.connect(_back)
 	reset_button.pressed.connect(_on_reset)
 	tree_button.pressed.connect(next_tree)
+	if toggle_all_button != null:
+		toggle_all_button.pressed.connect(toggle_all)
 	show_tree(tree)
 	_start.call_deferred()
 
@@ -104,6 +112,15 @@ func show_tree(id:String)->void:
 	if is_node_ready():
 		buttons[focused_id].grab_focus()
 
+## All off when any owned node of the shown tree is on, else all on.
+func toggle_all()->void:
+	if !MetaUpgrades.is_toggleable(tree):
+		return
+	var _on:bool = !meta_upgrade_resource.any_enabled_in(tree)
+	meta_upgrade_resource.set_tree_enabled(tree, _on)
+	if buy_sound != null:
+		buy_sound.play_managed()
+
 func next_tree()->void:
 	var _trees:Array = MetaUpgrades.tree_ids()
 	show_tree(_trees[(_trees.find(tree) + 1) % _trees.size()])
@@ -128,6 +145,11 @@ func _back()->void:
 
 func _buy(id:String)->void:
 	var _button:MetaNodeButton = buttons[id]
+	if meta_upgrade_resource.toggle(id):
+		_button.play_bought()
+		if buy_sound != null:
+			buy_sound.play_managed()
+		return
 	if meta_upgrade_resource.buy(id):
 		_button.play_bought()
 		if buy_sound != null:
@@ -164,9 +186,16 @@ func _refresh()->void:
 			_shown += 1
 			if _state == MetaUpgradeResource.State.OWNED:
 				_owned += 1
-		buttons[_id].refresh(_state, LootItems.can_afford(MetaUpgrades.cost(_id)))
+		buttons[_id].refresh(_state, LootItems.can_afford(MetaUpgrades.cost(_id)), meta_upgrade_resource.disabled.has(_id))
 	progress_label.text = "%d/%d" % [_owned, _shown]
 	reset_button.disabled = meta_upgrade_resource.owned.is_empty()
+	var _toggleable:bool = MetaUpgrades.is_toggleable(tree)
+	if toggle_all_button != null:
+		toggle_all_button.visible = _toggleable
+		toggle_all_button.disabled = meta_upgrade_resource.toggleable_in(tree).is_empty()
+		toggle_all_button.text = "All off" if meta_upgrade_resource.any_enabled_in(tree) || toggle_all_button.disabled else "All on"
+	if hint_label != null:
+		hint_label.text = "Arrows: move   Enter: buy / on-off   Esc: back" if _toggleable else "Arrows: move   Enter: buy   Esc: back"
 	graph_links.queue_redraw()
 	_show_info(focused_id)
 
@@ -179,8 +208,12 @@ func _show_info(id:String)->void:
 	text_label.text = MetaUpgrades.describe(id)
 	match meta_upgrade_resource.state(id):
 		MetaUpgradeResource.State.OWNED:
-			state_label.text = "Owned"
-			state_label.modulate = OWNED_TEXT
+			if meta_upgrade_resource.disabled.has(id):
+				state_label.text = "Owned - OFF"
+				state_label.modulate = OFF_TEXT
+			else:
+				state_label.text = "Owned - ON" if meta_upgrade_resource.can_toggle(id) else "Owned"
+				state_label.modulate = OWNED_TEXT
 		MetaUpgradeResource.State.AVAILABLE:
 			var _cost:Array = MetaUpgrades.cost(id)
 			var _affordable:bool = LootItems.can_afford(_cost)

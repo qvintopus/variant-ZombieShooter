@@ -7,6 +7,7 @@
 ## `trees` are separate graphs shown one at a time (the main tree and its sister
 ## HORDE tree of enemy buffs). Each has a `root` that is free and always owned;
 ## nodes and labels name their tree with `tree`, "main" when left out.
+## A `toggleable` tree lets owned nodes be switched off and on (effects skip off nodes).
 ## Unknown stats, icons and requires ids are reported with push_warning.
 class_name MetaUpgrades
 
@@ -56,7 +57,7 @@ static func node(id:String)->Dictionary:
 
 ## Tree id -> {"title", "root"}, the main tree first.
 static func trees()->Dictionary:
-	return data().get("trees", {MAIN_TREE: {"title": "UPGRADES", "root": ROOT}})
+	return data().get("trees", {MAIN_TREE: {"title": "UPGRADES", "root": ROOT, "toggleable": true}})
 
 static func tree_ids()->Array:
 	return trees().keys()
@@ -66,6 +67,9 @@ static func tree_title(tree:String)->String:
 
 static func tree_root(tree:String)->String:
 	return trees().get(tree, {}).get("root", "")
+
+static func is_toggleable(tree:String)->bool:
+	return trees().get(tree, {}).get("toggleable", false)
 
 static func tree_of(id:String)->String:
 	return node(id).get("tree", MAIN_TREE)

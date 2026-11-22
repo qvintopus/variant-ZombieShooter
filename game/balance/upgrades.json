@@ -1,8 +1,8 @@
 {
 	"grid": 36,
 	"trees": {
-		"main": {"title": "UPGRADES", "root": "root"},
-		"horde": {"title": "HORDE", "root": "horde_root"},
+		"main": {"title": "UPGRADES", "root": "root", "toggleable": true},
+		"horde": {"title": "HORDE", "root": "horde_root", "toggleable": true},
 		"coop": {"title": "CO-OP", "root": "coop_root"}
 	},
 	"labels": [

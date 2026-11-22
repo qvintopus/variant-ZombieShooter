@@ -37,7 +37,7 @@ func _draw_link(from:String, to:String)->void:
 
 func link_color(from:String, to:String)->Color:
 	var _meta:MetaUpgradeResource = meta_upgrade_resource
-	if _meta.is_owned(from) && _meta.is_owned(to):
+	if _meta.is_owned(from) && _meta.is_owned(to) && !_meta.disabled.has(to):
 		return OWNED_KEYSTONE if MetaUpgrades.is_keystone(to) || (MetaUpgrades.is_keystone(from) && !MetaUpgrades.is_root(from)) else OWNED
 	if _meta.is_owned(from):
 		return AVAILABLE
