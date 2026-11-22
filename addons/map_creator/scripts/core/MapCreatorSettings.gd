@@ -21,6 +21,9 @@ var clipboard:Array = []
 var histories:Dictionary = {}
 ## Set by Test section: the reloaded room starts that fight (1-based). Not saved.
 var test_section:int
+## Set by a room switch with a target: {tags, back_to} the next room's editor selects
+## (MapCreator.focus_exits). Not saved.
+var focus:Dictionary = {}
 ## Original rooms the user chose to edit in place this session (key -> true).
 var originals_ok:Dictionary = {}
 

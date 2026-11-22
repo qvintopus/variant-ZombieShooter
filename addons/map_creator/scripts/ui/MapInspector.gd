@@ -2,8 +2,8 @@
 ## catalog properties as editors (MapPropertySpec: number, toggle, text, choice, room,
 ## section). Room settings live in the topbar (MapTopBar). Every change is one undo step.
 ## Tag props list the rooms using the tag (expandable); room rows and room pickers have an
-## open button. A section trigger shows its section's waves and selects its spawners; a
-## spawner selects its section's triggers (their section details).
+## open button (landing on the linked stairs selected). Section entities select the other
+## kinds of their section (triggers, spawners, barriers); a trigger shows the waves.
 class_name MapInspector
 extends PanelContainer
 
@@ -109,13 +109,8 @@ func _build_entity(entity:LayoutEntity)->void:
 		_row(_spec.label if !_spec.label.is_empty() else String(_spec.key), _editor(entity, _spec, _value), _spec.hint)
 		if _spec.lists_tag_users && _value != null && !String(_value).is_empty():
 			_tag_users(_spec.key, String(_value))
-	match _item.bake:
-		MapCatalogItem.Bake.TRIGGER:
-			_section_details(creator.section_of(entity))
-		MapCatalogItem.Bake.SPAWN:
-			var _number:int = creator.section_of(entity)
-			_button(_box, "Section %d details" % _number, "Select this section's triggers (their inspector shows its waves)",
-				creator.select_section_entities.bind(_number, MapCatalogItem.Bake.TRIGGER))
+	if _item.properties.any(func (p:MapPropertySpec)->bool: return p.type == MapPropertySpec.Type.SECTION):
+		_section_links(_item.bake, creator.section_of(entity))
 	var _close:Button = Button.new()
 	_close.text = "Close"
 	_close.tooltip_text = "Stop inspecting (Esc)"
@@ -170,7 +165,11 @@ func _editor(entity:LayoutEntity, spec:MapPropertySpec, value:Variant)->Control:
 					_option.selected = _option.item_count - 1
 			_option.item_selected.connect(func (i:int)->void: _set.call(_option.get_item_metadata(i)))
 			if value != null && !String(value).is_empty():
-				_open_button(_row, String(value).trim_prefix("room_"))
+				# stairs land on their arrival tag (else the way back here) selected
+				var _focus:Dictionary = {}
+				if spec.key == &"room":
+					_focus = {"tags": PackedStringArray([String(entity.props.get("connect_tag", ""))]), "back_to": creator.layout.scene_name()}
+				_open_button(_row, String(value).trim_prefix("room_"), _focus)
 			return _row
 	var _line:LineEdit = LineEdit.new()
 	_line.text = str(value) if value != null else ""
@@ -207,10 +206,29 @@ func _tag_users(key:StringName, tag:String)->void:
 		_label.clip_text = true
 		_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_row.add_child(_label)
-		if _user.key != creator.key:
-			_open_button(_row, _user.key)
+		if _user.key == creator.key:
+			_button(_row, "Select", "Select this room's entries using the tag", creator.focus_exits.bind(PackedStringArray([tag])))
+		else:
+			_open_button(_row, _user.key, {"tags": PackedStringArray([tag])})
 
-## Waves of section `number` (enemies each) and a button selecting its spawners.
+## Buttons selecting the section's triggers / spawners / barriers (not the own kind);
+## a trigger also shows the waves.
+func _section_links(own:MapCatalogItem.Bake, number:int)->void:
+	if own == MapCatalogItem.Bake.TRIGGER:
+		_section_details(number)
+	else:
+		_button(_box, "Section %d details" % number, "Select this section's triggers (their inspector shows its waves)",
+			creator.select_section_entities.bind(number, MapCatalogItem.Bake.TRIGGER))
+	for _entry:Array in [[MapCatalogItem.Bake.SPAWN, "spawners"], [MapCatalogItem.Bake.BLOCK_WALL, "barriers / gates"]]:
+		if _entry[0] == own:
+			continue
+		var _count:int = creator.section_entities(number, _entry[0]).size()
+		if _count == 0:
+			continue
+		_button(_box, "Select %s (%d)" % [_entry[1], _count], "Select every one of section %d" % number,
+			creator.select_section_entities.bind(number, _entry[0]))
+
+## Waves of section `number` (enemies each).
 func _section_details(number:int)->void:
 	var _spec:Dictionary = creator.layout.section_spec(number - 1)
 	if _spec.is_empty():
@@ -229,9 +247,6 @@ func _section_details(number:int)->void:
 		if _wave.get("is_boss", false):
 			_text += "  boss " + String(_wave.get("display_name", ""))
 		_note(_text)
-	var _spawners:int = creator.section_entities(number, MapCatalogItem.Bake.SPAWN).size()
-	_button(_box, "Select spawners (%d)" % _spawners, "Select every enemy spawner of section %d" % number,
-		creator.select_section_entities.bind(number, MapCatalogItem.Bake.SPAWN))
 
 func _note(text:String)->void:
 	var _label:Label = Label.new()
@@ -251,11 +266,12 @@ func _button(parent:Control, text:String, hint:String, action:Callable)->Button:
 	return _b
 
 ## Icon button opening room `room_key` (switch_room: unsaved edits ask twice).
-func _open_button(parent:Control, room_key:String)->Button:
+## `focus`: what the room selects on arrival (MapCreator.focus_exits).
+func _open_button(parent:Control, room_key:String, focus:Dictionary = {})->Button:
 	var _b:Button = Button.new()
 	_b.icon = creator.open_room_icon()
 	_b.tooltip_text = "Open room_%s" % room_key
 	_b.focus_mode = Control.FOCUS_NONE
-	_b.pressed.connect(func ()->void: creator.switch_room(room_key))
+	_b.pressed.connect(func ()->void: creator.switch_room(room_key, focus))
 	parent.add_child(_b)
 	return _b

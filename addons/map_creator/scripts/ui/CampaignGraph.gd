@@ -3,7 +3,7 @@
 ## Dragging out port -> in port links them (doors both ways, portals one way); dragging a
 ## link off clears it. Rooms outside the campaign that are linked show dimmed. Positions,
 ## the start room and new campaigns save to the workspace (CampaignStore).
-## Double click a room to open it; toolbar: add room, set start, remove, auto layout.
+## Double click a room to open it (an exit row: with that exit selected); toolbar: add room, set start, remove, auto layout.
 ## The search box matches rooms like the room browser (others fade); the side panel shows
 ## the selected room's details. Preview swaps the graph for the rooms drawn with their
 ## tiles, placed by their stairs (CampaignPreview).
@@ -271,6 +271,14 @@ func _add_node(key:String, external:bool, campaign:Dictionary, problems:PackedSt
 		else:
 			var _to:String = String(_entity.props.get("room", ""))
 			_row.text = "%s %s -> %s" % [_entity.item_id, _entity.props.get("tag", ""), _to if !_to.is_empty() else "(unlinked)"]
+			# double click the row: open the room with this exit selected
+			var _tag:String = String(_entity.props.get("tag", ""))
+			_row.mouse_filter = Control.MOUSE_FILTER_PASS
+			_row.tooltip_text = "Double click: open %s with this exit selected" % key
+			_row.gui_input.connect(func (event:InputEvent)->void:
+				if event is InputEventMouseButton && event.double_click && event.button_index == MOUSE_BUTTON_LEFT:
+					_row.accept_event()
+					_open(key, {"tags": PackedStringArray([_tag])}))
 		_node.add_child(_row)
 		var _slot:int = _node.get_child_count() - 1
 		var _linkable:bool = _entity.item_id != &"victory"
@@ -522,11 +530,14 @@ func _open_selected()->void:
 	if !_key.is_empty():
 		_open(_key)
 
-func _open(key:String)->void:
+## `focus` {tags, back_to}: what the room selects (MapCreator.focus_exits).
+func _open(key:String, focus:Dictionary = {})->void:
 	if key == creator.key:
 		close()
+		if !focus.is_empty():
+			creator.focus_exits(focus.get("tags", PackedStringArray()), focus.get("back_to", ""))
 		return
-	if creator.switch_room(key):
+	if creator.switch_room(key, focus):
 		close()
 
 func _unhandled_key_input(event:InputEvent)->void:

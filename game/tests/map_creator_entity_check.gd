@@ -51,7 +51,19 @@ func _check_sections(creator:MapCreator, inspector:MapInspector)->void:
 	if !_details.is_empty():
 		_details[0].pressed.emit()
 	check(creator.selection.size() == _triggers.size() && creator.inspected != null && creator.inspected.item_id == &"trigger", "Section details selects the section's triggers")
+	var _gates:Array[LayoutEntity] = creator.section_entities(1, MapCatalogItem.Bake.BLOCK_WALL)
+	creator.inspect(_spawners[0])
+	var _gate_buttons:Array = inspector._box.find_children("*", "Button", true, false).filter(func (b:Button)->bool: return b.text.begins_with("Select barriers"))
+	check(_gate_buttons.size() == (1 if !_gates.is_empty() else 0), "spawner offers its section's barriers")
+	if !_gates.is_empty():
+		_gate_buttons[0].pressed.emit()
+		check(creator.selection.size() == _gates.size() && creator.inspected != null && creator.inspected.props.get("section", 1) == 1, "barriers of the section selected")
+	var _door:LayoutEntity = creator.layout.entities_of(&"door")[0]
+	check(creator.focus_exits(PackedStringArray([String(_door.props.tag)])) && creator.inspected == _door, "focus_exits selects the tagged stairs")
+	check(creator.focus_exits(PackedStringArray(["no_such_tag"]), String(_door.props.room)) && creator.selection.has(_door.cell, &"door"), "focus_exits falls back to the way back")
+	check(!creator.focus_exits(PackedStringArray(["no_such_tag"])), "focus_exits: nothing to select")
 	creator.selection.clear()
+	creator.inspect(null)
 
 func _frames(count:int)->void:
 	for _i:int in count:

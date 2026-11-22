@@ -1,5 +1,6 @@
 ## The room's live problems (MapChecks, refreshed after every edit): a list at the bottom
-## right, opened from the topbar's problem count. Clicking one moves the edit camera to it.
+## right, opened from the topbar's problem count. Clicking one moves the edit camera to it
+## (selecting and inspecting the entity there).
 class_name ProblemsPanel
 extends PanelContainer
 
@@ -52,5 +53,10 @@ func _go_to(index:int)->void:
 	var _cell:Variant = _cells[index] if index < _cells.size() else null
 	if _cell is Vector2i && creator.camera != null:
 		creator.camera.global_position = creator.cell_center(_cell)
-		creator.selection.clear()
 		creator.flash_cell = _cell
+		# an entity's problem: select and inspect it
+		var _entity:LayoutEntity = creator.layout.entity_at(_cell) if creator.layout != null else null
+		if _entity != null:
+			creator.select_entities([_entity])
+		else:
+			creator.selection.clear()
