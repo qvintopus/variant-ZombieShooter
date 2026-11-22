@@ -32,7 +32,7 @@ func _ready()->void:
 	await _frames(3)
 	_creator.set_editing(true)
 	await _frames(1)
-	_check_waves(_creator, _baker)
+	await _check_waves(_creator, _baker)
 	await _check_problems(_creator)
 	_check_autosave(_creator)
 	_check_play_here(_creator)
@@ -103,17 +103,89 @@ func _check_waves(creator:MapCreator, baker:GameLayoutBaker)->void:
 	_panel.move_wave(_last, 1, -1)
 	check(creator.layout.sections[_last].waves[0].count == 9, "move a wave up")
 	_panel.rebuild()
-	check(_panel._box.get_child_count() > 5, "panel rows built")
+	check(_panel._cards.size() == creator.layout.sections.size(), "one card per section")
 	_panel.focus_section(1)
 	check(creator.highlight_section == 1 && !creator.selection.is_empty(), "section title highlights + selects its entities")
-	_panel.remove_section(_last)
-	check(creator.layout.sections.size() == _sections && creator.layout.boss_section == 0, "remove section clears its boss flag in one step")
+	# stale indices never crash
+	_panel.change_section(99, func (s:Dictionary)->void: s.x = 1)
+	_panel.change_wave(_last, 99, func (w:Dictionary)->void: w.x = 1)
+	check(creator._undo.size() == _undo + 7, "stale indices: no edit")
+	# a spawner + trigger in the new (last) section, one in section 1
+	var _spawn_item:MapCatalogItem = creator.catalog.item(&"spawn")
+	var _cells:Array[Vector2i] = []
+	for _cell:Vector2i in creator.layout.floor:
+		if creator.layout.entity_at(_cell) == null:
+			_cells.append(_cell)
+		if _cells.size() == 2:
+			break
+	creator.edit(func ()->void:
+		creator._put(_cells[0], _spawn_item, {"section": _last + 1})
+		creator._put(_cells[1], _spawn_item, {"section": _last + 1}))
+	var _usage:Dictionary = _panel.section_usage(_last + 1)
+	check(_usage.spawners == 2 && _usage.total == 2, "section usage counts its spawners")
+	# move up: entities + boss flag follow
+	_panel.move_section(_last, -1)
+	check(creator.layout.entity_at(_cells[0]).props.section == _last && creator.layout.boss_section == _last && creator.layout.sections[_last - 1].waves[0].count == 9, "move section: entities and boss flag follow")
 	creator.undo()
-	check(creator.layout.sections.size() == _sections + 1 && creator.layout.boss_section == _last + 1, "undo brings it back")
+	check(creator.layout.entity_at(_cells[0]).props.section == _last + 1 && creator.layout.boss_section == _last + 1, "undo move")
+	# inspecting a spawner scrolls to its section
+	creator.inspect(creator.layout.entity_at(_cells[0]))
+	check(_panel.focus_number == _last + 1 && creator.highlight_section == _last + 1 && !_panel._collapsed.get(_last + 1, false), "inspect: panel focuses its section")
+	await _frames(2)
+	creator.inspect(null)
+	# delete prompts
+	var _prompt:MapPrompt = creator.get_node("UI/Root/Prompt")
+	_panel.ask_remove_section(_last)
+	check(_prompt.visible && _prompt.choice_labels().size() == 3 && _prompt.choice_labels()[0].contains("2 map entities"), "section delete asks: delete all / move / cancel %s" % [_prompt.choice_labels()])
+	_prompt.press_choice(2)
+	check(!_prompt.visible && creator.layout.sections.size() == _sections + 1, "cancel keeps it")
+	_panel.ask_remove_wave(_last, 0)
+	check(_prompt.visible && _prompt.choice_labels().size() == 2, "wave delete asks (not the only wave)")
+	_prompt.press_choice(0)
+	check(creator.layout.sections[_last].waves.size() == 1, "delete wave")
+	_panel.ask_remove_wave(_last, 0)
+	check(_prompt.choice_labels().size() == 3, "only wave also offers the whole section")
+	_prompt.close()
+	creator.undo()
+	# keep entities: they move to the previous section
+	_panel.remove_section(_last, false)
+	check(creator.layout.sections.size() == _sections && creator.layout.boss_section == 0 && creator.layout.entity_at(_cells[0]) != null && creator.layout.entity_at(_cells[0]).props.section == _last, "remove section keeping entities: moved to previous, boss flag cleared")
+	creator.undo()
+	# delete entities, via the prompt
+	_panel.ask_remove_section(_last)
+	_prompt.press_choice(0)
+	check(creator.layout.sections.size() == _sections && creator.layout.entity_at(_cells[0]) == null && creator.layout.entity_at(_cells[1]) == null, "remove section + its entities in one step")
+	creator.undo()
+	check(creator.layout.sections.size() == _sections + 1 && creator.layout.boss_section == _last + 1 && creator.layout.entity_at(_cells[0]) != null, "undo brings it back")
+	# removing an earlier section renumbers later entities
+	if _last >= 1:
+		_panel.remove_section(0, true)
+		check(creator.layout.entity_at(_cells[0]).props.section == _last && creator.layout.boss_section == _last, "later sections renumber (entities + flags)")
+		creator.undo()
+	# a structural undo while a spin is focused still rebuilds
+	_panel.rebuild()
+	var _spin:SpinBox = _find_spin(_panel)
+	if _spin != null:
+		_spin.get_line_edit().grab_focus()
+		creator.undo()
+		await _frames(2)
+		check(_panel._built_shape == _panel._shape(), "shape change rebuilds despite focus")
+		creator.redo()
+		_spin.get_viewport().gui_release_focus()
+	creator.undo()
 	creator.undo()
 	creator.undo()
 	_panel.close()
 	check(!_panel.visible && creator.highlight_section == 0, "close")
+
+func _find_spin(node:Node)->SpinBox:
+	for _child:Node in node.get_children():
+		if _child is SpinBox:
+			return _child
+		var _found:SpinBox = _find_spin(_child)
+		if _found != null:
+			return _found
+	return null
 
 func _check_problems(creator:MapCreator)->void:
 	creator.run_checks()

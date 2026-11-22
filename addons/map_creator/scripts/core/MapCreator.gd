@@ -29,6 +29,8 @@ signal prompt_requested(title:String, initial:String, answer:Callable)
 ## Same with a second button: `alt_label` runs `alt_answer` (no text).
 signal choice_requested(title:String, initial:String, answer:Callable, alt_label:String, alt_answer:Callable)
 ## The workspace (active mod) changed.
+## Yes/no style question (MapPrompt): `choices` = [{label, action:Callable, danger:bool}], Cancel added.
+signal confirm_requested(title:String, body:String, choices:Array)
 signal workspace_changed
 signal waves_requested
 signal problems_requested
