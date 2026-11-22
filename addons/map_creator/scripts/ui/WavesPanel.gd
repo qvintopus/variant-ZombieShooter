@@ -612,8 +612,10 @@ func _build_wave(parent:Control, section:int, wave:int, data:Dictionary, wave_co
 		"Scaled in game by the difficulty's wave_count_ratio, Swarm (meta, x2) and co-op players;\nboss waves stay as set.", func (v:int)->void:
 		change_wave(section, wave, func (w:Dictionary)->void: w.count = v))
 	_spin(_numbers, "Alive", int(data.get("max_alive", 0)), 0, 50,
-		"Alive target: spawners keep this many of the wave alive at once, spawning past their\n" +
-		"Density (least busy spawner first) until Count is used up.\n0 = Density decides (each spawner keeps its slots).", func (v:int)->void:
+		"Alive target: this many of the wave alive at once (never more, also on Normal's timer).\n" +
+		"Density's slots fill at once, then each spawner adds one every spawn interval\n" +
+		"(2s; Frenzy / Swarm faster) until the target, refilling as enemies die, while Count lasts.\n" +
+		"0 = Density decides (each spawner keeps its slots).", func (v:int)->void:
 		change_wave(section, wave, func (w:Dictionary)->void:
 			if v == 0:
 				w.erase("max_alive")

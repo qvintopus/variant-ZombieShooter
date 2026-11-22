@@ -10,8 +10,8 @@ const TD:String = "res://addons/top_down/"
 @export_file("*.json") var balance_path:String = "res://game/balance/balance.json"
 ## Room entries (waves, spawn caps, loot): written by write_balance().
 @export_file("*.json") var maps_path:String = "res://game/balance/maps.json"
-## maps.json free_distance of every written section.
-@export var free_distance:int = 116
+## maps.json free_distance of every written section (gap around a new spawn spot, px).
+@export var free_distance:int = 8
 
 var _balance:Dictionary
 ## Room key -> maps.json "rooms" entry, written by write_balance().

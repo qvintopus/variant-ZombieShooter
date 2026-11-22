@@ -49,6 +49,7 @@ func _ready()->void:
 	await _check_small_wave()
 	await _check_quota()
 	await _check_alive_target()
+	_check_spots()
 
 	DIFFICULTY.mode = _mode
 	META.owned = _owned
@@ -142,22 +143,41 @@ func _check_quota()->void:
 	check(_section._wave_quota(_wave) == 10, "boss waves stay as they are")
 	_section.free()
 
-## max_alive is an alive target: spawners keep that many up past their density slots,
-## and stop there while every enemy stays alive (Easy: no timers).
+## max_alive is an alive target: the density slots fill at once, then each point tops
+## up one every fill_interval (Easy: no spawn timers) until the target, then holds.
 func _check_alive_target()->void:
 	DIFFICULTY.mode = DifficultyResource.Mode.EASY
 	META.owned = PackedStringArray()
 	var _room:Node = (load(ROOM) as PackedScene).instantiate()
+	add_child(_room)
 	var _section:ArenaSection = _room.get_node("EnemyManager/Section1")
 	_section.free_distance = 0.0
 	_section.waves[0] = _section.waves[0].duplicate()
 	_section.waves[0].count = 1000
-	add_child(_room)
-	var _target:int = _section.spawn_points.size() * roundi(_section.spawn_density) + 5
+	var _points:int = _section.spawn_points.size()
+	var _slots:int = _points * roundi(_section.spawn_density)
+	var _target:int = _slots + _points + 1
 	_section.waves[0].max_alive = _target
-	var _times:Array[float] = await _watch(_section, 3.0)
-	check(_times.size() == _target, "max_alive %d: that many kept alive past the slots (%d spawned)" % [_target, _times.size()])
+	var _times:Array[float] = await _watch(_section, 5.0)
+	var _burst:int = _times.filter(func (t:float)->bool: return t <= SLACK).size()
+	var _first:int = _times.filter(func (t:float)->bool: return absf(t - _section.fill_interval) <= SLACK).size()
+	check(_burst == _slots, "max_alive: the density slots fill at once (%d of %d)" % [_burst, _slots])
+	check(_first == _points, "max_alive: each point tops up one after %ss (%d)" % [_section.fill_interval, _first])
+	check(_times.size() == _target, "max_alive %d: reached, then held (%d spawned)" % [_target, _times.size()])
 	await _end_room(_room)
+
+## A spawner hosts several enemies on free spots (not one on top of another), and
+## a spawner whose spots are all taken waits.
+func _check_spots()->void:
+	var _section:ArenaSection = ArenaSection.new()
+	_section.free_distance = 8.0
+	var _spots:Array[Vector2] = _section._free_spots(Vector2.ZERO, 7)
+	var _apart:bool = true
+	for _i:int in _spots.size():
+		for _j:int in range(_i + 1, _spots.size()):
+			_apart = _apart && _spots[_i].distance_to(_spots[_j]) > _section.free_distance
+	check(_spots.size() == 7 && _apart, "7 free spots per spawner, apart (%d)" % _spots.size())
+	_section.free()
 
 ## Enemies of one spawn event don't land on the same spot.
 func _check_apart(tag:String)->void:

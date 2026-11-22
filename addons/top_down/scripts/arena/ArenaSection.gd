@@ -35,8 +35,13 @@ signal wave_cleared(index:int)
 ## A wave's max_alive overrides this: that many are kept alive across the points.
 @export_range(0.1, 6.0, 0.1) var spawn_density:float = 1.0
 
-## Enemies don't spawn closer than this to another enemy; 0 = no check.
-@export var free_distance:float = 116.0
+## Gap between a new enemy's spot and any enemy or spawn mark; a spawner whose spots
+## are all taken waits. 0 = no check (enemies may stack).
+@export var free_distance:float = 8.0
+
+## Seconds between a spawner's top-ups toward a wave's max_alive (past its density),
+## when the difficulty sets no spawn_interval; spawn_rate_ratio shortens it.
+@export var fill_interval:float = 2.0
 
 ## Optional prerequisite section. try_start() is ignored until it is cleared.
 @export var requires:ArenaSection
@@ -49,8 +54,9 @@ signal wave_cleared(index:int)
 const DIFFICULTY:DifficultyResource = preload("res://addons/top_down/resources/global_resources/difficulty_resource.tres")
 ## Horde meta-upgrades: spawn_rate_ratio, wave_count_ratio, spawner_count.
 const META:MetaUpgradeResource = preload("res://game/resources/meta_upgrade_resource.tres")
-## Several enemies from one spawn event sit on a ring this wide around the point.
-const GROUP_RADIUS:float = 8.0
+## Spots around a spawner: its center, then a ring this wide (6 spots), so one
+## spawner can host several enemies at once without stacking them.
+const SPOT_RING:float = 10.0
 ## Most spawn points that run a spawn timer at once.
 const MAX_TIMED_POINTS:int = 6
 
@@ -74,6 +80,8 @@ var pending_spawns:int = 0
 var spawn_holds:int = 0
 ## Seconds between a timed point's extra spawns; 0 = no timers. Set per wave.
 var spawn_interval:float = 0.0
+## Seconds between a spawner's top-ups past its slots (max_alive waves). Set per wave.
+var top_up_interval:float = 2.0
 ## Points that also spawn every spawn_interval, whether or not their slots are
 ## free: the difficulty's timed_spawners plus the meta's, at most
 ## MAX_TIMED_POINTS and the active points. Picked at random per wave.
@@ -141,6 +149,9 @@ func _select_active_points()->void:
 	for _p:SpawnPoint in _source:
 		_p.active_count = 0
 	spawn_interval = DIFFICULTY.spawn_interval() / maxf(1.0 + META.stat("spawn_rate_ratio"), 0.1)
+	top_up_interval = spawn_interval if spawn_interval > 0.0 else fill_interval / maxf(1.0 + META.stat("spawn_rate_ratio"), 0.1)
+	for _p:SpawnPoint in _source:
+		_p.fill_left = 0.0
 	per_spawn = maxi(1, 1 + int(META.stat("spawner_count")))
 	if spawn_density < 1.0:
 		per_point_cap = 1
@@ -201,11 +212,13 @@ func mark_cleared()->void:
 
 # --- Spawn loop (moved from EnemySpawner) ---------------------------------
 
-## Every active point keeps its slots filled, so it refills when its enemies die
-## (the wave's opening burst is that first fill). A wave with max_alive instead keeps
-## that many alive, the least busy points spawning first, past their slots. Timed
-## points also spawn every spawn_interval seconds on their own timer, whether or not
-## their enemies are alive. All keep the kill quota and free_distance checks.
+## Every active point keeps its density slots filled at once, refilling when its
+## enemies die (the wave's opening burst is that first fill). A wave with max_alive
+## keeps that many alive instead: the slots fill first (up to the target), then each
+## point tops up one spawn every top_up_interval (least busy points first) until the
+## target is reached. Timed points also spawn every spawn_interval seconds on their
+## own timer, whether or not their enemies are alive (never past a max_alive target). Every spawn lands on a free spot
+## of its point (free_distance) and stays within the wave's kill quota.
 func _process(delta:float)->void:
 	if spawn_holds > 0 || Net.is_guest():
 		return
@@ -222,6 +235,8 @@ func _process(delta:float)->void:
 
 	for _point:SpawnPoint in timed_points:
 		_point.cooldown_left -= delta
+	for _point:SpawnPoint in active_points:
+		_point.fill_left -= delta
 	var _points:Array[SpawnPoint] = active_points
 	if _target >= 0:
 		_points = active_points.duplicate()
@@ -232,31 +247,43 @@ func _process(delta:float)->void:
 			return
 		var _timer_due:bool = timed_points.has(_point) && _point.cooldown_left <= 0.0
 		var _slots:int = mini(per_point_cap, _point.max_simultaneous) * per_spawn
-		if !_timer_due:
-			if _target >= 0 && _committed >= _target:
-				continue
-			if _target < 0 && _point.active_count >= _slots:
-				continue
-		if !_filter_free_position(_point.global_position):
+		var _room:int = enemy_count - _committed
+		if _target >= 0:
+			_room = mini(_room, _target - _committed)
+		if _room <= 0:
 			continue
-		var _count:int = mini(per_spawn, enemy_count - _committed)
+		if !_timer_due:
+			if _point.active_count < _slots:
+				_room = mini(_room, _slots - _point.active_count)
+			elif _target < 0 || _point.fill_left > 0.0:
+				continue
+		var _spots:Array[Vector2] = _free_spots(_point.global_position, mini(per_spawn, _room))
+		if _spots.is_empty():
+			continue
 		if _timer_due:
 			_point.cooldown_left = spawn_interval
-		elif _target >= 0:
-			_count = mini(_count, _target - _committed)
-		else:
-			_count = mini(_count, _slots - _point.active_count)
-		for _i:int in _count:
+		_point.fill_left = top_up_interval
+		for _spot:Vector2 in _spots:
 			_point.active_count += 1
 			_committed += 1
 			pending_spawns += 1
-			_create_spawn_mark(_wave, _point, _group_offset(_i, _count))
+			_create_spawn_mark(_wave, _point, _spot - _point.global_position)
 
-## Where the i-th of `count` enemies from one spawn event lands, around the point.
-func _group_offset(index:int, count:int)->Vector2:
-	if count <= 1:
-		return Vector2.ZERO
-	return Vector2.RIGHT.rotated(TAU * index / count) * GROUP_RADIUS
+## Up to `count` spots around `center` (its center first, then the ring) with no enemy
+## or spawn mark within free_distance, nor each other.
+func _free_spots(center:Vector2, count:int)->Array[Vector2]:
+	var _spots:Array[Vector2] = []
+	var _candidates:Array[Vector2] = [center]
+	for _i:int in 6:
+		_candidates.append(center + Vector2.RIGHT.rotated(TAU * _i / 6.0) * SPOT_RING)
+	for _spot:Vector2 in _candidates:
+		if _spots.size() >= count:
+			break
+		if _spots.any(func (taken:Vector2)->bool: return taken.distance_to(_spot) < SPOT_RING * 0.5):
+			continue
+		if _filter_free_position(_spot):
+			_spots.append(_spot)
+	return _spots
 
 func _create_spawn_mark(wave:SpawnWaveList, point:SpawnPoint, offset:Vector2 = Vector2.ZERO)->void:
 	var _spawn_position:Vector2 = point.global_position + offset

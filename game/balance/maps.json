@@ -287,7 +287,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 6,
@@ -331,7 +331,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -344,7 +344,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -400,7 +400,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 6,
@@ -413,7 +413,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -450,7 +450,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -469,7 +469,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -520,7 +520,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -532,7 +532,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -569,7 +569,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -582,7 +582,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -602,7 +602,7 @@
 				},
 				"Section3": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -663,7 +663,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -676,7 +676,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -713,7 +713,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 6,
@@ -758,7 +758,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -778,7 +778,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -791,15 +791,15 @@
 				},
 				"Section3": {
 					"spawn_density": 3,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
-							"count": 5,
+							"count": 16,
 							"enemies": [
 								"zombie_crawler",
 								"slime"
 							],
-							"max_alive": 8
+							"max_alive": 16
 						}
 					]
 				}
@@ -852,7 +852,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -872,7 +872,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -886,7 +886,7 @@
 				},
 				"Section3": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -945,7 +945,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -985,7 +985,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 6,
@@ -998,7 +998,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -1035,7 +1035,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -1055,7 +1055,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1114,7 +1114,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -1128,7 +1128,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1141,7 +1141,7 @@
 				},
 				"Section3": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1202,7 +1202,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -1221,7 +1221,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1269,7 +1269,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1281,7 +1281,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -1318,7 +1318,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 8,
@@ -1358,7 +1358,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1392,7 +1392,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1413,7 +1413,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 14,
@@ -1427,7 +1427,7 @@
 				},
 				"Section3": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1487,7 +1487,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1530,7 +1530,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1550,7 +1550,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 14,
@@ -1564,7 +1564,7 @@
 				},
 				"Section3": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1625,7 +1625,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1638,7 +1638,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -1675,7 +1675,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1696,7 +1696,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1748,7 +1748,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1761,7 +1761,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1807,7 +1807,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -1850,7 +1850,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 14,
@@ -1864,7 +1864,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
@@ -1901,7 +1901,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1920,7 +1920,7 @@
 				},
 				"Section2": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 14,
@@ -1935,7 +1935,7 @@
 				},
 				"Section3": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 10,
@@ -1995,7 +1995,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -2050,7 +2050,7 @@
 			"sections": {
 				"Section1": {
 					"spawn_density": 2,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 12,
@@ -2063,7 +2063,7 @@
 				},
 				"Section2": {
 					"spawn_density": 1,
-					"free_distance": 116,
+					"free_distance": 8,
 					"waves": [
 						{
 							"count": 1,
