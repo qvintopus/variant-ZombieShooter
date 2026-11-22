@@ -45,8 +45,14 @@ enum Brush { ONE, THREE, RECT, LINE }
 @export var mod_state:MapModState
 @export var settings:MapCreatorSettings
 @export var preset:MapCreatorPreset
-## Pauses the room while editing (in the room's PauseProcessingComponent extra_pause).
+## Pauses the room while editing or a pause_panels panel is open (in the room's
+## PauseProcessingComponent extra_pause).
 @export var editing_flag:BoolResource
+## Open in Play mode, these pause the room too (browser, graph, prompts...).
+@export var pause_panels:Array[Control]
+## Keeps the room stopped every frame while paused: other pausers (scene fade, debug
+## pause) would otherwise set it running again under the editor.
+@export var hold_room_paused:bool = true
 @export var camera:Camera2D
 @export var overlay:Node2D
 ## Scene change for room switching (the player keeps going to the next room).
@@ -155,6 +161,8 @@ func _ready()->void:
 
 func _exit_tree()->void:
 	set_editing(false)
+	if editing_flag != null:
+		editing_flag.value = false
 	# a saved room keeps its history for the next visit
 	if settings != null && layout != null && !dirty && (!_undo.is_empty() || !_redo.is_empty()):
 		settings.histories[key] = [_undo.duplicate(), _redo.duplicate()]
@@ -262,8 +270,7 @@ func set_editing(value:bool)->void:
 	if editing == value:
 		return
 	editing = value
-	if editing_flag != null:
-		editing_flag.value = value
+	_sync_pause()
 	if camera != null:
 		camera.call(&"activate" if value else &"deactivate")
 		if value && _edit_camera_at != null:
@@ -274,6 +281,27 @@ func set_editing(value:bool)->void:
 	mode_changed.emit(value)
 	if value:
 		_ask_copy_original()
+
+## Editing or a pause panel open.
+func wants_pause()->bool:
+	if editing:
+		return true
+	for _panel:Control in pause_panels:
+		if is_instance_valid(_panel) && _panel.is_visible_in_tree():
+			return true
+	return false
+
+func _online()->bool:
+	var _net:Node = get_node_or_null(^"/root/Net")
+	return _net != null && _net.has_method(&"is_online") && bool(_net.call(&"is_online"))
+
+func _sync_pause()->void:
+	var _on:bool = wants_pause() && is_inside_tree()
+	if editing_flag != null && editing_flag.value != _on:
+		editing_flag.value = _on
+	# online co-op keeps the world running (like the room's pause component)
+	if _on && hold_room_paused && !_online() && is_instance_valid(room) && room.process_mode != Node.PROCESS_MODE_DISABLED:
+		room.process_mode = Node.PROCESS_MODE_DISABLED
 
 func toggle_editing()->void:
 	set_editing(!editing)
@@ -1386,6 +1414,7 @@ func _go(path:String)->void:
 # --- checks, testing, autosave ----------------------------------------------------------
 
 func _process(delta:float)->void:
+	_sync_pause()
 	if _check_in >= 0.0:
 		_check_in -= delta
 		if _check_in < 0.0 && busy:

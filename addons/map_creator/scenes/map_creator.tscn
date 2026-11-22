@@ -22,7 +22,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/ProblemsPanel.gd" id="20_problems"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/ui/HelpOverlay.gd" id="21_help"]
 
-[node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay")]
+[node name="MapCreator" type="Node" node_paths=PackedStringArray("camera", "overlay", "pause_panels")]
 process_mode = 3
 script = ExtResource("1_mc")
 catalog = ExtResource("2_catalog")
@@ -35,6 +35,7 @@ scene_transition_resource = ExtResource("14_transition")
 player_reference = ExtResource("15_player")
 camera = NodePath("EditCamera")
 overlay = NodePath("Overlay")
+pause_panels = [NodePath("UI/Root/RoomBrowser"), NodePath("UI/Root/WavesPanel"), NodePath("UI/Root/ProblemsPanel"), NodePath("UI/Root/CampaignGraph"), NodePath("UI/Root/Prompt"), NodePath("UI/Root/HelpOverlay"), NodePath("UI/Root/RadialMenu")]
 
 [node name="EditCamera" type="Camera2D" parent="."]
 enabled = false
