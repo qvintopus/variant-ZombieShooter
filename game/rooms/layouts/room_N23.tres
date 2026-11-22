@@ -254,7 +254,6 @@ look = "sandstone"
 accent = "mossy"
 boss_section = 2
 sections = Array[Dictionary]([{
-"max_simultaneous": 2,
 "spawn_density": 2,
 "waves": [{
 "count": 12,

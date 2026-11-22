@@ -1,4 +1,4 @@
-## Spawn pacing per difficulty and the HORDE meta stats, in room_A02's first fight
+## Spawn pacing per difficulty and the HORDE meta stats, the max_alive target, in room_A02's first fight
 ## (4 spawn points). Every point refills its slots on both difficulties, so a full
 ## room stays full on Easy. Normal adds one timed point that also spawns every 2s
 ## whether or not its enemies are alive; each Nest upgrade adds a timed point with
@@ -35,7 +35,7 @@ func _ready()->void:
 	check(DIFFICULTY.timed_spawners() == 1, "Normal has one timed spawner")
 	check(is_zero_approx(_interval(DifficultyResource.Mode.EASY)), "Easy waits for free slots")
 	DIFFICULTY.mode = DifficultyResource.Mode.NORMAL
-	check(DIFFICULTY.max_alive_multiplier() <= 0.0, "Normal has no max_alive cap")
+	check(is_equal_approx(DIFFICULTY.max_alive_multiplier(), 1.0), "Normal keeps max_alive as authored")
 
 	await _check_easy([], 1)
 	await _check_easy(["twin_spawn"], 2)
@@ -48,6 +48,7 @@ func _ready()->void:
 	await _check_independent()
 	await _check_small_wave()
 	await _check_quota()
+	await _check_alive_target()
 
 	DIFFICULTY.mode = _mode
 	META.owned = _owned
@@ -140,6 +141,23 @@ func _check_quota()->void:
 	_wave.is_boss = true
 	check(_section._wave_quota(_wave) == 10, "boss waves stay as they are")
 	_section.free()
+
+## max_alive is an alive target: spawners keep that many up past their density slots,
+## and stop there while every enemy stays alive (Easy: no timers).
+func _check_alive_target()->void:
+	DIFFICULTY.mode = DifficultyResource.Mode.EASY
+	META.owned = PackedStringArray()
+	var _room:Node = (load(ROOM) as PackedScene).instantiate()
+	var _section:ArenaSection = _room.get_node("EnemyManager/Section1")
+	_section.free_distance = 0.0
+	_section.waves[0] = _section.waves[0].duplicate()
+	_section.waves[0].count = 1000
+	add_child(_room)
+	var _target:int = _section.spawn_points.size() * roundi(_section.spawn_density) + 5
+	_section.waves[0].max_alive = _target
+	var _times:Array[float] = await _watch(_section, 3.0)
+	check(_times.size() == _target, "max_alive %d: that many kept alive past the slots (%d spawned)" % [_target, _times.size()])
+	await _end_room(_room)
 
 ## Enemies of one spawn event don't land on the same spot.
 func _check_apart(tag:String)->void:

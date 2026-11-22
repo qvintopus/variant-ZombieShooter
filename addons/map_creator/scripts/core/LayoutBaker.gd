@@ -8,6 +8,9 @@
 class_name LayoutBaker
 extends Resource
 
+## SpawnPoint.max_simultaneous of a spawner without its own limit (the export's max).
+const SPAWNER_NO_LIMIT:int = 6
+
 const DIAMOND:PackedVector2Array = [Vector2(0, -8), Vector2(16, 0), Vector2(0, 8), Vector2(-16, 0)]
 const AUTOTILER:String = "TileVisualAutotiler.gd"
 
@@ -47,8 +50,14 @@ func load_layouts()->Dictionary:
 			continue
 		var _layout:RoomLayoutResource = ResourceLoader.load(layouts_dir.path_join(_file), "", ResourceLoader.CACHE_MODE_REPLACE)
 		if _layout != null:
+			_layout.migrate()
 			layouts[_layout.key] = _layout
 	return layouts
+
+## Most enemies a spawner keeps alive: its own max_simultaneous, else no limit (the
+## section's spawn_density decides).
+static func spawner_limit(props:Dictionary)->int:
+	return int(props.get("max_simultaneous", SPAWNER_NO_LIMIT))
 
 func layout_path(key:String)->String:
 	return layouts_dir.path_join("room_%s.tres" % key)
@@ -234,7 +243,7 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 				else:
 					_spawn_counts[_index] += 1
 					_name = "Spawn_S%d_%d" % [_index + 1, _spawn_counts[_index]]
-					_max = int(_p.get("max_simultaneous", layout.section_spec(_index).get("max_simultaneous", 1)))
+					_max = spawner_limit(_p)
 					_props.max_simultaneous = str(_max)
 				_ctx.spawns[_name] = {"section": _index, "max_simultaneous": _max}
 				_out.node(_name, "EnemySpawnPoints", _props, "", "Marker2D")

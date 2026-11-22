@@ -121,7 +121,6 @@ campaign = &"new_game"
 look = "metal"
 accent = "bloody"
 sections = Array[Dictionary]([{
-"max_simultaneous": 2,
 "spawn_density": 2,
 "waves": [{
 "count": 10,

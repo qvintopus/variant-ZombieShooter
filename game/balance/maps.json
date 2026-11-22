@@ -309,19 +309,19 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -366,31 +366,31 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -431,16 +431,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -483,34 +483,34 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -550,16 +550,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -617,43 +617,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -694,16 +694,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -733,22 +733,22 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_6": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -790,58 +790,59 @@
 					]
 				},
 				"Section3": {
-					"spawn_density": 1,
+					"spawn_density": 3,
 					"free_distance": 116,
 					"waves": [
 						{
-							"count": 8,
+							"count": 5,
 							"enemies": [
 								"zombie_crawler",
 								"slime"
-							]
+							],
+							"max_alive": 8
 						}
 					]
 				}
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -898,43 +899,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -965,16 +966,16 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1015,16 +1016,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1076,34 +1077,34 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1155,43 +1156,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1234,31 +1235,31 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1298,16 +1299,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1338,16 +1339,16 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1372,16 +1373,16 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1440,43 +1441,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1507,19 +1508,19 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1578,43 +1579,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1655,16 +1656,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1710,34 +1711,34 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1775,28 +1776,28 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1827,19 +1828,19 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1881,16 +1882,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -1948,43 +1949,43 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S2_5": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S3_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -2021,25 +2022,25 @@
 			},
 			"spawn_points": {
 				"Spawn_S1_1": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_5": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_6": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_7": {
-					"max_simultaneous": 1
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0
@@ -2080,16 +2081,16 @@
 					"max_simultaneous": 1
 				},
 				"Spawn_S1_1": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_2": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_3": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				},
 				"Spawn_S1_4": {
-					"max_simultaneous": 2
+					"max_simultaneous": 6
 				}
 			},
 			"loot_multiplier": 1.0

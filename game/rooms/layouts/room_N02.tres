@@ -465,16 +465,17 @@ sections = Array[Dictionary]([{
 "enemies": ["slime", "zombie"]
 }]
 }, {
-"max_simultaneous": 2,
 "spawn_density": 2,
 "waves": [{
 "count": 10,
 "enemies": ["zombie", "bloater"]
 }]
 }, {
+"spawn_density": 3,
 "waves": [{
-"count": 8,
-"enemies": ["zombie_crawler", "slime"]
+"count": 5,
+"enemies": ["zombie_crawler", "slime"],
+"max_alive": 8
 }]
 }])
 floor = Dictionary[Vector2i, Vector3i]({

@@ -476,7 +476,6 @@ sections = Array[Dictionary]([{
 "enemies": ["acid_slime", "bloater"]
 }]
 }, {
-"max_simultaneous": 2,
 "spawn_density": 2,
 "waves": [{
 "count": 14,

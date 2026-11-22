@@ -200,6 +200,28 @@ func register_rooms(entries:Dictionary)->void:
 		_rooms[_key] = _entry
 		_by_scene[_entry.scene] = ["rooms", _key]
 
+## Replaces maps.json room entries in memory (the room baker just rewrote them), so a
+## reloaded room gets its new waves, not the ones read at startup. id: room_<key>.
+func set_rooms(entries:Dictionary)->void:
+	var _rooms:Dictionary = data.get_or_add("rooms", {})
+	for _id:String in entries:
+		var _entry:Variant = entries[_id]
+		if !(_entry is Dictionary) || !_entry.has("scene"):
+			continue
+		var _old:Variant = _rooms.get(_id)
+		if _old is Dictionary && _old.get("scene", "") != _entry.scene:
+			_by_scene.erase(_old.get("scene", ""))
+		_rooms[_id] = _entry
+		_by_scene[_entry.scene] = ["rooms", _id]
+
+## Drops a room entry from memory (a room no longer written to maps.json).
+func drop_room(id:String)->void:
+	var _rooms:Dictionary = data.get("rooms", {})
+	var _old:Variant = _rooms.get(id)
+	if _old is Dictionary:
+		_by_scene.erase(_old.get("scene", ""))
+	_rooms.erase(id)
+
 func clear_registered()->void:
 	var _rooms:Dictionary = data.get("rooms", {})
 	for _key:String in _rooms.keys():

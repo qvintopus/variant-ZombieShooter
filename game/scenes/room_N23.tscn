@@ -1165,13 +1165,13 @@ position = Vector2(528, 328)
 position = Vector2(48, 104)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(176, 168)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="WebTrap2" parent="Behind" instance=ExtResource("5_web_trap")]
 position = Vector2(384, 304)
@@ -1244,13 +1244,13 @@ position = Vector2(400, 456)
 position = Vector2(-144, 200)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(-16, 264)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="WebTrap5" parent="Behind" instance=ExtResource("5_web_trap")]
 position = Vector2(256, 400)

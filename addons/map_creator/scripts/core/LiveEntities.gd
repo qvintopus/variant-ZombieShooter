@@ -171,7 +171,7 @@ func _build(entity:LayoutEntity)->Array:
 			var _index:int = maxi(creator.layout.boss_section, 1) if _boss else _section(entity)
 			_node.set(&"section", _room.get_node("EnemyManager/Section%d" % _index))
 			_node.set(&"boss_position", _boss)
-			_node.set(&"max_simultaneous", int(_p.get("max_simultaneous", creator.layout.section_spec(_index - 1).get("max_simultaneous", 1))))
+			_node.set(&"max_simultaneous", LayoutBaker.spawner_limit(_p))
 			return [_add(_room.get_node("EnemySpawnPoints"), _node, "SpawnBoss" if _boss else "Spawn_S%d" % _index)]
 		MapCatalogItem.Bake.TRIGGER:
 			var _node:CollisionPolygon2D = CollisionPolygon2D.new()

@@ -16,7 +16,10 @@
 ##   picked up)  contraptions, hazards and home base pieces (piston_grid: grid_size,
 ##   lever column/row at +1 x/y of the corner, keep them floor).
 ## Section dicts: {waves: [{count, enemies, is_boss?, display_name?, max_alive?}],
-## spawn_density?, max_simultaneous?}.
+## spawn_density?}. spawn_density = enemies each spawner keeps alive (a spawner's own
+## max_simultaneous caps it); max_alive = the wave's alive target (spawners keep that
+## many up, past their density). Old layouts' section max_simultaneous is folded into
+## spawn_density on load (migrate()).
 class_name RoomLayoutResource
 extends Resource
 
@@ -96,6 +99,24 @@ func sorted_entities()->Array[LayoutEntity]:
 
 func has_item(id:StringName)->bool:
 	return !entities_of(id).is_empty()
+
+## Folds the old per-section spawner cap into spawn_density (same baked result:
+## a spawner kept min(density, cap) alive). True when something changed.
+func migrate()->bool:
+	var _changed:bool = false
+	for _section:Dictionary in sections:
+		if !_section.has("max_simultaneous"):
+			continue
+		var _density:float = float(_section.get("spawn_density", 1))
+		var _cap:int = int(_section.max_simultaneous)
+		_section.erase("max_simultaneous")
+		if _density >= 1.0 && _cap < roundi(_density):
+			if _cap <= 1:
+				_section.erase("spawn_density")
+			else:
+				_section.spawn_density = _cap
+		_changed = true
+	return _changed
 
 func section_spec(index:int)->Dictionary:
 	return sections[index] if index >= 0 && index < sections.size() else {}

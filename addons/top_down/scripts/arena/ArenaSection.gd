@@ -32,6 +32,7 @@ signal wave_cleared(index:int)
 ##   < 1  : only a fraction of spawn points are active (round, min 1), each holding 1.
 ##   >= 1 : every spawn point active, each maintaining round(spawn_density) enemies
 ##          (capped per point by SpawnPoint.max_simultaneous).
+## A wave's max_alive overrides this: that many are kept alive across the points.
 @export_range(0.1, 6.0, 0.1) var spawn_density:float = 1.0
 
 ## Enemies don't spawn closer than this to another enemy; 0 = no check.
@@ -169,12 +170,14 @@ func _wave_quota(wave:SpawnWaveList)->int:
 	var _ratio:float = DIFFICULTY.wave_count_multiplier() * (1.0 + META.stat("wave_count_ratio")) * CoopScaling.wave_ratio()
 	return maxi(1, ceili(wave.count * _ratio))
 
-## Most of a wave alive at once, -1 when uncapped (no max_alive, or a 0 difficulty ratio).
-func _alive_cap(wave:SpawnWaveList)->int:
-	var _ratio:float = DIFFICULTY.max_alive_multiplier()
-	if wave.max_alive <= 0 || _ratio <= 0.0:
+## Enemies of a wave kept alive at once (spawners refill past their density), -1 when
+## the wave has no max_alive (then each point keeps its density slots). Scaled by the
+## difficulty's max_alive_ratio (0 or less = unscaled).
+func _alive_target(wave:SpawnWaveList)->int:
+	if wave.max_alive <= 0:
 		return -1
-	return maxi(1, ceili(wave.max_alive * _ratio))
+	var _ratio:float = DIFFICULTY.max_alive_multiplier()
+	return maxi(1, ceili(wave.max_alive * (_ratio if _ratio > 0.0 else 1.0)))
 
 ## Current wave being fought, or null when none remain.
 func current_wave()->SpawnWaveList:
@@ -199,9 +202,10 @@ func mark_cleared()->void:
 # --- Spawn loop (moved from EnemySpawner) ---------------------------------
 
 ## Every active point keeps its slots filled, so it refills when its enemies die
-## (the wave's opening burst is that first fill). Timed points also spawn every
-## spawn_interval seconds on their own timer, whether or not their enemies are
-## alive. Both keep the kill quota, max_alive cap and free_distance checks.
+## (the wave's opening burst is that first fill). A wave with max_alive instead keeps
+## that many alive, the least busy points spawning first, past their slots. Timed
+## points also spawn every spawn_interval seconds on their own timer, whether or not
+## their enemies are alive. All keep the kill quota and free_distance checks.
 func _process(delta:float)->void:
 	if spawn_holds > 0 || Net.is_guest():
 		return
@@ -214,27 +218,32 @@ func _process(delta:float)->void:
 	## also sits in root.nodes; it only counts once, through pending_spawns.
 	var _loose:int = maxi(0, ActiveEnemy.root.nodes.size() - pending_spawns)
 	var _committed:int = _loose + ActiveEnemy.root.children.size() + pending_spawns
-	var _cap:int = _alive_cap(_wave)
+	var _target:int = _alive_target(_wave)
 
 	for _point:SpawnPoint in timed_points:
 		_point.cooldown_left -= delta
-	for _point:SpawnPoint in active_points:
+	var _points:Array[SpawnPoint] = active_points
+	if _target >= 0:
+		_points = active_points.duplicate()
+		_points.sort_custom(func (a:SpawnPoint, b:SpawnPoint)->bool: return a.active_count < b.active_count)
+	for _point:SpawnPoint in _points:
 		## One more shouldn't exceed what's left to kill this wave.
 		if _committed >= enemy_count:
 			return
-		if _cap >= 0 && _committed >= _cap:
-			return
-		var _slots:int = mini(per_point_cap, _point.max_simultaneous) * per_spawn
 		var _timer_due:bool = timed_points.has(_point) && _point.cooldown_left <= 0.0
-		if !_timer_due && _point.active_count >= _slots:
-			continue
+		var _slots:int = mini(per_point_cap, _point.max_simultaneous) * per_spawn
+		if !_timer_due:
+			if _target >= 0 && _committed >= _target:
+				continue
+			if _target < 0 && _point.active_count >= _slots:
+				continue
 		if !_filter_free_position(_point.global_position):
 			continue
 		var _count:int = mini(per_spawn, enemy_count - _committed)
-		if _cap >= 0:
-			_count = mini(_count, _cap - _committed)
 		if _timer_due:
 			_point.cooldown_left = spawn_interval
+		elif _target >= 0:
+			_count = mini(_count, _target - _committed)
 		else:
 			_count = mini(_count, _slots - _point.active_count)
 		for _i:int in _count:
