@@ -195,15 +195,15 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 				_ctx.door_names.append("NodePath(\"../Behind/%s\")" % _door_name)
 				_out.node(_door_name, "Behind", {
 					"position": _pos,
-					"tag": "\"%s\"" % _p.get("tag", ""),
-					"connect_tag": "\"%s\"" % _p.get("connect_tag", ""),
-					"scene_path": "\"%s%s.tscn\"" % [scenes_dir, _p.get("room", "")],
+					"tag": "\"%s\"" % _or_unset(_p.get("tag", "")),
+					"connect_tag": "\"%s\"" % _or_unset(_p.get("connect_tag", "")),
+					"scene_path": "\"%s%s.tscn\"" % [scenes_dir, _room_or_own(_p.get("room", ""), layout.key)],
 				}, _door_scene)
 			MapCatalogItem.Bake.PORTAL, MapCatalogItem.Bake.VICTORY:
 				_portal_index += 1
 				var _portal:Array = [victory_tag, victory_tag, victory_tag, layout.key]
 				if _item.bake == MapCatalogItem.Bake.PORTAL:
-					_portal = [_p.get("tag", ""), _p.get("connect_tag", ""), _p.get("room", ""), _p.get("waits_for", "")]
+					_portal = [_or_unset(_p.get("tag", "")), _or_unset(_p.get("connect_tag", "")), _room_or_own(_p.get("room", ""), layout.key), _p.get("waits_for", "")]
 				var _portal_props:Dictionary = {
 					"position": _pos,
 					"tag": "\"%s\"" % _portal[0],
@@ -270,6 +270,15 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 
 ## Contraptions, hazards and markers: an instance of scene_path (named after its root,
 ## numbered) or a plain node_type node.
+## SceneEntry asserts its tags aren't empty: unlinked exits bake as "unset" (as the
+## editor's live entities do).
+static func _or_unset(value:Variant)->String:
+	return "unset" if String(value).is_empty() else String(value)
+
+## An exit without a room leads back into its own room (a valid scene path).
+static func _room_or_own(room:Variant, key:String)->String:
+	return "room_" + key if String(room).is_empty() else String(room)
+
 func _bake_scene(out:SceneText, item:MapCatalogItem, entity:LayoutEntity, pos:String, counts:Dictionary)->void:
 	var _props:Dictionary = {}
 	if !item.script_path.is_empty():
