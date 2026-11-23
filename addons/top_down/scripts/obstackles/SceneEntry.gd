@@ -23,9 +23,16 @@ var _transition_bool:BoolResource = load(TRANSITION_BOOL_PATH)
 
 
 func _ready()->void:
-	assert(!tag.is_empty())
-	assert(!connect_tag.is_empty())
-	assert(!scene_path.is_empty())
+	# An unlinked exit (old bake / hand-made) mustn't stop the room from opening:
+	# it warns and leads back into this room.
+	if tag.is_empty() || connect_tag.is_empty() || scene_path.is_empty() || scene_path.get_file() == ".tscn":
+		push_warning("%s %s: unlinked exit (tag '%s', connect_tag '%s', scene '%s')" % [owner.scene_file_path if owner != null else "", name, tag, connect_tag, scene_path])
+		if tag.is_empty():
+			tag = "unset"
+		if connect_tag.is_empty():
+			connect_tag = "unset"
+		if scene_path.is_empty() || scene_path.get_file() == ".tscn":
+			scene_path = owner.scene_file_path if owner != null else ""
 
 	# NOTE: Player and entries disable_mode is set KEEP_ACTIVE, because pausing removed nodes from physics
 	disable_mode = DISABLE_MODE_KEEP_ACTIVE
