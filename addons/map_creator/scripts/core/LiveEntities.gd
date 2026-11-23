@@ -3,7 +3,9 @@
 ## builds new ones the way LayoutBaker writes them, so moves, prop edits and undo are
 ## all one diff. The baked nodes found at start are claimed by cell and kind.
 ## Starting weapon spots, the piston grid and plain marker nodes don't change live: the
-## overlay shows them, and they take effect after Save and a room reload.
+## overlay shows them, and they take effect after Save and a room reload. Play can free
+## nodes (a started fight frees its triggers' ArenaEntry, pickups get taken): those are
+## skipped, and what has no parent left shows in the overlay only until a reload.
 class_name LiveEntities
 extends RefCounted
 
@@ -42,9 +44,10 @@ func sync(layout:RoomLayoutResource)->void:
 		for _i:int in range(_have, _entities.size()):
 			_add_live(_sig, _build(_entities[_i]))
 
+## Live nodes of `entity` (freed ones left out).
 func nodes_of(entity:LayoutEntity)->Array:
 	var _lists:Array = _live.get(signature(entity), [])
-	return _lists[0] if !_lists.is_empty() else []
+	return _lists[0].filter(func (n:Variant)->bool: return is_instance_valid(n)) if !_lists.is_empty() else []
 
 func _add_live(sig:String, nodes:Array)->void:
 	if !_live.has(sig):
@@ -52,11 +55,17 @@ func _add_live(sig:String, nodes:Array)->void:
 	_live[sig].append(nodes)
 
 func _free_nodes(nodes:Array)->void:
-	for _node:Node in nodes:
-		if !is_instance_valid(_node):
+	for _value:Variant in nodes:
+		# play may have freed it (a typed loop variable would error on assign)
+		if !is_instance_valid(_value):
 			continue
+		var _node:Node = _value
 		if _node is BlockWall && _node.has_meta(&"source_cell"):
 			creator.walls_layer.get_node("BlockWallMarkerLayer").erase_cell(_node.get_meta(&"source_cell"))
+			# a raised wall leaves its cell solid for pathing
+			var _block:ArenaDoorBlock = (_node as BlockWall).arena_door_block
+			if _block != null && _block.is_raised():
+				_block.set_raised(false, true)
 		if _node.name == &"PlayerSpawner":
 			continue
 		_node.get_parent().remove_child(_node)
@@ -162,7 +171,10 @@ func _build(entity:LayoutEntity)->Array:
 			_node.section = _room.get_node(creator.baker.section_paths[_section(entity) - 1].trim_prefix("../../"))
 			_node.mode = int(_p.get("mode", _item.defaults.get("mode", 0))) as ArenaDoorBlock.WallMode
 			creator.walls_layer.get_node("BlockWallMarkerLayer").set_cell(entity.cell, 1, creator.baker.block_wall_marker)
-			return [_add(creator.walls_layer, _node, "BlockWall")]
+			_add(creator.walls_layer, _node, "BlockWall")
+			# its deferred raise animates, which a paused (editing) room never plays: jump to the end
+			_settle.call_deferred(_node)
+			return [_node]
 		MapCatalogItem.Bake.SPAWN, MapCatalogItem.Bake.BOSS_SPAWN:
 			var _node:Marker2D = Marker2D.new()
 			_node.set_script(load(_item.script_path))
@@ -177,7 +189,11 @@ func _build(entity:LayoutEntity)->Array:
 			var _node:CollisionPolygon2D = CollisionPolygon2D.new()
 			_node.position = _pos
 			_node.polygon = LayoutBaker.DIAMOND
-			var _parent:Node = _room.get_node(creator.baker.trigger_nodes[_section(entity) - 1])
+			var _parent:Node = _room.get_node_or_null(creator.baker.trigger_nodes[_section(entity) - 1])
+			if _parent == null:
+				# its fight started (ArenaEntry freed): back after Save / reload
+				_node.free()
+				return []
 			_node.name = "Trigger_X%d_Y%d" % [entity.cell.x, entity.cell.y]
 			_parent.add_child(_node)
 			return [_node]
@@ -186,6 +202,14 @@ func _build(entity:LayoutEntity)->Array:
 			_spawner.position = _pos
 			return [_spawner]
 	return []
+
+## Shows a new wall's raised / lowered look at once.
+func _settle(wall:BlockWall)->void:
+	if !is_instance_valid(wall) || wall.arena_door_block == null:
+		return
+	var _player:AnimationPlayer = wall.arena_door_block.animation_player
+	if _player != null && !_player.current_animation.is_empty():
+		_player.seek(_player.current_animation_length, true)
 
 ## Adds with a free "<base><n>" name.
 func _add(parent:Node, node:Node, base:String)->Node:
