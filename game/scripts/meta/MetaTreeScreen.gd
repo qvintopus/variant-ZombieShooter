@@ -19,6 +19,9 @@ const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 ## Neighbour search: how far off a direction (in degrees) a node may sit.
 const NEIGHBOUR_CONE:float = 50.0
 const PAN_TIME:float = 0.25
+const ZOOM_MIN:float = 0.35
+const ZOOM_MAX:float = 2.0
+const ZOOM_STEP:float = 1.15
 const OWNED_TEXT:Color = Color(0.55, 0.9, 0.6)
 const SHORT_TEXT:Color = Color(1.0, 0.42, 0.42)
 const COST_TEXT:Color = Color(1.0, 0.72, 0.94)
@@ -59,6 +62,8 @@ var buttons:Dictionary
 var focused_id:String = MetaUpgrades.ROOT
 var tree:String = MetaUpgrades.MAIN_TREE
 var _pan_tween:Tween
+## graph_content scale (mouse wheel, +/-)
+var zoom:float = 1.0
 var _dragging:bool
 ## Focus taken by hovering: show its info without panning under the mouse.
 var _mouse_focus:bool
@@ -134,10 +139,11 @@ func show_tree(id:String)->void:
 		buttons[_id].visible = MetaUpgrades.tree_of(_id) == tree
 	_set_neighbours()
 	graph_links.tree = tree
+	graph_links.fit()
 	title_label.text = MetaUpgrades.tree_title(tree)
 	var _trees:Array = MetaUpgrades.tree_ids()
 	tree_button.visible = _trees.size() > 1
-	tree_button.text = "%s (Tab)" % MetaUpgrades.tree_title(_trees[(_trees.find(tree) + 1) % _trees.size()])
+	tree_button.text = tab_text(_trees, tree)
 	focused_id = MetaUpgrades.tree_root(tree)
 	_refresh()
 	if is_node_ready():
@@ -152,6 +158,14 @@ func toggle_all()->void:
 	if buy_sound != null:
 		buy_sound.play_managed()
 
+## Every tree, the shown one in brackets: "[UPGRADES] HORDE CO-OP (Tab)"
+static func tab_text(trees:Array, current:String)->String:
+	var _parts:PackedStringArray = []
+	for _id:String in trees:
+		var _title:String = MetaUpgrades.tree_title(_id)
+		_parts.append("[%s]" % _title if _id == current else _title)
+	return "%s (Tab)" % " ".join(_parts)
+
 func next_tree()->void:
 	var _trees:Array = MetaUpgrades.tree_ids()
 	show_tree(_trees[(_trees.find(tree) + 1) % _trees.size()])
@@ -163,6 +177,16 @@ func _input(event:InputEvent)->void:
 		if event.is_released():
 			_back()
 		return
+	if event is InputEventKey && event.pressed:
+		match event.physical_keycode:
+			KEY_EQUAL, KEY_KP_ADD:
+				set_zoom(zoom * ZOOM_STEP)
+				get_viewport().set_input_as_handled()
+				return
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				set_zoom(zoom / ZOOM_STEP)
+				get_viewport().set_input_as_handled()
+				return
 	if event.is_action_pressed("ui_focus_next") && tree_button.visible:
 		get_viewport().set_input_as_handled()
 		next_tree()
@@ -238,7 +262,7 @@ func _refresh()->void:
 		toggle_all_button.disabled = meta_upgrade_resource.toggleable_in(tree).is_empty()
 		toggle_all_button.text = "All off" if meta_upgrade_resource.any_enabled_in(tree) || toggle_all_button.disabled else "All on"
 	if hint_label != null:
-		hint_label.text = "Arrows: move   Enter: buy / on-off   Esc: back" if _toggleable else "Arrows: move   Enter: buy   Esc: back"
+		hint_label.text = "Arrows: move   Enter: buy / on-off   Wheel / +-: zoom   Esc: back" if _toggleable else "Arrows: move   Enter: buy   Wheel / +-: zoom   Esc: back"
 	graph_links.queue_redraw()
 	_show_info(focused_id)
 
@@ -283,7 +307,20 @@ func _on_hover(button:MetaNodeButton)->void:
 	_mouse_focus = false
 
 func _pan_target(id:String)->Vector2:
-	return (graph_view.size * 0.5 - MetaUpgrades.position(id)).round()
+	return (graph_view.size * 0.5 - MetaUpgrades.position(id) * zoom).round()
+
+## Zooms keeping the graph point under `pivot` (graph_view coordinates) in place.
+func set_zoom(value:float, pivot:Vector2 = Vector2.INF)->void:
+	if pivot == Vector2.INF:
+		pivot = graph_view.size * 0.5
+	var _new:float = clampf(value, ZOOM_MIN, ZOOM_MAX)
+	if is_equal_approx(_new, zoom):
+		return
+	if _pan_tween != null:
+		_pan_tween.kill()
+	graph_content.position = (pivot - (pivot - graph_content.position) * (_new / zoom)).round()
+	zoom = _new
+	graph_content.scale = Vector2.ONE * zoom
 
 func _pan_to(id:String)->void:
 	if _pan_tween != null:
@@ -292,6 +329,11 @@ func _pan_to(id:String)->void:
 	_pan_tween.tween_property(graph_content, "position", _pan_target(id), PAN_TIME)
 
 func _on_graph_input(event:InputEvent)->void:
+	if event is InputEventMouseButton && event.pressed && (event.button_index == MOUSE_BUTTON_WHEEL_UP || event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var _step:float = ZOOM_STEP if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / ZOOM_STEP
+		set_zoom(zoom * _step, event.position)
+		accept_event()
+		return
 	if event is InputEventMouseButton && event.button_index == MOUSE_BUTTON_LEFT:
 		_dragging = event.pressed
 		if _dragging && _pan_tween != null:

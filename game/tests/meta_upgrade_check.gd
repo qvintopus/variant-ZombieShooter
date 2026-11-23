@@ -215,8 +215,26 @@ func _check_screen()->void:
 		check(_buttons[_id].visible == (MetaUpgrades.tree_of(_id) == MetaUpgrades.MAIN_TREE), "the main tree shows only its own %s" % _id)
 
 	# The sister tree: its nodes only, its own focus walk, the title follows.
+	check(_screen.tree_button.text.begins_with("[UPGRADES]"), "tab button names the shown tree (%s)" % _screen.tree_button.text)
+	# the links' rect covers the whole tree (a Control off screen isn't drawn)
+	var _links:Control = _screen.graph_links
+	var _links_rect:Rect2 = Rect2(_links.position, _links.size)
+	var _all_inside:bool = true
+	for _id:String in MetaUpgrades.nodes_in(_screen.tree):
+		_all_inside = _all_inside && _links_rect.has_point(MetaUpgrades.position(_id))
+	check(_all_inside && _links.size.x > 0.0, "links rect covers every node")
+	# zoom keeps the point under the pivot
+	var _pivot:Vector2 = _screen.graph_view.size * 0.5
+	var _under:Vector2 = (_pivot - _screen.graph_content.position) / _screen.zoom
+	_screen.set_zoom(0.5, _pivot)
+	check(is_equal_approx(_screen.zoom, 0.5) && _screen.graph_content.scale.is_equal_approx(Vector2.ONE * 0.5), "zoom out scales the graph")
+	check(((_pivot - _screen.graph_content.position) / _screen.zoom).distance_to(_under) < 2.0, "zoom keeps the point under the pivot")
+	_screen.set_zoom(10.0)
+	check(_screen.zoom <= _screen.ZOOM_MAX, "zoom is clamped")
+	_screen.set_zoom(1.0)
 	_screen.next_tree()
 	check(_screen.tree == "horde" && _screen.title_label.text == "HORDE", "the tree button switches to HORDE")
+	check(_screen.tree_button.text.contains("[HORDE]"), "tab button now names HORDE")
 	check(_screen.focused_id == "horde_root", "switching focuses the HORDE root")
 	for _id:String in _buttons:
 		check(_buttons[_id].visible == (MetaUpgrades.tree_of(_id) == "horde"), "HORDE shows only its own %s" % _id)
