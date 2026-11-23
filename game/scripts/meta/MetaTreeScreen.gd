@@ -7,8 +7,13 @@
 ## sister trees; only the shown tree's nodes are built into the focus walk.
 ## In toggleable trees (UPGRADES, HORDE) pressing an owned node switches it
 ## off / on, and the header's All button switches the whole tree.
-## ui_cancel / pause goes back to the title.
+## ui_cancel / pause goes back to the title, or, opened over the home base by the
+## meta workbench (open_overlay), closes the overlay and unpauses the room.
+class_name MetaTreeScreen
 extends Control
+
+## The overlay was closed (open_overlay)
+signal closed
 
 const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 ## Neighbour search: how far off a direction (in degrees) a node may sit.
@@ -59,6 +64,32 @@ var _dragging:bool
 var _mouse_focus:bool
 var _reset_armed:bool
 var _leaving:bool
+## Opened over a room (open_overlay): back closes instead of going to the title
+var overlay:bool
+
+const SCENE:String = "res://game/scenes/meta_upgrades.tscn"
+const OVERLAY_LAYER:String = "MetaUpgradesLayer"
+
+## Shows the tree over the running game (paused under it); the music stays.
+static func open_overlay(owner_node:Node)->MetaTreeScreen:
+	var _tree:SceneTree = owner_node.get_tree()
+	var _old:Node = _tree.root.get_node_or_null(OVERLAY_LAYER)
+	if _old != null:
+		return _old.get_child(0) as MetaTreeScreen
+	var _screen:MetaTreeScreen = (load(SCENE) as PackedScene).instantiate()
+	_screen.overlay = true
+	var _music:Node = _screen.get_node_or_null("MusicSetter")
+	if _music != null:
+		_screen.remove_child(_music)
+		_music.free()
+	var _layer:CanvasLayer = CanvasLayer.new()
+	_layer.name = OVERLAY_LAYER
+	_layer.layer = 4
+	_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	_layer.add_child(_screen)
+	_tree.root.add_child(_layer)
+	_tree.paused = true
+	return _screen
 
 func _ready()->void:
 	assert(meta_upgrade_resource != null)
@@ -126,6 +157,12 @@ func next_tree()->void:
 	show_tree(_trees[(_trees.find(tree) + 1) % _trees.size()])
 
 func _input(event:InputEvent)->void:
+	# before the room's pause menu (PausingManager) takes the key
+	if overlay && (event.is_action("ui_cancel") || (action_resource != null && event.is_action(action_resource.pause_action))):
+		get_viewport().set_input_as_handled()
+		if event.is_released():
+			_back()
+		return
 	if event.is_action_pressed("ui_focus_next") && tree_button.visible:
 		get_viewport().set_input_as_handled()
 		next_tree()
@@ -141,6 +178,12 @@ func _back()->void:
 	_leaving = true
 	if back_sound != null:
 		back_sound.play_managed()
+	if overlay:
+		get_tree().paused = false
+		var _layer:Node = get_parent()
+		(_layer if _layer is CanvasLayer else self).queue_free()
+		closed.emit()
+		return
 	Transition.change_scene(TITLE_SCENE)
 
 func _buy(id:String)->void:

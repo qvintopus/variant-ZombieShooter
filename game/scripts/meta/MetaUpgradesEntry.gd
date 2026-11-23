@@ -1,5 +1,6 @@
 ## Shows a menu's Upgrades button once a boss crystal has ever been picked up
 ## (spent ones count, so spending them at the workbench never hides it).
+class_name MetaUpgradesEntry
 extends Node
 
 @export var boss_crystal_resource:ScoreResource
