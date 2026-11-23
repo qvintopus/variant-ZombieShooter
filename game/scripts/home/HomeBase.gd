@@ -77,6 +77,7 @@ func _ready()->void:
 	if piston_grid != null:
 		piston_grid.home_base_resource = home_base_resource
 		piston_grid.changed.connect(queue_save)
+		piston_grid.stepped.connect(queue_save)
 	# a guest picking up one of our weapons takes it off the floor
 	item_pickup_instance_resource.updated.connect(queue_save)
 	weapon_inventory.updated.connect(queue_save)
@@ -108,6 +109,17 @@ func _place_rejoin_portal()->void:
 	_portal.global_position = _at
 
 func _place_pickups()->void:
+	# save once a dropped pickup is really in the room (a drop's `updated` comes
+	# before the pickup is added) and once one is taken
+	var _parent:Node = item_pickup_instance_resource.parent_reference_resource.node
+	if _parent != null && !_parent.child_entered_tree.is_connected(_on_room_child):
+		_parent.child_entered_tree.connect(_on_room_child)
+		_parent.child_exiting_tree.connect(_on_room_child)
+	for _entry:Dictionary in home_base_resource.dropped_loot:
+		var _id:String = _entry.get("id", "")
+		var _pos:Vector2 = _entry.get("pos", Vector2.ZERO)
+		if LootItems.can_spawn(_id) && _on_floor(_pos):
+			LootItems.spawn(_id, 1, _pos)
 	var _has_water_gun:bool = _holds(WATER_GUN)
 	for _entry:Dictionary in home_base_resource.dropped:
 		var _item:ItemResource = HomeBaseResource.find_item(weapon_database, _entry.get("item", ""))
@@ -163,6 +175,33 @@ func pickups()->Array[ItemPickup]:
 			_list.append(_child)
 	return _list
 
+func _on_room_child(node:Node)->void:
+	if !is_inside_tree() || _departed:
+		return
+	if node is ItemPickup || loot_point(node) != null:
+		queue_save()
+
+## A loot pickup's CollectingPoint (coin, meat, slime, crystal) still lying out, or null
+static func loot_point(node:Node)->CollectingPoint:
+	for _child:Node in node.get_children():
+		if _child is CollectingPoint && !_child.item_id.is_empty():
+			var _pool:PoolNode = _child.pool_node
+			return null if _pool != null && _pool.pool_was_requested else _child
+	return null
+
+## Loot pickups lying in the room
+func loot_pickups()->Array[Dictionary]:
+	var _list:Array[Dictionary] = []
+	var _parent:Node = item_pickup_instance_resource.parent_reference_resource.node
+	if _parent == null:
+		return _list
+	for _child:Node in _parent.get_children():
+		if _child is Node2D && !_child.is_queued_for_deletion():
+			var _point:CollectingPoint = loot_point(_child)
+			if _point != null:
+				_list.append({"id": String(_point.item_id), "pos": _child.global_position})
+	return _list
+
 ## Weapons carried and lying around, by name
 func owned_weapons()->PackedStringArray:
 	var _names:PackedStringArray = []
@@ -182,7 +221,14 @@ func queue_save()->void:
 	if _save_queued:
 		return
 	_save_queued = true
-	save_state.call_deferred()
+	_deferred_save.call_deferred()
+
+## Gone from the tree by then (the room was left): the exit save already ran
+func _deferred_save()->void:
+	if !is_inside_tree():
+		_save_queued = false
+		return
+	save_state()
 
 func save_state()->void:
 	_save_queued = false
@@ -194,6 +240,7 @@ func save_state()->void:
 	for _pickup:ItemPickup in pickups():
 		_dropped.append({"item": _pickup.item_resource.resource_name, "pos": _pickup.global_position})
 	home_base_resource.dropped = _dropped
+	home_base_resource.dropped_loot = loot_pickups()
 	var _stash:PackedStringArray = []
 	for _item:ItemResource in weapon_inventory.list:
 		if _item != null:
@@ -265,5 +312,9 @@ func _on_tree_exiting()->void:
 		chest_grid.changed_cells.disconnect(queue_save)
 	if item_pickup_instance_resource.updated.is_connected(queue_save):
 		item_pickup_instance_resource.updated.disconnect(queue_save)
+	var _parent:Node = item_pickup_instance_resource.parent_reference_resource.node
+	if _parent != null && _parent.child_entered_tree.is_connected(_on_room_child):
+		_parent.child_entered_tree.disconnect(_on_room_child)
+		_parent.child_exiting_tree.disconnect(_on_room_child)
 	if !_departed:
 		save_state()

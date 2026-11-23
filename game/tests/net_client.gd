@@ -517,6 +517,10 @@ func _finish()->void:
 		await get_tree().process_frame
 	for _resource:SaveableResource in _saved_names:
 		_resource.delete_resource()
+	# nothing may save after this (a home base still loading would write the
+	# player's real save under the restored names)
+	SaveableResource.persist_locked = true
+	for _resource:SaveableResource in _saved_names:
 		_resource.resource_name = _saved_names[_resource]
 	_saved_names.clear()
 	_quit()

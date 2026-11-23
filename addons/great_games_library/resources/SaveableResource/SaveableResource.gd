@@ -119,23 +119,40 @@ func delete_resource()->void:
 		# TODO: use Steam integration
 		_delete_resource_file()
 
+## Written to a temp file first, then swapped in: the previous save is kept as
+## <name>.bak.tres, so a crash or power loss mid-write never leaves only a broken file.
 func _save_resource_file()->int:
 	var data:SaveableResource = prepare_save()
 	var path: = get_save_file_path()
-	if ResourceSaver.save(data, path):
+	var tmp:String = _side_path("tmp")
+	if ResourceSaver.save(data, tmp):
 		print("ResourceSaver [INFO]: failed to save file", resource_name)
+		return 1
+	if FileAccess.file_exists(path):
+		DirAccess.rename_absolute(path, _side_path("bak"))
+	if DirAccess.rename_absolute(tmp, path) != OK:
+		print("ResourceSaver [INFO]: failed to move save into place", resource_name)
 		return 1
 	return 0
 
+## <name>.<tag>.tres next to the save file
+func _side_path(tag:String)->String:
+	return get_save_file_path().get_basename() + "." + tag + ".tres"
+
+## Falls back to the backup when the save is missing or doesn't parse.
 func _load_resource_file()->SaveableResource:
-	var path: = get_save_file_path()
-	if !FileAccess.file_exists(path):
-		print("SaveableResource [INFO]: no save file - ", resource_name)
-		return null
-	return ResourceLoader.load(path)
+	for path:String in [get_save_file_path(), _side_path("bak")]:
+		if !FileAccess.file_exists(path):
+			continue
+		var data:SaveableResource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as SaveableResource
+		if data != null:
+			return data
+		print("SaveableResource [INFO]: save file broken - ", path)
+	print("SaveableResource [INFO]: no save file - ", resource_name)
+	return null
 
 func _delete_resource_file()->void:
 	var path: = get_save_file_path()
-	if !FileAccess.file_exists(path):
-		pass
-	DirAccess.remove_absolute(path)
+	for _path:String in [path, _side_path("bak"), _side_path("tmp")]:
+		if FileAccess.file_exists(_path):
+			DirAccess.remove_absolute(_path)

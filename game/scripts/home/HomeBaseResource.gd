@@ -19,6 +19,8 @@ signal updated
 @export var gate:int
 ## Weapons lying in the home base: [{"item": name, "pos": Vector2}]
 @export var dropped:Array[Dictionary]
+## Loot lying in the home base (coins, meat, ...): [{"id": loot id, "pos": Vector2}], one per pickup
+@export var dropped_loot:Array[Dictionary]
 ## Weapons carried home after a victory or extract; the player holds them on arrival.
 @export var stash_inventory:PackedStringArray
 ## The one weapon carried out to the mission, handed over by FreshStart.
@@ -43,6 +45,7 @@ func reset_resource()->void:
 	data_value = true
 	gate = 0
 	dropped = []
+	dropped_loot = []
 	stash_inventory = PackedStringArray()
 	loadout = ""
 	electrician_shell = false
@@ -61,6 +64,7 @@ func prepare_save()->Resource:
 	_data.data_value = data_value
 	_data.gate = gate
 	_data.dropped = dropped.duplicate(true)
+	_data.dropped_loot = dropped_loot.duplicate(true)
 	_data.stash_inventory = stash_inventory
 	_data.loadout = loadout
 	_data.electrician_shell = electrician_shell
@@ -78,6 +82,7 @@ func prepare_load(data:Resource)->void:
 	data_value = data.data_value
 	gate = data.gate
 	dropped = data.dropped.duplicate(true)
+	dropped_loot = data.dropped_loot.duplicate(true) if "dropped_loot" in data else []
 	stash_inventory = data.stash_inventory
 	loadout = data.loadout
 	electrician_shell = data.electrician_shell if "electrician_shell" in data else false
