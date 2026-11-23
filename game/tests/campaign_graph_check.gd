@@ -152,6 +152,7 @@ func _check_graph(creator:MapCreator, graph:CampaignGraph)->void:
 	graph.unlink("G1", 0)
 	check(String(creator.baker.layouts.G1.entities_of(&"door")[0].props.room).is_empty(), "unlink clears the door")
 	check(String(_door.call("G2").props.room).is_empty(), "and the stairs leading back")
+	await _check_preview_menu(creator, graph)
 	# the open room changes through an undoable edit
 	var _ports:Array[int] = CampaignGraph._linkable_exits(creator.layout)
 	if !_ports.is_empty():
@@ -316,6 +317,37 @@ func _check_refresh(creator:MapCreator, graph:CampaignGraph)->void:
 	check(MapChecks.link_problems(creator).size() > 0, "the room's live checks list it")
 	creator.undo()
 	await _frames(2)
+	graph.set_preview(false)
+
+## Right click a stairs dot in the preview: rooms with free stairs first; link both ways,
+## room only (broken) and fix.
+func _check_preview_menu(creator:MapCreator, graph:CampaignGraph)->void:
+	graph.set_preview(true)
+	await _frames(2)
+	var _preview:CampaignPreview = graph.preview
+	var _g1:int = creator.baker.layouts.G1.entities.find(creator.baker.layouts.G1.entities_of(&"door")[0])
+	var _g2:int = creator.baker.layouts.G2.entities.find(creator.baker.layouts.G2.entities_of(&"door")[0])
+	var _spot:Vector2 = _preview.to_screen(_preview.rooms.G1.offset + _preview.rooms.G1.exits[0].pos)
+	check(_preview.exit_at(_spot) == ["G1", _g1], "exit_at finds the stairs dot (%s)" % [_preview.exit_at(_spot)])
+	var _targets:Array = graph.exit_targets("G1", _g1)
+	var _first_taken:int = _targets.find_custom(func (r:Dictionary)->bool: return r.free == 0)
+	var _free_after:bool = _first_taken >= 0 && _targets.slice(_first_taken).any(func (r:Dictionary)->bool: return r.free > 0)
+	check(!_targets.is_empty() && _targets[0].free > 0 && !_free_after, "rooms with free stairs come first")
+	check(_targets.any(func (r:Dictionary)->bool: return r.key == "G2") && !_targets.any(func (r:Dictionary)->bool: return r.key == "G1"), "other rooms listed, not its own")
+	_preview.open_exit_menu("G1", _g1, Vector2(20, 20))
+	check(_preview._menu.visible && _preview._menu.get_child_count() == _targets.size(), "the menu opens a submenu per room")
+	var _pick:Callable = func (pick:Array)->void: _preview._on_pick(_preview._picks.find(pick))
+	_pick.call(["G2", -1, true])
+	var _layouts:Dictionary = graph.all_layouts()
+	check(creator.baker.layouts.G1.entities[_g1].props.room == "room_G2" && CampaignLinks.state(_layouts, "G1", _g1) == CampaignLinks.BAD_TAG, "room only makes a broken link")
+	check(graph.link_problems.any(func (p:Dictionary)->bool: return p.key == "G1"), "which shows as a problem")
+	_preview.open_exit_menu("G1", _g1, Vector2(20, 20))
+	_pick.call(["G2", _g2, false])
+	_layouts = graph.all_layouts()
+	check(CampaignLinks.state(_layouts, "G1", _g1) == CampaignLinks.LINKED && CampaignLinks.state(_layouts, "G2", _g2) == CampaignLinks.LINKED, "picking G2's stairs fixes it both ways")
+	_preview.open_exit_menu("G1", _g1, Vector2(20, 20))
+	_pick.call(["", -1, false])
+	check(String(creator.baker.layouts.G1.entities[_g1].props.room).is_empty() && String(creator.baker.layouts.G2.entities[_g2].props.room).is_empty(), "(unlinked) clears both")
 	graph.set_preview(false)
 
 func _square(key:String, origin:Vector2i)->RoomLayoutResource:

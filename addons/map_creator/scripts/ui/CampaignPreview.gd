@@ -4,6 +4,9 @@
 ## Positions are computed each time (nothing saved). Only stairs place rooms: portals
 ## jump anywhere, so a room reached only by portals lines up below. Portals show as dots
 ## named with their target room, with thin optional link lines (show_portal_links).
+## Right click a stairs / portal dot: a menu of rooms (those with free exits first), each
+## opening its exits; picking one links them (stairs both ways), or one way / room only
+## (broken on purpose, fixed later).
 class_name CampaignPreview
 extends Control
 
@@ -44,6 +47,13 @@ var selected:String
 var _canvas:Node2D
 var _overlay:Control
 var _dragging:bool
+var _menu:PopupMenu
+## Pick ids of the open menu -> [to_key, to_index, one_way]
+var _picks:Array = []
+## Exit the menu is for: [key, index]
+var _menu_exit:Array = []
+## Hit radius (screen px) of an exit dot.
+@export var exit_pick_radius:float = 7.0
 var _fit_pending:bool
 
 func _ready()->void:
@@ -58,6 +68,9 @@ func _ready()->void:
 	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
+	_menu = PopupMenu.new()
+	_menu.id_pressed.connect(_on_pick)
+	add_child(_menu)
 	resized.connect(func ()->void:
 		if _fit_pending:
 			fit())
@@ -351,6 +364,11 @@ func _gui_input(event:InputEvent)->void:
 			_canvas.position = _mb.position - _before * _zoom
 			_overlay.queue_redraw()
 			accept_event()
+		elif _mb.pressed && _mb.button_index == MOUSE_BUTTON_RIGHT:
+			var _exit:Array = exit_at(_mb.position)
+			if !_exit.is_empty():
+				open_exit_menu(_exit[0], _exit[1], _mb.global_position)
+			accept_event()
 		elif _mb.button_index == MOUSE_BUTTON_LEFT || _mb.button_index == MOUSE_BUTTON_MIDDLE:
 			if _mb.pressed && _mb.button_index == MOUSE_BUTTON_LEFT:
 				var _key:String = room_at(_mb.position)
@@ -366,7 +384,71 @@ func _gui_input(event:InputEvent)->void:
 		_overlay.queue_redraw()
 		accept_event()
 
+## [key, entity index] of the stairs / portal dot under a screen point ([] = none).
+func exit_at(screen:Vector2)->Array:
+	var _best:Array = []
+	var _best_d:float = exit_pick_radius * exit_pick_radius
+	for _key:String in rooms:
+		for _exit:Dictionary in rooms[_key].exits:
+			if _exit.kind == &"victory":
+				continue
+			var _d:float = to_screen(rooms[_key].offset + _exit.pos).distance_squared_to(screen)
+			if _d <= _best_d:
+				_best = [_key, _exit.index]
+				_best_d = _d
+	return _best
+
+## The link menu of exit `index` of room `key` at a screen spot.
+func open_exit_menu(key:String, index:int, at:Vector2)->void:
+	if graph == null:
+		return
+	for _child:Node in _menu.get_children():
+		_menu.remove_child(_child)
+		_child.queue_free()
+	_menu.clear()
+	_picks.clear()
+	_menu_exit = [key, index]
+	var _entity:LayoutEntity = graph.layout_of(key).entities[index]
+	var _what:String = "stairs" if _entity.item_id == &"door" else "portal"
+	_menu.add_separator("room_%s %s %s" % [key, _what, _entity.props.get("tag", "")])
+	_pick_item(_menu, "(unlinked)", ["", -1, false])
+	for _room:Dictionary in graph.exit_targets(key, index):
+		var _sub:PopupMenu = PopupMenu.new()
+		_sub.id_pressed.connect(_on_pick)
+		for _exit:Dictionary in _room.exits:
+			_pick_item(_sub, _exit.text, [_room.key, _exit.index, false])
+		_sub.add_separator("only this %s" % _what)
+		for _exit:Dictionary in _room.exits:
+			_pick_item(_sub, "one way: " + String(_exit.text).get_slice("  ", 0), [_room.key, _exit.index, true])
+		_pick_item(_sub, "room only (arrives nowhere: broken)", [_room.key, -1, true])
+		_menu.add_child(_sub)
+		var _label:String = "room_%s %s" % [_room.key, graph.layout_of(_room.key).display_name if graph.layout_of(_room.key).display_name != "room_" + _room.key else ""]
+		_menu.add_submenu_node_item("%s%s" % [_label.strip_edges(), "  (%d free)" % _room.free if _room.free > 0 else ""], _sub)
+	_menu.reset_size()
+	_menu.position = Vector2i(at)
+	_menu.popup()
+
+func _pick_item(menu:PopupMenu, text:String, pick:Array)->void:
+	menu.add_item(text, _picks.size())
+	_picks.append(pick)
+
+func _on_pick(id:int)->void:
+	if id >= _picks.size() || _menu_exit.is_empty():
+		return
+	var _pick:Array = _picks[id]
+	_menu.hide()
+	if _pick[2]:
+		graph.link_one_way(_menu_exit[0], _menu_exit[1], _pick[0], _pick[1])
+	else:
+		graph.relink(_menu_exit[0], _menu_exit[1], _pick[0], _pick[1])
+
 func _get_tooltip(at_position:Vector2)->String:
+	var _exit:Array = exit_at(at_position)
+	if !_exit.is_empty() && graph != null:
+		var _e:LayoutEntity = graph.layout_of(_exit[0]).entities[_exit[1]]
+		var _to:String = CampaignLinks.target(_e)
+		return "room_%s %s '%s' -> %s\nRight click: link it to a room's stairs" % [_exit[0], "stairs" if _e.item_id == &"door" else "portal",
+			_e.props.get("tag", ""), "room_%s '%s'" % [_to, _e.props.get("connect_tag", "")] if !_to.is_empty() else "nowhere"]
 	var _key:String = room_at(at_position)
 	return graph.details_of(_key) if graph != null && !_key.is_empty() else ""
 

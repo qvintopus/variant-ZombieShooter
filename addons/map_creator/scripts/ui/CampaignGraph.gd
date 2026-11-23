@@ -84,7 +84,7 @@ func _ready()->void:
 			["Open", "Edit the selected room (double click)", _open_selected],
 			["Remove", "Take the selected room out of the campaign", _remove_selected],
 			["Auto", "Arrange by distance from the start", _auto_layout],
-			["Preview", "Switch between the link graph and the rooms drawn with their tiles, placed by their stairs", toggle_view],
+			["Preview", "Switch between the link graph and the rooms drawn with their tiles, placed by their stairs (right click a stairs dot to link it)", toggle_view],
 			["x", "Close (G / Esc)", close]]:
 		var _b:Button = Button.new()
 		_b.text = _entry[0]
@@ -541,6 +541,57 @@ func unlink_exit(key:String, index:int)->void:
 			_change(_to, _p, {"room": "", "connect_tag": ""})
 	_change(key, index, {"room": "", "connect_tag": ""})
 	rebuild()
+
+## Only exit `index` of `key` changes: it leads to exit `to_index` of `to_key` (that one
+## gets a tag if it has none) and nothing else is touched, so stairs can end up one way.
+## `to_index` -1: just the room, arriving nowhere (a broken link, fixed later).
+func link_one_way(key:String, index:int, to_key:String, to_index:int)->void:
+	var _tag:String = ""
+	if to_index >= 0:
+		var _b:LayoutEntity = layout_of(to_key).entities[to_index]
+		_tag = String(_b.props.get("tag", ""))
+		if _tag.is_empty():
+			_tag = ("%s_%s" % [to_key, key]).to_lower()
+			_change(to_key, to_index, {"tag": _tag})
+	var _a:LayoutEntity = layout_of(key).entities[index]
+	var _props:Dictionary = {"room": "room_" + to_key, "connect_tag": _tag}
+	if String(_a.props.get("tag", "")).is_empty():
+		_props.tag = ("%s_%s" % [key, to_key]).to_lower()
+	_change(key, index, _props)
+	rebuild()
+
+## Rooms exit `index` of `key` can lead to, for the preview's menu: [{key, free, exits:
+## [{index, text, free}]}], exits of the same kind, rooms and exits that are free (not
+## linked both ways / properly) first. `current` [key, index] marks the present target.
+func exit_targets(key:String, index:int)->Array:
+	var _all:Dictionary = all_layouts()
+	var _entity:LayoutEntity = _all[key].entities[index]
+	var _out:Array = []
+	var _keys:Array = _nodes.keys()
+	_keys.sort()
+	for _other:String in _keys:
+		var _layout:RoomLayoutResource = layout_of(_other)
+		if _other == key || _layout == null:
+			continue
+		var _exits:Array = []
+		var _free:int = 0
+		for _j:int in _linkable_exits(_layout):
+			var _e:LayoutEntity = _layout.entities[_j]
+			if _e.item_id != _entity.item_id:
+				continue
+			var _state:StringName = CampaignLinks.state(_all, _other, _j, _exists)
+			var _is_free:bool = _state != CampaignLinks.LINKED
+			var _to:String = CampaignLinks.target(_e)
+			var _text:String = "%s at %s" % [_e.props.get("tag", "") if !String(_e.props.get("tag", "")).is_empty() else "(no tag)", _e.cell]
+			_text += "  [free%s]" % ("" if _state == CampaignLinks.NOWHERE else ": " + String(_state).replace("_", " ")) if _is_free else "  -> room_%s" % _to
+			_exits.append({"index": _j, "text": _text, "free": _is_free})
+			_free += 1 if _is_free else 0
+		if _exits.is_empty():
+			continue
+		_exits.sort_custom(func (x:Dictionary, y:Dictionary)->bool: return x.free && !y.free)
+		_out.append({"key": _other, "free": _free, "exits": _exits})
+	_out.sort_custom(func (x:Dictionary, y:Dictionary)->bool: return x.free > 0 && y.free == 0)
+	return _out
 
 ## Side panel dropdown picked: exit `index` of `key` -> exit `to_index` of `to_key`
 ## ("" = unlink).
