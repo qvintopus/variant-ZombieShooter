@@ -126,8 +126,32 @@ func _check_graph(creator:MapCreator, graph:CampaignGraph)->void:
 	for _c:Dictionary in graph._graph.get_connection_list():
 		_linked = _linked || (graph._keys[_c.from_node] == "G1" && graph._keys[_c.to_node] == "G2")
 	check(_linked, "the new link shows")
+	# rewire G1 to G3: G2 (which arrived at G1) gets unlinked
+	check(_rooms_manager.new_room("G3", "", creator.layout), "new room G3")
+	var _g3_layout:RoomLayoutResource = creator.baker.layouts.G3.clone()
+	_g3_layout.entities.append(LayoutEntity.make(&"door", Vector2i(2, 2)))
+	_rooms_manager.store(_g3_layout)
+	graph.rebuild()
+	graph.link("G1", 0, "G3", 0)
+	var _door:Callable = func (key:String)->LayoutEntity: return creator.baker.layouts[key].entities_of(&"door")[0]
+	check(_door.call("G1").props.room == "room_G3" && _door.call("G3").props.room == "room_G1", "rewiring links the new pair both ways")
+	check(String(_door.call("G2").props.room).is_empty(), "and unlinks the old partner")
+	# the side panel's dropdown rewires too
+	graph.select_room("G1")
+	var _picks:Array = graph._info.find_children("*", "OptionButton", true, false)
+	var _to_g2:int = -1
+	if !_picks.is_empty():
+		for _i:int in _picks[0].item_count:
+			if _picks[0].get_item_text(_i).begins_with("room_G2"):
+				_to_g2 = _i
+	check(_to_g2 >= 0, "the dropdown lists G2's stairs")
+	if _to_g2 >= 0:
+		_picks[0].select(_to_g2)
+		_picks[0].item_selected.emit(_to_g2)
+		check(_door.call("G1").props.room == "room_G2" && _door.call("G2").props.room == "room_G1" && String(_door.call("G3").props.room).is_empty(), "picking G2 relinks G1 <-> G2, G3 unlinked")
 	graph.unlink("G1", 0)
 	check(String(creator.baker.layouts.G1.entities_of(&"door")[0].props.room).is_empty(), "unlink clears the door")
+	check(String(_door.call("G2").props.room).is_empty(), "and the stairs leading back")
 	# the open room changes through an undoable edit
 	var _ports:Array[int] = CampaignGraph._linkable_exits(creator.layout)
 	if !_ports.is_empty():
@@ -233,6 +257,66 @@ func _check_preview(creator:MapCreator, graph:CampaignGraph)->void:
 	check(_offsets.C.y >= 10, "portal-only room still goes below (%s)" % _offsets.C)
 	_portal.props.room = "room_B"
 	check(CampaignPreview.ends(_a, "A", _b, "B") == Vector2(9, 4), "portals don't move the stairs spot")
+	_check_links()
+	await _check_refresh(creator, graph)
+
+## CampaignLinks: per stairs states and problems; the preview draws one line per stairs.
+func _check_links()->void:
+	var _a:RoomLayoutResource = _square("A", Vector2i.ZERO)
+	var _b:RoomLayoutResource = _square("B", Vector2i.ZERO)
+	for _entry:Array in [[_a, Vector2i(9, 3), {"room": "room_B", "tag": "a3", "connect_tag": "b"}],
+			[_a, Vector2i(9, 5), {"room": "room_B", "tag": "a5", "connect_tag": "b"}],
+			[_a, Vector2i(5, 9), {"room": "", "tag": "a_down", "connect_tag": ""}],
+			[_b, Vector2i(0, 4), {"room": "room_A", "tag": "b", "connect_tag": "a3"}]]:
+		var _door:LayoutEntity = LayoutEntity.make(&"door", _entry[1])
+		_door.props = _entry[2]
+		_entry[0].entities.append(_door)
+	var _layouts:Dictionary = {"A": _a, "B": _b}
+	check(CampaignLinks.state(_layouts, "A", 0) == CampaignLinks.LINKED && CampaignLinks.state(_layouts, "B", 0) == CampaignLinks.LINKED, "stairs leading to each other are linked")
+	check(CampaignLinks.state(_layouts, "A", 1) == CampaignLinks.ONE_WAY, "stairs arriving at stairs that lead elsewhere are one way")
+	check(CampaignLinks.state(_layouts, "A", 2) == CampaignLinks.NOWHERE, "stairs without a room lead nowhere")
+	_a.entities[1].props.connect_tag = "nope"
+	check(CampaignLinks.state(_layouts, "A", 1) == CampaignLinks.BAD_TAG, "a missing arrival tag is bad")
+	_a.entities[2].props.room = "room_ZZ"
+	check(CampaignLinks.state(_layouts, "A", 2) == CampaignLinks.MISSING, "a missing room")
+	check(CampaignLinks.state(_layouts, "A", 2, func (_k:String)->bool: return true) == CampaignLinks.UNKNOWN, "a hand-made room can't be checked")
+	_b.entities[0].props.tag = "a3"
+	var _kinds:Array = CampaignLinks.problems(_layouts, ["A", "B"]).map(func (p:Dictionary)->StringName: return p.kind)
+	check(_kinds.has(CampaignLinks.BAD_TAG) && _kinds.has(CampaignLinks.MISSING) && _kinds.has(CampaignLinks.ONE_WAY), "problems list them (%s)" % [_kinds])
+	_b.entities[0].props.tag = "b"
+	var _preview:CampaignPreview = CampaignPreview.new()
+	_preview.to_px = func (cell:Vector2i)->Vector2: return Vector2(cell) * 16.0
+	var _doors:Array = _preview.links_of(_layouts, {"A": Vector2i.ZERO, "B": Vector2i(14, 0)}).filter(func (l:Dictionary)->bool: return l.kind == &"door")
+	check(_doors.size() == 2, "a stairs pair draws once, other stairs their own line (%d)" % _doors.size())
+	var _bad:Array = _doors.filter(func (l:Dictionary)->bool: return l.state == CampaignLinks.BAD_TAG)
+	check(_bad.size() == 1 && _bad[0].to == Vector2(14 + 4.5, 4.5) * 16.0, "a broken line goes to the room's centre")
+	_preview.free()
+
+## Edits refresh the open graph / preview, keeping the view.
+func _check_refresh(creator:MapCreator, graph:CampaignGraph)->void:
+	var _ports:Array[int] = CampaignGraph._linkable_exits(creator.layout)
+	var _door:int = -1
+	for _i:int in _ports:
+		if creator.layout.entities[_i].item_id == &"door" && !CampaignLinks.target(creator.layout.entities[_i]).is_empty():
+			_door = _i
+			break
+	if _door < 0:
+		check(false, "N01 has linked stairs")
+		return
+	graph.set_preview(true)
+	await _frames(2)
+	graph.preview._canvas.position += Vector2(13, 7)
+	var _at:Vector2 = graph.preview._canvas.position
+	creator.edit(func ()->void: creator.layout.entities[_door].props.connect_tag = "nope")
+	await _frames(2)
+	var _broken:Array = graph.preview.links.filter(func (l:Dictionary)->bool: return l.a == creator.key && l.index == _door)
+	check(!_broken.is_empty() && _broken[0].state == CampaignLinks.BAD_TAG, "an edit refreshes the preview's links")
+	check(graph.preview._canvas.position == _at, "and keeps the view")
+	check(graph.link_problems.any(func (p:Dictionary)->bool: return p.key == creator.key) && graph._problems_button.visible, "the problems button lists it")
+	check(MapChecks.link_problems(creator).size() > 0, "the room's live checks list it")
+	creator.undo()
+	await _frames(2)
+	graph.set_preview(false)
 
 func _square(key:String, origin:Vector2i)->RoomLayoutResource:
 	var _layout:RoomLayoutResource = RoomLayoutResource.new()

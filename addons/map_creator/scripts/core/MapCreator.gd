@@ -1032,7 +1032,12 @@ func save()->bool:
 	dirty = false
 	dirty_changed.emit()
 	_drop_autosave()
-	message.emit("Saved room_%s to %s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
+	var _links:Array[Dictionary] = MapChecks.link_problems(self)
+	var _link_text:String = ""
+	if !_links.is_empty():
+		_link_text = " | %d link problem%s: %s%s (%s: map)" % [_links.size(), "" if _links.size() == 1 else "s", _links[0].text,
+			", ..." if _links.size() > 1 else "", OS.get_keycode_string(preset.key_graph)]
+	message.emit("Saved room_%s to %s%s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems, _link_text])
 	return true
 
 # --- selection operations ---------------------------------------------------------------
