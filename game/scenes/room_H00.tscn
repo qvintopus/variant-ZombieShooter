@@ -7,35 +7,37 @@
 [ext_resource type="Script" uid="uid://bba5x85j3c6q3" path="res://addons/top_down/scripts/home/PistonGrid.gd" id="5_PistonGrid"]
 [ext_resource type="PackedScene" path="res://addons/top_down/scenes/home/piston.tscn" id="6_piston"]
 [ext_resource type="PackedScene" path="res://addons/top_down/scenes/home/grid_lever.tscn" id="7_grid_lever"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/write_button.tscn" id="8_write_button"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/data_lever.tscn" id="9_data_lever"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/gate_lever.tscn" id="10_gate_lever"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/reset_button.tscn" id="11_reset_button"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/robot_printer.tscn" id="12_robot_printe"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/comms_terminal.tscn" id="13_comms_termin"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/home/home_exit.tscn" id="14_home_exit"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/home_chest.tscn" id="15_home_chest"]
-[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/stash_lever.tscn" id="16_stash_lever"]
-[ext_resource type="Script" uid="uid://b82gi6nils34f" path="res://addons/top_down/scripts/arena/SpawnWaveList.gd" id="17_SpawnWaveLis"]
-[ext_resource type="Script" uid="uid://c4vi4hfp1xokj" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="18_InstanceReso"]
-[ext_resource type="Script" uid="uid://cwloac2c3brdv" path="res://game/scripts/home/HomeBase.gd" id="19_HomeBase"]
-[ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="20_player_refer"]
-[ext_resource type="Resource" uid="uid://c5cbxaiec2jk1" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="21_scene_transi"]
-[ext_resource type="Resource" uid="uid://5emqdks7qgbm" path="res://addons/top_down/resources/global_resources/score_resource.tres" id="22_score_resour"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/meat_resource.tres" id="23_meat_resourc"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/slime_resource.tres" id="24_slime_resour"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/weapon_upgrade_resource.tres" id="25_weapon_upgra"]
-[ext_resource type="Resource" uid="uid://btej3lqnjytbl" path="res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres" id="26_weapon_inven"]
-[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="27_inventory_gr"]
-[ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="28_room_state_r"]
-[ext_resource type="Resource" path="res://game/resources/home_base_resource.tres" id="29_home_base_re"]
-[ext_resource type="Resource" uid="uid://bytbvhnnajqxd" path="res://addons/top_down/resources/ItemCollectionResource/weapon_database.tres" id="30_weapon_datab"]
-[ext_resource type="Resource" uid="uid://b6mldf5iax3rj" path="res://addons/top_down/resources/InstanceResources/pickups/item_pickup_instance_resource.tres" id="31_item_pickup_"]
-[ext_resource type="Script" uid="uid://beja08wyrf37a" path="res://game/scripts/RoomController.gd" id="32_RoomControll"]
-[ext_resource type="Resource" path="res://game/resources/room_cleared_resource.tres" id="33_room_cleared"]
-[ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="34_fight_mode_r"]
-[ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="35_remaining_wa"]
-[ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="36_game_hud_ove"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/home/quit_portal.tscn" id="8_quit_portal"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/write_button.tscn" id="9_write_button"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/data_lever.tscn" id="10_data_lever"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/gate_lever.tscn" id="11_gate_lever"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/reset_button.tscn" id="12_reset_button"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/home_chest.tscn" id="13_home_chest"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/stash_lever.tscn" id="14_stash_lever"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/robot_printer.tscn" id="15_robot_printe"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/meta_workbench.tscn" id="16_meta_workben"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/interactables/comms_terminal.tscn" id="17_comms_termin"]
+[ext_resource type="PackedScene" path="res://addons/top_down/scenes/home/home_exit.tscn" id="18_home_exit"]
+[ext_resource type="Script" uid="uid://b82gi6nils34f" path="res://addons/top_down/scripts/arena/SpawnWaveList.gd" id="19_SpawnWaveLis"]
+[ext_resource type="Script" uid="uid://c4vi4hfp1xokj" path="res://addons/great_games_library/resources/InstanceResource/InstanceResource.gd" id="20_InstanceReso"]
+[ext_resource type="Script" uid="uid://cwloac2c3brdv" path="res://game/scripts/home/HomeBase.gd" id="21_HomeBase"]
+[ext_resource type="Resource" uid="uid://b8o2o4evevl8k" path="res://addons/top_down/resources/ReferenceNodeResources/player_reference.tres" id="22_player_refer"]
+[ext_resource type="Resource" uid="uid://c5cbxaiec2jk1" path="res://addons/top_down/resources/global_resources/scene_transition_resource.tres" id="23_scene_transi"]
+[ext_resource type="Resource" uid="uid://5emqdks7qgbm" path="res://addons/top_down/resources/global_resources/score_resource.tres" id="24_score_resour"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/meat_resource.tres" id="25_meat_resourc"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/slime_resource.tres" id="26_slime_resour"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/weapon_upgrade_resource.tres" id="27_weapon_upgra"]
+[ext_resource type="Resource" uid="uid://btej3lqnjytbl" path="res://addons/top_down/resources/ItemCollectionResource/weapon_inventory.tres" id="28_weapon_inven"]
+[ext_resource type="Resource" path="res://addons/top_down/resources/global_resources/inventory_grid.tres" id="29_inventory_gr"]
+[ext_resource type="Resource" uid="uid://7s3f02bpb1j8" path="res://addons/top_down/resources/global_resources/room_state_resource.tres" id="30_room_state_r"]
+[ext_resource type="Resource" path="res://game/resources/home_base_resource.tres" id="31_home_base_re"]
+[ext_resource type="Resource" uid="uid://bytbvhnnajqxd" path="res://addons/top_down/resources/ItemCollectionResource/weapon_database.tres" id="32_weapon_datab"]
+[ext_resource type="Resource" uid="uid://b6mldf5iax3rj" path="res://addons/top_down/resources/InstanceResources/pickups/item_pickup_instance_resource.tres" id="33_item_pickup_"]
+[ext_resource type="Script" uid="uid://beja08wyrf37a" path="res://game/scripts/RoomController.gd" id="34_RoomControll"]
+[ext_resource type="Resource" path="res://game/resources/room_cleared_resource.tres" id="35_room_cleared"]
+[ext_resource type="Resource" uid="uid://c7ckp7i2820tg" path="res://addons/top_down/resources/arena_resources/fight_mode_resource.tres" id="36_fight_mode_r"]
+[ext_resource type="Resource" uid="uid://dmefbqytsy6x0" path="res://addons/top_down/resources/arena_resources/remaining_wave_count_resource.tres" id="37_remaining_wa"]
+[ext_resource type="PackedScene" path="res://game/scenes/game_hud_overlay.tscn" id="38_game_hud_ove"]
 
 [node name="Room" instance=ExtResource("1_room_templat")]
 
@@ -785,22 +787,34 @@ floor_layer = NodePath("../../Background/FloorLayer")
 piston_scene = ExtResource("6_piston")
 lever_scene = ExtResource("7_grid_lever")
 
-[node name="WriteButton1" parent="WallLayer_Ysorted" instance=ExtResource("8_write_button")]
+[node name="QuitPortal" parent="Behind" instance=ExtResource("8_quit_portal")]
+position = Vector2(384, 672)
+
+[node name="WriteButton1" parent="WallLayer_Ysorted" instance=ExtResource("9_write_button")]
 position = Vector2(192, 688)
 
-[node name="DataLever1" parent="WallLayer_Ysorted" instance=ExtResource("9_data_lever")]
+[node name="DataLever1" parent="WallLayer_Ysorted" instance=ExtResource("10_data_lever")]
 position = Vector2(224, 704)
 
-[node name="GateLever1" parent="WallLayer_Ysorted" instance=ExtResource("10_gate_lever")]
+[node name="GateLever1" parent="WallLayer_Ysorted" instance=ExtResource("11_gate_lever")]
 position = Vector2(256, 720)
 
-[node name="ResetButton1" parent="WallLayer_Ysorted" instance=ExtResource("11_reset_button")]
+[node name="ResetButton1" parent="WallLayer_Ysorted" instance=ExtResource("12_reset_button")]
 position = Vector2(288, 736)
 
-[node name="ShellPrinter1" parent="WallLayer_Ysorted" instance=ExtResource("12_robot_printe")]
+[node name="HomeChest1" parent="WallLayer_Ysorted" instance=ExtResource("13_home_chest")]
+position = Vector2(128, 672)
+
+[node name="StashLever1" parent="WallLayer_Ysorted" instance=ExtResource("14_stash_lever")]
+position = Vector2(144, 680)
+
+[node name="ShellPrinter1" parent="WallLayer_Ysorted" instance=ExtResource("15_robot_printe")]
 position = Vector2(64, 656)
 
-[node name="CommsTerminal1" parent="WallLayer_Ysorted" instance=ExtResource("13_comms_termin")]
+[node name="MetaWorkbench1" parent="WallLayer_Ysorted" instance=ExtResource("16_meta_workben")]
+position = Vector2(240, 760)
+
+[node name="CommsTerminal1" parent="WallLayer_Ysorted" instance=ExtResource("17_comms_termin")]
 position = Vector2(32, 672)
 
 [node name="PlayerSpawner" parent="."]
@@ -809,37 +823,31 @@ position = Vector2(160, 736)
 [node name="WaterGunSpot" type="Marker2D" parent="."]
 position = Vector2(80, 728)
 
-[node name="HomeExit" parent="Behind" node_paths=PackedStringArray("home_base") instance=ExtResource("14_home_exit")]
+[node name="HomeExit" parent="Behind" node_paths=PackedStringArray("home_base") instance=ExtResource("18_home_exit")]
 position = Vector2(176, 776)
 home_base = NodePath("../../HomeBase")
 
-[node name="HomeChest1" parent="WallLayer_Ysorted" instance=ExtResource("15_home_chest")]
-position = Vector2(-32, 704)
-
-[node name="StashLever1" parent="WallLayer_Ysorted" instance=ExtResource("16_stash_lever")]
-position = Vector2(0, 720)
-
 [node name="HomeBase" type="Node" parent="." node_paths=PackedStringArray("water_gun_spot", "piston_grid")]
-script = ExtResource("19_HomeBase")
-player_reference = ExtResource("20_player_refer")
-scene_transition_resource = ExtResource("21_scene_transi")
-run_resources = Array[Resource]([ExtResource("22_score_resour"), ExtResource("23_meat_resourc"), ExtResource("24_slime_resour"), ExtResource("25_weapon_upgra"), ExtResource("26_weapon_inven"), ExtResource("27_inventory_gr"), ExtResource("28_room_state_r")])
-home_base_resource = ExtResource("29_home_base_re")
-weapon_inventory = ExtResource("26_weapon_inven")
-weapon_database = ExtResource("30_weapon_datab")
-item_pickup_instance_resource = ExtResource("31_item_pickup_")
+script = ExtResource("21_HomeBase")
+player_reference = ExtResource("22_player_refer")
+scene_transition_resource = ExtResource("23_scene_transi")
+run_resources = Array[Resource]([ExtResource("24_score_resour"), ExtResource("25_meat_resourc"), ExtResource("26_slime_resour"), ExtResource("27_weapon_upgra"), ExtResource("28_weapon_inven"), ExtResource("29_inventory_gr"), ExtResource("30_room_state_r")])
+home_base_resource = ExtResource("31_home_base_re")
+weapon_inventory = ExtResource("28_weapon_inven")
+weapon_database = ExtResource("32_weapon_datab")
+item_pickup_instance_resource = ExtResource("33_item_pickup_")
 water_gun_spot = NodePath("../WaterGunSpot")
 piston_grid = NodePath("../WallLayer_Ysorted/PistonGrid")
 
 [node name="RoomController" type="Node" parent="." node_paths=PackedStringArray("arena_entry")]
-script = ExtResource("32_RoomControll")
+script = ExtResource("34_RoomControll")
 room_id = &"room_H00"
-room_state_resource = ExtResource("28_room_state_r")
-room_cleared_resource = ExtResource("33_room_cleared")
-fight_mode_resource = ExtResource("34_fight_mode_r")
-remaining_wave_count_resource = ExtResource("35_remaining_wa")
+room_state_resource = ExtResource("30_room_state_r")
+room_cleared_resource = ExtResource("35_room_cleared")
+fight_mode_resource = ExtResource("36_fight_mode_r")
+remaining_wave_count_resource = ExtResource("37_remaining_wa")
 arena_entry = NodePath("../ArenaEntry")
 
-[node name="GameHudOverlay" parent="." instance=ExtResource("36_game_hud_ove")]
+[node name="GameHudOverlay" parent="." instance=ExtResource("38_game_hud_ove")]
 
 [editable path="EnemyManager"]

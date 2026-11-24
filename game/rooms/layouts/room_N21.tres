@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_yq7ix"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_hmjic"]
 
-[sub_resource type="Resource" id="Resource_s0fn1"]
+[sub_resource type="Resource" id="Resource_yq7ix"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(10, 10)
@@ -11,7 +11,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_lq5su"]
+[sub_resource type="Resource" id="Resource_hmjic"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(18, 10)
@@ -19,7 +19,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_nct6k"]
+[sub_resource type="Resource" id="Resource_s0fn1"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(28, 10)
@@ -27,7 +27,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_iwcry"]
+[sub_resource type="Resource" id="Resource_lq5su"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(36, 10)
@@ -35,7 +35,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_ltqtl"]
+[sub_resource type="Resource" id="Resource_nct6k"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(46, 11)
@@ -43,7 +43,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_3in1k"]
+[sub_resource type="Resource" id="Resource_iwcry"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(52, 11)
@@ -51,28 +51,12 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_1r5s5"]
+[sub_resource type="Resource" id="Resource_ltqtl"]
 script = ExtResource("1_yq7ix")
 item_id = &"slot_machine"
 cell = Vector2i(48, 13)
 
-[sub_resource type="Resource" id="Resource_wpcdp"]
-script = ExtResource("1_yq7ix")
-item_id = &"barrier"
-cell = Vector2i(3, 14)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_qb2w2"]
-script = ExtResource("1_yq7ix")
-item_id = &"trigger"
-cell = Vector2i(5, 14)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_sd2rx"]
+[sub_resource type="Resource" id="Resource_3in1k"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(21, 14)
@@ -80,7 +64,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_18bwm"]
+[sub_resource type="Resource" id="Resource_1r5s5"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(23, 14)
@@ -88,7 +72,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_mbjec"]
+[sub_resource type="Resource" id="Resource_wpcdp"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(25, 14)
@@ -96,7 +80,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_pvtbg"]
+[sub_resource type="Resource" id="Resource_qb2w2"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(39, 14)
@@ -104,7 +88,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_2v0cl"]
+[sub_resource type="Resource" id="Resource_sd2rx"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(41, 14)
@@ -112,7 +96,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_1qq4q"]
+[sub_resource type="Resource" id="Resource_18bwm"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(43, 14)
@@ -120,38 +104,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_gq3lg"]
-script = ExtResource("1_yq7ix")
-item_id = &"door"
-cell = Vector2i(1, 15)
-props = {
-"connect_tag": "n20_n21",
-"room": "room_N20",
-"tag": "n21_n20"
-}
-
-[sub_resource type="Resource" id="Resource_4cn5k"]
-script = ExtResource("1_yq7ix")
-item_id = &"barrier"
-cell = Vector2i(3, 15)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_k4pin"]
-script = ExtResource("1_yq7ix")
-item_id = &"player_spawn"
-cell = Vector2i(4, 15)
-
-[sub_resource type="Resource" id="Resource_cmqyr"]
-script = ExtResource("1_yq7ix")
-item_id = &"trigger"
-cell = Vector2i(5, 15)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_7jeyr"]
+[sub_resource type="Resource" id="Resource_mbjec"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(21, 15)
@@ -159,7 +112,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_xkqbd"]
+[sub_resource type="Resource" id="Resource_pvtbg"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(23, 15)
@@ -167,7 +120,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_2oj26"]
+[sub_resource type="Resource" id="Resource_2v0cl"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(25, 15)
@@ -175,7 +128,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_0i64r"]
+[sub_resource type="Resource" id="Resource_1qq4q"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(32, 15)
@@ -183,7 +136,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_bpft5"]
+[sub_resource type="Resource" id="Resource_gq3lg"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(39, 15)
@@ -191,7 +144,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_urwjg"]
+[sub_resource type="Resource" id="Resource_4cn5k"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(41, 15)
@@ -199,7 +152,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_p6xqt"]
+[sub_resource type="Resource" id="Resource_k4pin"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(43, 15)
@@ -207,23 +160,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_c14im"]
-script = ExtResource("1_yq7ix")
-item_id = &"barrier"
-cell = Vector2i(3, 16)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_mdash"]
-script = ExtResource("1_yq7ix")
-item_id = &"trigger"
-cell = Vector2i(5, 16)
-props = {
-"section": 1
-}
-
-[sub_resource type="Resource" id="Resource_a8rmh"]
+[sub_resource type="Resource" id="Resource_cmqyr"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(21, 16)
@@ -231,7 +168,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_f73h7"]
+[sub_resource type="Resource" id="Resource_7jeyr"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(23, 16)
@@ -239,7 +176,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_v5kqm"]
+[sub_resource type="Resource" id="Resource_xkqbd"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(25, 16)
@@ -247,7 +184,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_2fimj"]
+[sub_resource type="Resource" id="Resource_2oj26"]
 script = ExtResource("1_yq7ix")
 item_id = &"gate"
 cell = Vector2i(39, 16)
@@ -255,7 +192,7 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_gjg22"]
+[sub_resource type="Resource" id="Resource_0i64r"]
 script = ExtResource("1_yq7ix")
 item_id = &"barrier"
 cell = Vector2i(41, 16)
@@ -263,7 +200,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_2s1l8"]
+[sub_resource type="Resource" id="Resource_bpft5"]
 script = ExtResource("1_yq7ix")
 item_id = &"trigger"
 cell = Vector2i(43, 16)
@@ -271,12 +208,12 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_vo0o8"]
+[sub_resource type="Resource" id="Resource_urwjg"]
 script = ExtResource("1_yq7ix")
 item_id = &"loot_box"
 cell = Vector2i(51, 17)
 
-[sub_resource type="Resource" id="Resource_3s2r2"]
+[sub_resource type="Resource" id="Resource_p6xqt"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(46, 19)
@@ -284,7 +221,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_58oic"]
+[sub_resource type="Resource" id="Resource_c14im"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(52, 19)
@@ -292,7 +229,7 @@ props = {
 "section": 3
 }
 
-[sub_resource type="Resource" id="Resource_1afi8"]
+[sub_resource type="Resource" id="Resource_mdash"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(10, 20)
@@ -300,7 +237,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_dq8cu"]
+[sub_resource type="Resource" id="Resource_a8rmh"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(18, 20)
@@ -308,7 +245,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_yengy"]
+[sub_resource type="Resource" id="Resource_f73h7"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(28, 20)
@@ -316,12 +253,75 @@ props = {
 "section": 2
 }
 
-[sub_resource type="Resource" id="Resource_661p5"]
+[sub_resource type="Resource" id="Resource_v5kqm"]
 script = ExtResource("1_yq7ix")
 item_id = &"spawn"
 cell = Vector2i(36, 20)
 props = {
 "section": 2
+}
+
+[sub_resource type="Resource" id="Resource_2fimj"]
+script = ExtResource("1_yq7ix")
+item_id = &"door"
+cell = Vector2i(36, 34)
+props = {
+"connect_tag": "n20_n21",
+"room": "room_N20",
+"tag": "n21_n20"
+}
+
+[sub_resource type="Resource" id="Resource_gjg22"]
+script = ExtResource("1_yq7ix")
+item_id = &"player_spawn"
+cell = Vector2i(14, 21)
+
+[sub_resource type="Resource" id="Resource_2s1l8"]
+script = ExtResource("1_yq7ix")
+item_id = &"trigger"
+cell = Vector2i(13, 23)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_vo0o8"]
+script = ExtResource("1_yq7ix")
+item_id = &"trigger"
+cell = Vector2i(14, 23)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_3s2r2"]
+script = ExtResource("1_yq7ix")
+item_id = &"barrier"
+cell = Vector2i(15, 25)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_58oic"]
+script = ExtResource("1_yq7ix")
+item_id = &"barrier"
+cell = Vector2i(14, 25)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_1afi8"]
+script = ExtResource("1_yq7ix")
+item_id = &"barrier"
+cell = Vector2i(13, 25)
+props = {
+"section": 1
+}
+
+[sub_resource type="Resource" id="Resource_dq8cu"]
+script = ExtResource("1_yq7ix")
+item_id = &"trigger"
+cell = Vector2i(15, 23)
+props = {
+"section": 1
 }
 
 [resource]
@@ -459,6 +459,20 @@ Vector2i(13, 19): Vector3i(30, 0, 3),
 Vector2i(13, 20): Vector3i(30, 1, 3),
 Vector2i(13, 21): Vector3i(30, 3, 3),
 Vector2i(13, 22): Vector3i(30, 0, 3),
+Vector2i(13, 23): Vector3i(30, 0, 3),
+Vector2i(13, 24): Vector3i(30, 0, 3),
+Vector2i(13, 25): Vector3i(30, 0, 3),
+Vector2i(13, 26): Vector3i(30, 0, 3),
+Vector2i(13, 27): Vector3i(30, 0, 3),
+Vector2i(13, 28): Vector3i(30, 0, 3),
+Vector2i(13, 29): Vector3i(30, 0, 3),
+Vector2i(13, 30): Vector3i(30, 0, 3),
+Vector2i(13, 31): Vector3i(30, 0, 3),
+Vector2i(13, 32): Vector3i(30, 0, 3),
+Vector2i(13, 33): Vector3i(30, 0, 3),
+Vector2i(13, 34): Vector3i(30, 0, 3),
+Vector2i(13, 35): Vector3i(30, 0, 3),
+Vector2i(13, 36): Vector3i(30, 0, 3),
 Vector2i(14, 8): Vector3i(30, 0, 3),
 Vector2i(14, 9): Vector3i(30, 0, 3),
 Vector2i(14, 10): Vector3i(30, 0, 3),
@@ -474,6 +488,20 @@ Vector2i(14, 19): Vector3i(30, 0, 3),
 Vector2i(14, 20): Vector3i(30, 0, 3),
 Vector2i(14, 21): Vector3i(30, 0, 3),
 Vector2i(14, 22): Vector3i(30, 1, 3),
+Vector2i(14, 23): Vector3i(30, 0, 3),
+Vector2i(14, 24): Vector3i(30, 0, 3),
+Vector2i(14, 25): Vector3i(30, 0, 3),
+Vector2i(14, 26): Vector3i(30, 0, 3),
+Vector2i(14, 27): Vector3i(30, 0, 3),
+Vector2i(14, 28): Vector3i(30, 0, 3),
+Vector2i(14, 29): Vector3i(30, 0, 3),
+Vector2i(14, 30): Vector3i(30, 0, 3),
+Vector2i(14, 31): Vector3i(30, 0, 3),
+Vector2i(14, 32): Vector3i(30, 0, 3),
+Vector2i(14, 33): Vector3i(30, 0, 3),
+Vector2i(14, 34): Vector3i(30, 0, 3),
+Vector2i(14, 35): Vector3i(30, 0, 3),
+Vector2i(14, 36): Vector3i(30, 0, 3),
 Vector2i(15, 8): Vector3i(30, 0, 3),
 Vector2i(15, 9): Vector3i(30, 0, 3),
 Vector2i(15, 10): Vector3i(30, 0, 3),
@@ -487,6 +515,20 @@ Vector2i(15, 19): Vector3i(30, 0, 3),
 Vector2i(15, 20): Vector3i(30, 0, 3),
 Vector2i(15, 21): Vector3i(30, 0, 3),
 Vector2i(15, 22): Vector3i(40, 0, 3),
+Vector2i(15, 23): Vector3i(30, 0, 3),
+Vector2i(15, 24): Vector3i(30, 0, 3),
+Vector2i(15, 25): Vector3i(30, 0, 3),
+Vector2i(15, 26): Vector3i(30, 0, 3),
+Vector2i(15, 27): Vector3i(30, 0, 3),
+Vector2i(15, 28): Vector3i(30, 0, 3),
+Vector2i(15, 29): Vector3i(30, 0, 3),
+Vector2i(15, 30): Vector3i(30, 0, 3),
+Vector2i(15, 31): Vector3i(30, 0, 3),
+Vector2i(15, 32): Vector3i(30, 0, 3),
+Vector2i(15, 33): Vector3i(30, 0, 3),
+Vector2i(15, 34): Vector3i(30, 0, 3),
+Vector2i(15, 35): Vector3i(30, 0, 3),
+Vector2i(15, 36): Vector3i(30, 0, 3),
 Vector2i(16, 8): Vector3i(30, 0, 3),
 Vector2i(16, 9): Vector3i(30, 1, 3),
 Vector2i(16, 10): Vector3i(30, 0, 3),
@@ -500,6 +542,10 @@ Vector2i(16, 19): Vector3i(30, 0, 3),
 Vector2i(16, 20): Vector3i(30, 0, 3),
 Vector2i(16, 21): Vector3i(40, 0, 3),
 Vector2i(16, 22): Vector3i(40, 0, 3),
+Vector2i(16, 33): Vector3i(30, 0, 3),
+Vector2i(16, 34): Vector3i(30, 0, 3),
+Vector2i(16, 35): Vector3i(30, 0, 3),
+Vector2i(16, 36): Vector3i(30, 0, 3),
 Vector2i(17, 8): Vector3i(30, 0, 3),
 Vector2i(17, 9): Vector3i(30, 0, 3),
 Vector2i(17, 10): Vector3i(30, 0, 3),
@@ -515,6 +561,10 @@ Vector2i(17, 19): Vector3i(30, 2, 3),
 Vector2i(17, 20): Vector3i(30, 0, 3),
 Vector2i(17, 21): Vector3i(30, 0, 3),
 Vector2i(17, 22): Vector3i(40, 0, 3),
+Vector2i(17, 33): Vector3i(30, 0, 3),
+Vector2i(17, 34): Vector3i(30, 0, 3),
+Vector2i(17, 35): Vector3i(30, 0, 3),
+Vector2i(17, 36): Vector3i(30, 0, 3),
 Vector2i(18, 8): Vector3i(30, 0, 3),
 Vector2i(18, 9): Vector3i(30, 0, 3),
 Vector2i(18, 10): Vector3i(30, 0, 3),
@@ -530,6 +580,10 @@ Vector2i(18, 19): Vector3i(30, 0, 3),
 Vector2i(18, 20): Vector3i(40, 0, 3),
 Vector2i(18, 21): Vector3i(30, 1, 3),
 Vector2i(18, 22): Vector3i(30, 0, 3),
+Vector2i(18, 33): Vector3i(30, 0, 3),
+Vector2i(18, 34): Vector3i(30, 0, 3),
+Vector2i(18, 35): Vector3i(30, 0, 3),
+Vector2i(18, 36): Vector3i(30, 0, 3),
 Vector2i(19, 8): Vector3i(30, 0, 3),
 Vector2i(19, 9): Vector3i(30, 0, 3),
 Vector2i(19, 10): Vector3i(30, 0, 3),
@@ -545,6 +599,10 @@ Vector2i(19, 19): Vector3i(30, 0, 3),
 Vector2i(19, 20): Vector3i(30, 0, 3),
 Vector2i(19, 21): Vector3i(30, 0, 3),
 Vector2i(19, 22): Vector3i(30, 0, 3),
+Vector2i(19, 33): Vector3i(30, 0, 3),
+Vector2i(19, 34): Vector3i(30, 0, 3),
+Vector2i(19, 35): Vector3i(30, 0, 3),
+Vector2i(19, 36): Vector3i(30, 0, 3),
 Vector2i(20, 8): Vector3i(30, 0, 3),
 Vector2i(20, 9): Vector3i(30, 0, 3),
 Vector2i(20, 10): Vector3i(30, 0, 3),
@@ -560,21 +618,45 @@ Vector2i(20, 19): Vector3i(30, 0, 3),
 Vector2i(20, 20): Vector3i(30, 0, 3),
 Vector2i(20, 21): Vector3i(30, 0, 3),
 Vector2i(20, 22): Vector3i(40, 0, 3),
+Vector2i(20, 33): Vector3i(30, 0, 3),
+Vector2i(20, 34): Vector3i(30, 0, 3),
+Vector2i(20, 35): Vector3i(30, 0, 3),
+Vector2i(20, 36): Vector3i(30, 0, 3),
 Vector2i(21, 14): Vector3i(30, 0, 3),
 Vector2i(21, 15): Vector3i(30, 0, 3),
 Vector2i(21, 16): Vector3i(30, 0, 3),
+Vector2i(21, 33): Vector3i(30, 0, 3),
+Vector2i(21, 34): Vector3i(30, 0, 3),
+Vector2i(21, 35): Vector3i(30, 0, 3),
+Vector2i(21, 36): Vector3i(30, 0, 3),
 Vector2i(22, 14): Vector3i(30, 0, 3),
 Vector2i(22, 15): Vector3i(30, 0, 3),
 Vector2i(22, 16): Vector3i(30, 0, 3),
+Vector2i(22, 33): Vector3i(30, 0, 3),
+Vector2i(22, 34): Vector3i(30, 0, 3),
+Vector2i(22, 35): Vector3i(30, 0, 3),
+Vector2i(22, 36): Vector3i(30, 0, 3),
 Vector2i(23, 14): Vector3i(30, 0, 3),
 Vector2i(23, 15): Vector3i(30, 0, 3),
 Vector2i(23, 16): Vector3i(30, 0, 3),
+Vector2i(23, 33): Vector3i(30, 0, 3),
+Vector2i(23, 34): Vector3i(30, 0, 3),
+Vector2i(23, 35): Vector3i(30, 0, 3),
+Vector2i(23, 36): Vector3i(30, 0, 3),
 Vector2i(24, 14): Vector3i(30, 0, 3),
 Vector2i(24, 15): Vector3i(30, 0, 3),
 Vector2i(24, 16): Vector3i(30, 0, 3),
+Vector2i(24, 33): Vector3i(30, 0, 3),
+Vector2i(24, 34): Vector3i(30, 0, 3),
+Vector2i(24, 35): Vector3i(30, 0, 3),
+Vector2i(24, 36): Vector3i(30, 0, 3),
 Vector2i(25, 14): Vector3i(30, 0, 3),
 Vector2i(25, 15): Vector3i(30, 0, 3),
 Vector2i(25, 16): Vector3i(30, 0, 3),
+Vector2i(25, 33): Vector3i(30, 0, 3),
+Vector2i(25, 34): Vector3i(30, 0, 3),
+Vector2i(25, 35): Vector3i(30, 0, 3),
+Vector2i(25, 36): Vector3i(30, 0, 3),
 Vector2i(26, 8): Vector3i(30, 0, 3),
 Vector2i(26, 9): Vector3i(30, 0, 3),
 Vector2i(26, 10): Vector3i(30, 0, 3),
@@ -590,6 +672,10 @@ Vector2i(26, 19): Vector3i(30, 0, 3),
 Vector2i(26, 20): Vector3i(30, 0, 3),
 Vector2i(26, 21): Vector3i(40, 0, 3),
 Vector2i(26, 22): Vector3i(30, 2, 3),
+Vector2i(26, 33): Vector3i(30, 0, 3),
+Vector2i(26, 34): Vector3i(30, 0, 3),
+Vector2i(26, 35): Vector3i(30, 0, 3),
+Vector2i(26, 36): Vector3i(30, 0, 3),
 Vector2i(27, 8): Vector3i(30, 0, 3),
 Vector2i(27, 9): Vector3i(30, 0, 3),
 Vector2i(27, 10): Vector3i(30, 0, 3),
@@ -605,6 +691,10 @@ Vector2i(27, 19): Vector3i(30, 0, 3),
 Vector2i(27, 20): Vector3i(30, 0, 3),
 Vector2i(27, 21): Vector3i(40, 0, 3),
 Vector2i(27, 22): Vector3i(30, 0, 3),
+Vector2i(27, 33): Vector3i(30, 0, 3),
+Vector2i(27, 34): Vector3i(30, 0, 3),
+Vector2i(27, 35): Vector3i(30, 0, 3),
+Vector2i(27, 36): Vector3i(30, 0, 3),
 Vector2i(28, 8): Vector3i(30, 0, 3),
 Vector2i(28, 9): Vector3i(30, 0, 3),
 Vector2i(28, 10): Vector3i(30, 0, 3),
@@ -620,6 +710,10 @@ Vector2i(28, 19): Vector3i(30, 0, 3),
 Vector2i(28, 20): Vector3i(30, 0, 3),
 Vector2i(28, 21): Vector3i(40, 0, 3),
 Vector2i(28, 22): Vector3i(30, 0, 3),
+Vector2i(28, 33): Vector3i(30, 0, 3),
+Vector2i(28, 34): Vector3i(30, 0, 3),
+Vector2i(28, 35): Vector3i(30, 0, 3),
+Vector2i(28, 36): Vector3i(30, 0, 3),
 Vector2i(29, 8): Vector3i(30, 1, 3),
 Vector2i(29, 9): Vector3i(30, 0, 3),
 Vector2i(29, 10): Vector3i(30, 0, 3),
@@ -635,6 +729,10 @@ Vector2i(29, 19): Vector3i(30, 0, 3),
 Vector2i(29, 20): Vector3i(30, 0, 3),
 Vector2i(29, 21): Vector3i(40, 0, 3),
 Vector2i(29, 22): Vector3i(40, 3, 3),
+Vector2i(29, 33): Vector3i(30, 0, 3),
+Vector2i(29, 34): Vector3i(30, 0, 3),
+Vector2i(29, 35): Vector3i(30, 0, 3),
+Vector2i(29, 36): Vector3i(30, 0, 3),
 Vector2i(30, 8): Vector3i(30, 0, 3),
 Vector2i(30, 9): Vector3i(30, 0, 3),
 Vector2i(30, 10): Vector3i(30, 0, 3),
@@ -648,6 +746,10 @@ Vector2i(30, 19): Vector3i(30, 0, 3),
 Vector2i(30, 20): Vector3i(30, 0, 3),
 Vector2i(30, 21): Vector3i(30, 3, 3),
 Vector2i(30, 22): Vector3i(30, 0, 3),
+Vector2i(30, 33): Vector3i(30, 0, 3),
+Vector2i(30, 34): Vector3i(30, 0, 3),
+Vector2i(30, 35): Vector3i(30, 0, 3),
+Vector2i(30, 36): Vector3i(30, 0, 3),
 Vector2i(31, 8): Vector3i(30, 0, 3),
 Vector2i(31, 9): Vector3i(30, 0, 3),
 Vector2i(31, 10): Vector3i(30, 0, 3),
@@ -661,6 +763,10 @@ Vector2i(31, 19): Vector3i(30, 0, 3),
 Vector2i(31, 20): Vector3i(30, 0, 3),
 Vector2i(31, 21): Vector3i(30, 0, 3),
 Vector2i(31, 22): Vector3i(30, 0, 3),
+Vector2i(31, 33): Vector3i(30, 0, 3),
+Vector2i(31, 34): Vector3i(30, 0, 3),
+Vector2i(31, 35): Vector3i(30, 0, 3),
+Vector2i(31, 36): Vector3i(30, 0, 3),
 Vector2i(32, 8): Vector3i(30, 0, 3),
 Vector2i(32, 9): Vector3i(30, 0, 3),
 Vector2i(32, 10): Vector3i(30, 0, 3),
@@ -676,6 +782,10 @@ Vector2i(32, 19): Vector3i(30, 0, 3),
 Vector2i(32, 20): Vector3i(30, 0, 3),
 Vector2i(32, 21): Vector3i(30, 0, 3),
 Vector2i(32, 22): Vector3i(30, 0, 3),
+Vector2i(32, 33): Vector3i(30, 0, 3),
+Vector2i(32, 34): Vector3i(30, 0, 3),
+Vector2i(32, 35): Vector3i(30, 0, 3),
+Vector2i(32, 36): Vector3i(30, 0, 3),
 Vector2i(33, 8): Vector3i(30, 0, 3),
 Vector2i(33, 9): Vector3i(30, 0, 3),
 Vector2i(33, 10): Vector3i(30, 0, 3),
@@ -689,6 +799,10 @@ Vector2i(33, 17): Vector3i(30, 0, 3),
 Vector2i(33, 20): Vector3i(30, 0, 3),
 Vector2i(33, 21): Vector3i(30, 0, 3),
 Vector2i(33, 22): Vector3i(30, 0, 3),
+Vector2i(33, 33): Vector3i(30, 0, 3),
+Vector2i(33, 34): Vector3i(30, 0, 3),
+Vector2i(33, 35): Vector3i(30, 0, 3),
+Vector2i(33, 36): Vector3i(30, 0, 3),
 Vector2i(34, 8): Vector3i(30, 0, 3),
 Vector2i(34, 9): Vector3i(30, 0, 3),
 Vector2i(34, 10): Vector3i(30, 0, 3),
@@ -702,6 +816,10 @@ Vector2i(34, 17): Vector3i(30, 0, 3),
 Vector2i(34, 20): Vector3i(30, 0, 3),
 Vector2i(34, 21): Vector3i(30, 0, 3),
 Vector2i(34, 22): Vector3i(30, 0, 3),
+Vector2i(34, 33): Vector3i(30, 0, 3),
+Vector2i(34, 34): Vector3i(30, 0, 3),
+Vector2i(34, 35): Vector3i(30, 0, 3),
+Vector2i(34, 36): Vector3i(30, 0, 3),
 Vector2i(35, 8): Vector3i(30, 0, 3),
 Vector2i(35, 9): Vector3i(30, 0, 3),
 Vector2i(35, 10): Vector3i(40, 0, 3),
@@ -717,6 +835,10 @@ Vector2i(35, 19): Vector3i(30, 0, 3),
 Vector2i(35, 20): Vector3i(30, 0, 3),
 Vector2i(35, 21): Vector3i(30, 0, 3),
 Vector2i(35, 22): Vector3i(30, 0, 3),
+Vector2i(35, 33): Vector3i(30, 0, 3),
+Vector2i(35, 34): Vector3i(30, 0, 3),
+Vector2i(35, 35): Vector3i(30, 0, 3),
+Vector2i(35, 36): Vector3i(30, 0, 3),
 Vector2i(36, 8): Vector3i(30, 0, 3),
 Vector2i(36, 9): Vector3i(30, 0, 3),
 Vector2i(36, 10): Vector3i(30, 0, 3),
@@ -732,6 +854,10 @@ Vector2i(36, 19): Vector3i(30, 0, 3),
 Vector2i(36, 20): Vector3i(30, 0, 3),
 Vector2i(36, 21): Vector3i(30, 2, 3),
 Vector2i(36, 22): Vector3i(30, 0, 3),
+Vector2i(36, 33): Vector3i(30, 0, 3),
+Vector2i(36, 34): Vector3i(30, 0, 3),
+Vector2i(36, 35): Vector3i(30, 0, 3),
+Vector2i(36, 36): Vector3i(30, 0, 3),
 Vector2i(37, 8): Vector3i(30, 0, 3),
 Vector2i(37, 9): Vector3i(30, 0, 3),
 Vector2i(37, 10): Vector3i(30, 2, 3),
@@ -747,6 +873,10 @@ Vector2i(37, 19): Vector3i(30, 0, 3),
 Vector2i(37, 20): Vector3i(30, 3, 3),
 Vector2i(37, 21): Vector3i(30, 0, 3),
 Vector2i(37, 22): Vector3i(30, 0, 3),
+Vector2i(37, 33): Vector3i(30, 0, 3),
+Vector2i(37, 34): Vector3i(30, 0, 3),
+Vector2i(37, 35): Vector3i(30, 0, 3),
+Vector2i(37, 36): Vector3i(30, 0, 3),
 Vector2i(38, 8): Vector3i(30, 0, 3),
 Vector2i(38, 9): Vector3i(30, 0, 3),
 Vector2i(38, 10): Vector3i(30, 0, 3),
@@ -762,6 +892,10 @@ Vector2i(38, 19): Vector3i(30, 0, 3),
 Vector2i(38, 20): Vector3i(30, 0, 3),
 Vector2i(38, 21): Vector3i(30, 0, 3),
 Vector2i(38, 22): Vector3i(30, 0, 3),
+Vector2i(38, 33): Vector3i(30, 0, 3),
+Vector2i(38, 34): Vector3i(30, 0, 3),
+Vector2i(38, 35): Vector3i(30, 0, 3),
+Vector2i(38, 36): Vector3i(30, 0, 3),
 Vector2i(39, 14): Vector3i(30, 0, 3),
 Vector2i(39, 15): Vector3i(30, 0, 3),
 Vector2i(39, 16): Vector3i(30, 0, 3),
@@ -899,4 +1033,4 @@ Vector2i(54, 18): Vector3i(30, 0, 3),
 Vector2i(54, 19): Vector3i(40, 0, 3),
 Vector2i(54, 20): Vector3i(40, 0, 3)
 })
-entities = Array[ExtResource("1_yq7ix")]([SubResource("Resource_s0fn1"), SubResource("Resource_lq5su"), SubResource("Resource_nct6k"), SubResource("Resource_iwcry"), SubResource("Resource_ltqtl"), SubResource("Resource_3in1k"), SubResource("Resource_1r5s5"), SubResource("Resource_wpcdp"), SubResource("Resource_qb2w2"), SubResource("Resource_sd2rx"), SubResource("Resource_18bwm"), SubResource("Resource_mbjec"), SubResource("Resource_pvtbg"), SubResource("Resource_2v0cl"), SubResource("Resource_1qq4q"), SubResource("Resource_gq3lg"), SubResource("Resource_4cn5k"), SubResource("Resource_k4pin"), SubResource("Resource_cmqyr"), SubResource("Resource_7jeyr"), SubResource("Resource_xkqbd"), SubResource("Resource_2oj26"), SubResource("Resource_0i64r"), SubResource("Resource_bpft5"), SubResource("Resource_urwjg"), SubResource("Resource_p6xqt"), SubResource("Resource_c14im"), SubResource("Resource_mdash"), SubResource("Resource_a8rmh"), SubResource("Resource_f73h7"), SubResource("Resource_v5kqm"), SubResource("Resource_2fimj"), SubResource("Resource_gjg22"), SubResource("Resource_2s1l8"), SubResource("Resource_vo0o8"), SubResource("Resource_3s2r2"), SubResource("Resource_58oic"), SubResource("Resource_1afi8"), SubResource("Resource_dq8cu"), SubResource("Resource_yengy"), SubResource("Resource_661p5")])
+entities = Array[ExtResource("1_yq7ix")]([SubResource("Resource_yq7ix"), SubResource("Resource_hmjic"), SubResource("Resource_s0fn1"), SubResource("Resource_lq5su"), SubResource("Resource_nct6k"), SubResource("Resource_iwcry"), SubResource("Resource_ltqtl"), SubResource("Resource_3in1k"), SubResource("Resource_1r5s5"), SubResource("Resource_wpcdp"), SubResource("Resource_qb2w2"), SubResource("Resource_sd2rx"), SubResource("Resource_18bwm"), SubResource("Resource_mbjec"), SubResource("Resource_pvtbg"), SubResource("Resource_2v0cl"), SubResource("Resource_1qq4q"), SubResource("Resource_gq3lg"), SubResource("Resource_4cn5k"), SubResource("Resource_k4pin"), SubResource("Resource_cmqyr"), SubResource("Resource_7jeyr"), SubResource("Resource_xkqbd"), SubResource("Resource_2oj26"), SubResource("Resource_0i64r"), SubResource("Resource_bpft5"), SubResource("Resource_urwjg"), SubResource("Resource_p6xqt"), SubResource("Resource_c14im"), SubResource("Resource_mdash"), SubResource("Resource_a8rmh"), SubResource("Resource_f73h7"), SubResource("Resource_v5kqm"), SubResource("Resource_2fimj"), SubResource("Resource_gjg22"), SubResource("Resource_2s1l8"), SubResource("Resource_vo0o8"), SubResource("Resource_3s2r2"), SubResource("Resource_58oic"), SubResource("Resource_1afi8"), SubResource("Resource_dq8cu")])

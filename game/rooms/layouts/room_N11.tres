@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_5e74a"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_bl7nm"]
 
-[sub_resource type="Resource" id="Resource_yuqww"]
+[sub_resource type="Resource" id="Resource_5e74a"]
 script = ExtResource("1_5e74a")
 item_id = &"spawn"
 cell = Vector2i(13, 1)
@@ -11,7 +11,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_s36ek"]
+[sub_resource type="Resource" id="Resource_bl7nm"]
 script = ExtResource("1_5e74a")
 item_id = &"barrier"
 cell = Vector2i(3, 4)
@@ -19,7 +19,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_ukyuq"]
+[sub_resource type="Resource" id="Resource_yuqww"]
 script = ExtResource("1_5e74a")
 item_id = &"trigger"
 cell = Vector2i(5, 4)
@@ -27,7 +27,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_okc0a"]
+[sub_resource type="Resource" id="Resource_s36ek"]
 script = ExtResource("1_5e74a")
 item_id = &"door"
 cell = Vector2i(1, 5)
@@ -37,7 +37,7 @@ props = {
 "tag": "n11_n10"
 }
 
-[sub_resource type="Resource" id="Resource_xomhc"]
+[sub_resource type="Resource" id="Resource_ukyuq"]
 script = ExtResource("1_5e74a")
 item_id = &"barrier"
 cell = Vector2i(3, 5)
@@ -45,12 +45,12 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_vgluy"]
+[sub_resource type="Resource" id="Resource_okc0a"]
 script = ExtResource("1_5e74a")
 item_id = &"player_spawn"
 cell = Vector2i(4, 5)
 
-[sub_resource type="Resource" id="Resource_4o3p3"]
+[sub_resource type="Resource" id="Resource_xomhc"]
 script = ExtResource("1_5e74a")
 item_id = &"trigger"
 cell = Vector2i(5, 5)
@@ -58,7 +58,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_b744q"]
+[sub_resource type="Resource" id="Resource_vgluy"]
 script = ExtResource("1_5e74a")
 item_id = &"barrier"
 cell = Vector2i(3, 6)
@@ -66,7 +66,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_v8p3w"]
+[sub_resource type="Resource" id="Resource_4o3p3"]
 script = ExtResource("1_5e74a")
 item_id = &"trigger"
 cell = Vector2i(5, 6)
@@ -74,7 +74,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_ivfas"]
+[sub_resource type="Resource" id="Resource_b744q"]
 script = ExtResource("1_5e74a")
 item_id = &"spawn"
 cell = Vector2i(25, 9)
@@ -82,7 +82,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_m0b6y"]
+[sub_resource type="Resource" id="Resource_v8p3w"]
 script = ExtResource("1_5e74a")
 item_id = &"spawn"
 cell = Vector2i(42, 14)
@@ -90,7 +90,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_fkhgo"]
+[sub_resource type="Resource" id="Resource_ivfas"]
 script = ExtResource("1_5e74a")
 item_id = &"spawn"
 cell = Vector2i(35, 22)
@@ -98,7 +98,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_3phnc"]
+[sub_resource type="Resource" id="Resource_m0b6y"]
 script = ExtResource("1_5e74a")
 item_id = &"gate"
 cell = Vector2i(38, 28)
@@ -106,7 +106,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_lcmc6"]
+[sub_resource type="Resource" id="Resource_fkhgo"]
 script = ExtResource("1_5e74a")
 item_id = &"gate"
 cell = Vector2i(39, 28)
@@ -114,7 +114,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_eon8p"]
+[sub_resource type="Resource" id="Resource_3phnc"]
 script = ExtResource("1_5e74a")
 item_id = &"gate"
 cell = Vector2i(40, 28)
@@ -122,7 +122,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_yj0jf"]
+[sub_resource type="Resource" id="Resource_lcmc6"]
 script = ExtResource("1_5e74a")
 item_id = &"door"
 cell = Vector2i(39, 31)
@@ -418,4 +418,4 @@ Vector2i(44, 14): Vector3i(30, 0, 3),
 Vector2i(44, 15): Vector3i(30, 0, 3),
 Vector2i(44, 16): Vector3i(30, 3, 3)
 })
-entities = Array[ExtResource("1_5e74a")]([SubResource("Resource_yuqww"), SubResource("Resource_s36ek"), SubResource("Resource_ukyuq"), SubResource("Resource_okc0a"), SubResource("Resource_xomhc"), SubResource("Resource_vgluy"), SubResource("Resource_4o3p3"), SubResource("Resource_b744q"), SubResource("Resource_v8p3w"), SubResource("Resource_ivfas"), SubResource("Resource_m0b6y"), SubResource("Resource_fkhgo"), SubResource("Resource_3phnc"), SubResource("Resource_lcmc6"), SubResource("Resource_eon8p"), SubResource("Resource_yj0jf")])
+entities = Array[ExtResource("1_5e74a")]([SubResource("Resource_5e74a"), SubResource("Resource_bl7nm"), SubResource("Resource_yuqww"), SubResource("Resource_s36ek"), SubResource("Resource_ukyuq"), SubResource("Resource_okc0a"), SubResource("Resource_xomhc"), SubResource("Resource_vgluy"), SubResource("Resource_4o3p3"), SubResource("Resource_b744q"), SubResource("Resource_v8p3w"), SubResource("Resource_ivfas"), SubResource("Resource_m0b6y"), SubResource("Resource_fkhgo"), SubResource("Resource_3phnc"), SubResource("Resource_lcmc6")])
