@@ -17,6 +17,7 @@ things to do more:
 
 - need to think about challenge rooms, for agility, for evasion, for stamina, for skill
 - pray shrine should have bopping camera effect, and some blissful camera affects  
-- dash ability to be able squash small_slime  
+- dash ability to be able squash small_slime
+- need to add test to not allow player continues dashing over a hole, has to ensure that dash ends in falling into a hole
 
 Tested room_N21 wave 1 and killed all enemies, but something got bugged and it shows 2 more remaining enemies - i presume they did not spawn. This is not the first time for this bug. 
