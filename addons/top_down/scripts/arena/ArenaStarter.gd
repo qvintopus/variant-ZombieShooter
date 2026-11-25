@@ -9,8 +9,12 @@ extends Node
 @export var area:Area2D
 
 func _ready()->void:
-	assert(section != null)
-	assert(area != null)
+	# asserts are stripped from release exports: report a broken trigger there too.
+	# (Godot 4.7's text->binary export conversion dropped this path once; see
+	# editor/export/convert_text_resources_to_binary in project.godot.)
+	if section == null || area == null:
+		push_error("SectionStarter %s: section or area is unset, this trigger can't start a fight" % get_path())
+		return
 	# Free the entry only once its fight actually begins (prerequisite met),
 	# so the player can re-enter before the gating section is cleared.
 	section.fight_started.connect(owner.queue_free.call_deferred)
