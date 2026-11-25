@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Variant - Zombie Shooter"
-config/version="0.1.2"
+config/version="0.1.3"
 run/main_scene="res://game/scenes/boot.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -43,6 +43,10 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_height"
+
+[editor]
+
+export/convert_text_resources_to_binary=false
 
 [editor_plugins]
 
