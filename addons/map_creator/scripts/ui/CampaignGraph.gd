@@ -6,7 +6,10 @@
 ## Double click a room to open it (an exit row: with that exit selected); toolbar: add room, set start, remove, auto layout.
 ## The search box matches rooms like the room browser (others fade); the side panel shows
 ## the selected room's details. Preview swaps the graph for the rooms drawn with their
-## tiles, placed by their stairs (CampaignPreview).
+## tiles, placed by their stairs (CampaignPreview). Linking stairs rewires both ways and
+## unlinks their old partners; the side panel's dropdowns relink the selected room's exits.
+## Broken links (CampaignLinks) tint rooms and show in the bar's problems button. Saves,
+## edits and workspace changes refresh the open graph / preview (keeping the view).
 class_name CampaignGraph
 extends PanelContainer
 
@@ -30,6 +33,14 @@ var _search:LineEdit
 var _view:Button
 var _portal_links:CheckButton
 var _info:RoomDetails
+var _problems_button:Button
+var _problems_menu:PopupMenu
+## Problems listed by the button: [{key, text}]
+var link_problems:Array[Dictionary] = []
+var _rebuild_queued:bool
+## Campaign the preview last zoomed to fit ("" = none yet).
+var _fitted_campaign:Variant = null
+var _notice_time:float
 var preview:CampaignPreview
 ## Searchable details of every room (rebuilt with the graph).
 var index:RoomIndex = RoomIndex.new()
@@ -73,7 +84,7 @@ func _ready()->void:
 			["Open", "Edit the selected room (double click)", _open_selected],
 			["Remove", "Take the selected room out of the campaign", _remove_selected],
 			["Auto", "Arrange by distance from the start", _auto_layout],
-			["Preview", "Switch between the link graph and the rooms drawn with their tiles, placed by their stairs", toggle_view],
+			["Preview", "Switch between the link graph and the rooms drawn with their tiles, placed by their stairs (right click a stairs dot to link it)", toggle_view],
 			["x", "Close (G / Esc)", close]]:
 		var _b:Button = Button.new()
 		_b.text = _entry[0]
@@ -91,6 +102,18 @@ func _ready()->void:
 	_portal_links.visible = false
 	_portal_links.toggled.connect(func (on:bool)->void: preview.set_show_portal_links(on))
 	_bar.add_child(_portal_links)
+	_problems_button = Button.new()
+	_problems_button.focus_mode = Control.FOCUS_NONE
+	_problems_button.tooltip_text = "Broken / missing links of the shown rooms: click to list, pick one to select its room"
+	_problems_button.add_theme_color_override(&"font_color", problem_color)
+	_problems_button.visible = false
+	_problems_button.pressed.connect(_show_problems_menu)
+	_bar.add_child(_problems_button)
+	_problems_menu = PopupMenu.new()
+	_problems_menu.id_pressed.connect(func (id:int)->void:
+		if id < link_problems.size():
+			select_room(link_problems[id].key, true))
+	add_child(_problems_menu)
 	_status = Label.new()
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -130,8 +153,12 @@ func _ready()->void:
 	_body.add_child(_scroll)
 	_info = RoomDetails.new(creator, index)
 	_info.opened.connect(close)
+	_info.relink_requested.connect(relink)
 	_scroll.add_child(_info)
 	creator.graph_requested.connect(toggle)
+	for _signal:Signal in [creator.layout_changed, creator.dirty_changed, creator.workspace_changed]:
+		_signal.connect(_queue_rebuild)
+	creator.message.connect(_notice)
 
 func toggle()->void:
 	if visible:
@@ -155,6 +182,29 @@ func close()->void:
 	visible = false
 	_search.release_focus()
 
+## Rebuilds once at the end of the frame while shown (saves, edits, workspace switches).
+func _queue_rebuild()->void:
+	if !visible || _rebuild_queued:
+		return
+	_rebuild_queued = true
+	(func ()->void:
+		if _rebuild_queued && visible && store != null:
+			store.reload()
+			rebuild()).call_deferred()
+
+## Messages show in the bar while the graph covers the topbar.
+func _notice(text:String)->void:
+	if !visible || text.is_empty():
+		return
+	_status.text = text
+	_notice_time = 4.0
+
+func _process(delta:float)->void:
+	if _notice_time > 0.0:
+		_notice_time -= delta
+		if _notice_time <= 0.0:
+			_status.text = _summary()
+
 ## Graph <-> Preview.
 func toggle_view()->void:
 	set_preview(!preview.visible)
@@ -172,7 +222,11 @@ func _show_preview()->void:
 	for _key:String in _nodes:
 		_tints[_key] = _nodes[_key].self_modulate
 	var _campaign:Dictionary = store.find(campaign_id)
-	preview.show_rooms(_nodes.keys(), String(_campaign.get("start", "")), _tints)
+	var _refit:bool = _fitted_campaign != campaign_id
+	_fitted_campaign = campaign_id
+	var _all:Dictionary = all_layouts()
+	preview.show_rooms(_nodes.keys(), String(_campaign.get("start", "")), _tints, _refit,
+		func (key:String, index:int)->StringName: return CampaignLinks.state(_all, key, index, _exists))
 	preview.set_dimmed(_dimmed())
 	preview.set_selected(selected_key)
 
@@ -181,6 +235,17 @@ func layout_of(key:String)->RoomLayoutResource:
 	if key == creator.key && creator.layout != null:
 		return creator.layout
 	return creator.baker.layouts.get(key, null)
+
+## key -> layout of every room, the open one live.
+func all_layouts()->Dictionary:
+	var _out:Dictionary = creator.baker.layouts.duplicate()
+	if creator.layout != null && !creator.key.is_empty():
+		_out[creator.key] = creator.layout
+	return _out
+
+## A room without a layout that has a (hand-made) scene.
+func _exists(key:String)->bool:
+	return layout_of(key) != null || ResourceLoader.exists(creator.scene_of(key))
 
 func show_campaign(id:String)->void:
 	campaign_id = id
@@ -192,6 +257,7 @@ func show_campaign(id:String)->void:
 	rebuild()
 
 func rebuild()->void:
+	_rebuild_queued = false
 	_graph.clear_connections()
 	for _node:Node in _nodes.values():
 		_graph.remove_child(_node)
@@ -203,6 +269,8 @@ func rebuild()->void:
 	if _campaign.is_empty():
 		_status.text = "No campaign: New makes one"
 		_info.show_message("")
+		link_problems.clear()
+		_problems_button.visible = false
 		return
 	var _rooms:PackedStringArray = store.rooms_of(campaign_id)
 	if creator.layout != null && String(creator.layout.campaign) == campaign_id && !_rooms.has(creator.key):
@@ -225,7 +293,9 @@ func rebuild()->void:
 				_add_node(_to, true, _campaign, PackedStringArray())
 				_nodes[_to].position_offset = _nodes[_key].position_offset + Vector2(220, 40 * _i)
 	_connect_links()
-	_status.text = "%s: %d rooms, start room_%s" % [_campaign.display_name, _rooms.size(), _campaign.start]
+	_status.text = _summary()
+	_problems_button.text = "! %d link problem%s" % [link_problems.size(), "" if link_problems.size() == 1 else "s"]
+	_problems_button.visible = !link_problems.is_empty()
 	if !_nodes.has(selected_key):
 		selected_key = creator.key if _nodes.has(creator.key) else String(_campaign.start)
 	apply_search()
@@ -316,12 +386,21 @@ func _connect_links()->void:
 					_graph.connect_node(_nodes[_from].name, port_of(_layout, _i), _nodes[_to].name, port_of(_target, _j))
 					break
 
-## Room key -> problems from the game baker's rules plus links that arrive nowhere.
+func _summary()->String:
+	var _campaign:Dictionary = store.find(campaign_id) if store != null else {}
+	if _campaign.is_empty():
+		return ""
+	return "%s: %d rooms, start room_%s" % [_campaign.display_name, store.rooms_of(campaign_id).size(), _campaign.start]
+
+## Room key -> problems from the game baker's rules plus broken links (CampaignLinks);
+## the link ones also fill link_problems.
 func _problems_by_room(rooms:PackedStringArray)->Dictionary:
 	var _baker:LayoutBaker = creator.baker
 	var _out:Dictionary = {}
 	var _was_quiet:bool = _baker.quiet
 	_baker.quiet = true
+	link_problems.clear()
+	var _all:Dictionary = all_layouts()
 	for _key:String in rooms:
 		var _layout:RoomLayoutResource = layout_of(_key)
 		var _list:PackedStringArray = []
@@ -329,13 +408,11 @@ func _problems_by_room(rooms:PackedStringArray)->Dictionary:
 		_baker._validate(_layout)
 		for _problem:Dictionary in _baker.problem_list:
 			_list.append(_problem.text)
-		for _i:int in _linkable_exits(_layout):
-			var _entity:LayoutEntity = _layout.entities[_i]
-			var _to:String = String(_entity.props.get("room", "")).trim_prefix("room_")
-			if _to.is_empty():
-				_list.append("%s at %s leads nowhere" % [_entity.item_id, _entity.cell])
-			elif layout_of(_to) == null && !ResourceLoader.exists(creator.scene_of(_to)):
-				_list.append("%s at %s leads to missing room_%s" % [_entity.item_id, _entity.cell, _to])
+			if String(_problem.text).contains("arrives at"):
+				link_problems.append({"key": _key, "text": "room_%s: %s" % [_key, _problem.text.trim_prefix(_key + ": ")]})
+		for _problem:Dictionary in CampaignLinks.problems(_all, [_key], _exists):
+			_list.append(_problem.text)
+			link_problems.append({"key": _key, "text": "room_%s: %s" % [_key, _problem.text]})
 		if !_list.is_empty():
 			_out[_key] = _list
 	_baker.reset_problems()
@@ -381,7 +458,7 @@ func select_room(key:String, center:bool = false)->void:
 	if selected_key.is_empty():
 		_info.show_message("Select a room")
 	else:
-		_info.show_room(selected_key, _problem_text(selected_key))
+		_info.show_room(selected_key, _problem_text(selected_key), _relink_rows(selected_key))
 	if selected_key.is_empty():
 		return
 	var _node:GraphNode = _nodes[selected_key]
@@ -391,6 +468,14 @@ func select_room(key:String, center:bool = false)->void:
 	if center:
 		_graph.scroll_offset = (_node.position_offset + _node.size * 0.5) * _graph.zoom - _graph.size * 0.5
 		preview.center_on(selected_key)
+
+func _show_problems_menu()->void:
+	_problems_menu.clear()
+	for _i:int in link_problems.size():
+		_problems_menu.add_item(link_problems[_i].text, _i)
+	_problems_menu.reset_size()
+	_problems_menu.position = Vector2i(_problems_button.get_screen_position() + Vector2(0, _problems_button.size.y))
+	_problems_menu.popup()
 
 func _focus_first_match()->void:
 	for _key:String in index.search(_search.text):
@@ -402,31 +487,152 @@ func _focus_first_match()->void:
 
 ## Out port `from_port` of room A -> in port `to_port` of room B.
 func link(from_key:String, from_port:int, to_key:String, to_port:int)->void:
-	var _a:RoomLayoutResource = layout_of(from_key)
-	var _b:RoomLayoutResource = layout_of(to_key)
-	var _ai:int = _linkable_exits(_a)[from_port]
-	var _bj:int = _linkable_exits(_b)[to_port]
-	var _a_entity:LayoutEntity = _a.entities[_ai]
-	var _b_entity:LayoutEntity = _b.entities[_bj]
+	link_exits(from_key, _linkable_exits(layout_of(from_key))[from_port], to_key, _linkable_exits(layout_of(to_key))[to_port])
+
+## Exit entity `ai` of room A leads to exit `bj` of room B (stairs to stairs: both ways).
+## Stairs that arrived at either one before lose their link (they'd be one way).
+func link_exits(from_key:String, ai:int, to_key:String, bj:int)->void:
+	var _a_entity:LayoutEntity = layout_of(from_key).entities[ai]
+	var _b_entity:LayoutEntity = layout_of(to_key).entities[bj]
 	var _a_tag:String = String(_a_entity.props.get("tag", ""))
 	var _b_tag:String = String(_b_entity.props.get("tag", ""))
+	var _both:bool = _a_entity.item_id == &"door" && _b_entity.item_id == &"door"
+	_release(from_key, _a_tag, [to_key, bj])
+	if _both:
+		_release(to_key, _b_tag, [from_key, ai])
 	if _a_tag.is_empty():
 		_a_tag = ("%s_%s" % [from_key, to_key]).to_lower()
 	if _b_tag.is_empty():
 		_b_tag = ("%s_%s" % [to_key, from_key]).to_lower()
 	var _a_props:Dictionary = {"tag": _a_tag, "room": "room_" + to_key, "connect_tag": _b_tag}
 	var _b_props:Dictionary = {"tag": _b_tag}
-	if _a_entity.item_id == &"door" && _b_entity.item_id == &"door":
+	if _both:
 		_b_props.room = "room_" + from_key
 		_b_props.connect_tag = _a_tag
-	_change(from_key, _ai, _a_props)
-	_change(to_key, _bj, _b_props)
+	_change(from_key, ai, _a_props)
+	_change(to_key, bj, _b_props)
 	rebuild()
 
+## Unlinks the stairs (other than `keep` [key, index]) that arrive at the exit tagged
+## `tag` of room `key`.
+func _release(key:String, tag:String, keep:Array)->void:
+	if tag.is_empty():
+		return
+	var _all:Dictionary = all_layouts()
+	for _other:String in _all:
+		var _layout:RoomLayoutResource = _all[_other]
+		for _i:int in _layout.entities.size():
+			var _entity:LayoutEntity = _layout.entities[_i]
+			if _entity.item_id == &"door" && CampaignLinks.target(_entity) == key \
+					&& String(_entity.props.get("connect_tag", "")) == tag && [_other, _i] != keep:
+				_change(_other, _i, {"room": "", "connect_tag": ""})
+
 func unlink(from_key:String, from_port:int)->void:
-	var _a:RoomLayoutResource = layout_of(from_key)
-	_change(from_key, _linkable_exits(_a)[from_port], {"room": "", "connect_tag": ""})
+	unlink_exit(from_key, _linkable_exits(layout_of(from_key))[from_port])
+
+## Clears exit `index` of room `key`, and its partner stairs if they lead back to it.
+func unlink_exit(key:String, index:int)->void:
+	var _all:Dictionary = all_layouts()
+	var _entity:LayoutEntity = _all[key].entities[index]
+	if _entity.item_id == &"door" && CampaignLinks.state(_all, key, index) == CampaignLinks.LINKED:
+		var _to:String = CampaignLinks.target(_entity)
+		var _p:int = CampaignLinks.partner(_all, key, index)
+		if _all[_to].entities[_p].item_id == &"door":
+			_change(_to, _p, {"room": "", "connect_tag": ""})
+	_change(key, index, {"room": "", "connect_tag": ""})
 	rebuild()
+
+## Only exit `index` of `key` changes: it leads to exit `to_index` of `to_key` (that one
+## gets a tag if it has none) and nothing else is touched, so stairs can end up one way.
+## `to_index` -1: just the room, arriving nowhere (a broken link, fixed later).
+func link_one_way(key:String, index:int, to_key:String, to_index:int)->void:
+	var _tag:String = ""
+	if to_index >= 0:
+		var _b:LayoutEntity = layout_of(to_key).entities[to_index]
+		_tag = String(_b.props.get("tag", ""))
+		if _tag.is_empty():
+			_tag = ("%s_%s" % [to_key, key]).to_lower()
+			_change(to_key, to_index, {"tag": _tag})
+	var _a:LayoutEntity = layout_of(key).entities[index]
+	var _props:Dictionary = {"room": "room_" + to_key, "connect_tag": _tag}
+	if String(_a.props.get("tag", "")).is_empty():
+		_props.tag = ("%s_%s" % [key, to_key]).to_lower()
+	_change(key, index, _props)
+	rebuild()
+
+## Rooms exit `index` of `key` can lead to, for the preview's menu: [{key, free, exits:
+## [{index, text, free}]}], exits of the same kind, rooms and exits that are free (not
+## linked both ways / properly) first. `current` [key, index] marks the present target.
+func exit_targets(key:String, index:int)->Array:
+	var _all:Dictionary = all_layouts()
+	var _entity:LayoutEntity = _all[key].entities[index]
+	var _out:Array = []
+	var _keys:Array = _nodes.keys()
+	_keys.sort()
+	for _other:String in _keys:
+		var _layout:RoomLayoutResource = layout_of(_other)
+		if _other == key || _layout == null:
+			continue
+		var _exits:Array = []
+		var _free:int = 0
+		for _j:int in _linkable_exits(_layout):
+			var _e:LayoutEntity = _layout.entities[_j]
+			if _e.item_id != _entity.item_id:
+				continue
+			var _state:StringName = CampaignLinks.state(_all, _other, _j, _exists)
+			var _is_free:bool = _state != CampaignLinks.LINKED
+			var _to:String = CampaignLinks.target(_e)
+			var _text:String = "%s at %s" % [_e.props.get("tag", "") if !String(_e.props.get("tag", "")).is_empty() else "(no tag)", _e.cell]
+			_text += "  [free%s]" % ("" if _state == CampaignLinks.NOWHERE else ": " + String(_state).replace("_", " ")) if _is_free else "  -> room_%s" % _to
+			_exits.append({"index": _j, "text": _text, "free": _is_free})
+			_free += 1 if _is_free else 0
+		if _exits.is_empty():
+			continue
+		_exits.sort_custom(func (x:Dictionary, y:Dictionary)->bool: return x.free && !y.free)
+		_out.append({"key": _other, "free": _free, "exits": _exits})
+	_out.sort_custom(func (x:Dictionary, y:Dictionary)->bool: return x.free > 0 && y.free == 0)
+	return _out
+
+## Side panel dropdown picked: exit `index` of `key` -> exit `to_index` of `to_key`
+## ("" = unlink).
+func relink(key:String, index:int, to_key:String, to_index:int)->void:
+	if to_key.is_empty():
+		unlink_exit(key, index)
+	else:
+		link_exits(key, index, to_key, to_index)
+
+## Dropdown rows of `key`'s stairs / portals: [{index, label, options: [{key, index,
+## text}], selected (option index, -1 = current target isn't listed), current}].
+## Options: exits of the same kind in the other shown rooms.
+func _relink_rows(key:String)->Array:
+	var _rows:Array = []
+	var _layout:RoomLayoutResource = layout_of(key)
+	if _layout == null:
+		return _rows
+	var _all:Dictionary = all_layouts()
+	var _keys:Array = _nodes.keys()
+	_keys.sort()
+	for _i:int in _linkable_exits(_layout):
+		var _entity:LayoutEntity = _layout.entities[_i]
+		var _to:String = CampaignLinks.target(_entity)
+		var _p:int = CampaignLinks.partner(_all, key, _i)
+		var _row:Dictionary = {"index": _i, "options": [], "selected": -1,
+			"label": "%s %s" % ["stairs" if _entity.item_id == &"door" else "portal", _entity.props.get("tag", "")],
+			"state": CampaignLinks.state(_all, key, _i, _exists),
+			"current": "room_%s '%s'" % [_to, _entity.props.get("connect_tag", "")] if !_to.is_empty() else ""}
+		for _other:String in _keys:
+			if _other == key:
+				continue
+			var _target:RoomLayoutResource = layout_of(_other)
+			for _j:int in _linkable_exits(_target):
+				var _e:LayoutEntity = _target.entities[_j]
+				if _e.item_id != _entity.item_id:
+					continue
+				if _other == _to && _j == _p:
+					_row.selected = _row.options.size()
+				_row.options.append({"key": _other, "index": _j, "text": "room_%s %s" % [_other, _e.props.get("tag", "")]})
+		_rows.append(_row)
+	return _rows
 
 ## Merges props into entity `index` of room `key` (the open room through an undoable
 ## edit, saved with it; other rooms are stored and baked right away).

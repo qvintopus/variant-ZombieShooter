@@ -29,8 +29,12 @@ signal prompt_requested(title:String, initial:String, answer:Callable)
 ## Same with a second button: `alt_label` runs `alt_answer` (no text).
 signal choice_requested(title:String, initial:String, answer:Callable, alt_label:String, alt_answer:Callable)
 ## The workspace (active mod) changed.
+## Yes/no style question (MapPrompt): `choices` = [{label, action:Callable, danger:bool}], Cancel added.
+signal confirm_requested(title:String, body:String, choices:Array)
 signal workspace_changed
 signal waves_requested
+## Open the waves panel on section `number` (1-based), scrolled to and expanded.
+signal waves_section_requested(number:int)
 signal problems_requested
 signal help_requested
 ## `problems` was refreshed (MapChecks).
@@ -381,6 +385,9 @@ func _unhandled_input(event:InputEvent)->void:
 		return
 	if !(event is InputEventMouseButton):
 		return
+	# a click falling through a panel isn't for the map
+	if event.pressed && camera != null && camera.has_method(&"over_ui") && camera.over_ui():
+		return
 	_update_hover()
 	if event.button_index == MOUSE_BUTTON_RIGHT && event.pressed:
 		if !moving.is_empty():
@@ -508,6 +515,9 @@ func _handle_key(event:InputEventKey)->bool:
 	if event.ctrl_pressed && event.keycode == KEY_V:
 		if settings == null || !tools.paste(settings.clipboard):
 			message.emit("Clipboard is empty: select, then Ctrl+C")
+		return true
+	if !event.ctrl_pressed && event.keycode == KEY_R && (!moving.is_empty() || !selection.is_empty()):
+		rotate_selection(-1 if event.shift_pressed else 1)
 		return true
 	if event.ctrl_pressed && event.keycode == KEY_D && !selection.is_empty():
 		begin_move(selection.entries(), true)
@@ -1025,7 +1035,12 @@ func save()->bool:
 	dirty = false
 	dirty_changed.emit()
 	_drop_autosave()
-	message.emit("Saved room_%s to %s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems])
+	var _links:Array[Dictionary] = MapChecks.link_problems(self)
+	var _link_text:String = ""
+	if !_links.is_empty():
+		_link_text = " | %d link problem%s: %s%s (%s: map)" % [_links.size(), "" if _links.size() == 1 else "s", _links[0].text,
+			", ..." if _links.size() > 1 else "", OS.get_keycode_string(preset.key_graph)]
+	message.emit("Saved room_%s to %s%s%s" % [key, workspace_name(), "" if baker.problems == 0 else " (%d problems, see the log)" % baker.problems, _link_text])
 	return true
 
 # --- selection operations ---------------------------------------------------------------
@@ -1146,7 +1161,48 @@ func begin_move(entries:Array, copy:bool)->void:
 	for _entry:Dictionary in entries:
 		_payload.append(_payload(_entry))
 	moving = {"entries": entries, "payload": _payload, "copy": copy, "origin": hover_cell, "drag": false}
-	message.emit("%s %d: click to drop, right click / Esc to cancel" % ["Copy" if copy else "Move", entries.size()])
+	message.emit("%s %d: click to drop, R / Shift+R rotate, right click / Esc to cancel" % ["Copy" if copy else "Move", entries.size()])
+
+## Where payload entry `p` lands with the cursor `delta` off the move origin (rotations
+## keep it in "at", the cell it was taken from stays in "cell").
+static func landing(p:Dictionary, delta:Vector2i)->Vector2i:
+	return p.get("at", p.cell) + delta
+
+## R / Shift+R: turns the carried move, or the selection in place, a quarter (1 clockwise
+## on screen, -1 counter-clockwise) around its centre cell. In place it's one undo step.
+func rotate_selection(turns:int)->void:
+	if !can_edit():
+		return
+	if moving.is_empty():
+		if selection.is_empty():
+			return
+		var _entries:Array = selection.entries()
+		var _payload:Array = []
+		for _entry:Dictionary in _entries:
+			_payload.append(_payload(_entry))
+		moving = {"entries": _entries, "payload": _payload, "copy": false, "origin": Vector2i.ZERO, "drag": false}
+		_turn(moving, turns)
+		confirm_move(Vector2i.ZERO)
+		return
+	_turn(moving, turns)
+
+## Quarter turns of a move's payload around its first-turn centre (kept, so 4 turns = none).
+static func _turn(move:Dictionary, turns:int)->void:
+	var _payload:Array = move.payload
+	if _payload.is_empty():
+		return
+	if !move.has("pivot"):
+		var _min:Vector2i = Vector2i(1 << 30, 1 << 30)
+		var _max:Vector2i = -_min
+		for _p:Dictionary in _payload:
+			_min = _min.min(landing(_p, Vector2i.ZERO))
+			_max = _max.max(landing(_p, Vector2i.ZERO))
+		move.pivot = Vector2i(floori((_min.x + _max.x) / 2.0), floori((_min.y + _max.y) / 2.0))
+	var _c:Vector2i = move.pivot
+	for _p:Dictionary in _payload:
+		var _d:Vector2i = landing(_p, Vector2i.ZERO) - _c
+		# iso grid: +x is screen down-right, +y down-left; (x, y) -> (-y, x) turns clockwise
+		_p.at = _c + (Vector2i(-_d.y, _d.x) if turns > 0 else Vector2i(_d.y, -_d.x))
 
 func cancel_move()->void:
 	moving = {}
@@ -1158,7 +1214,7 @@ func confirm_move(cell:Vector2i)->void:
 	var _payload:Array = moving.payload
 	var _copy:bool = moving.copy
 	moving = {}
-	if _delta == Vector2i.ZERO && !_copy:
+	if _delta == Vector2i.ZERO && !_copy && _payload.all(func (p:Dictionary)->bool: return landing(p, Vector2i.ZERO) == p.cell):
 		return
 	var _moved:Array = []
 	edit(func ()->void:
@@ -1168,7 +1224,7 @@ func confirm_move(cell:Vector2i)->void:
 		# floors first so entities land on floor
 		_payload.sort_custom(func (a:Dictionary, b:Dictionary)->bool: return a.has("floor") && !b.has("floor"))
 		for _p:Dictionary in _payload:
-			var _to:Vector2i = _p.cell + _delta
+			var _to:Vector2i = landing(_p, _delta)
 			if _p.has("floor"):
 				_put(_to, _type_item(_p.type), null, _p.floor)
 			elif _p.has("entity"):

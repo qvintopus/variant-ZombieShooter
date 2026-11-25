@@ -32,7 +32,7 @@ func damage_multiplier() -> float:
 func wave_count_multiplier() -> float:
 	return ratio("wave_count_ratio")
 
-## Multiplier applied to a wave's max_alive cap; 0 or less means no cap.
+## Multiplier applied to a wave's max_alive (alive target); 0 or less = unscaled.
 func max_alive_multiplier() -> float:
 	return ratio("max_alive_ratio")
 

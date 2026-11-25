@@ -131,13 +131,13 @@ scene_path = "res://addons/top_down/scenes/levels/room_0.tscn"
 position = Vector2(254, 271)
 tag = "west"
 connect_tag = "east"
-scene_path = "res://game/scenes/room_1.tscn"
+scene_path = "res://game/tests/rooms/room_test_run_start.tscn"
 
 [node name="Stairs3" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="2" unique_id=1035498420 instance=ExtResource("2_f3ue7")]
 position = Vector2(649, 53)
 tag = "from_next"
 connect_tag = "from_prev"
-scene_path = "res://game/scenes/room_3.tscn"
+scene_path = "res://game/tests/rooms/room_test_run_start.tscn"
 
 [node name="Stairs4" parent="Behind" parent_id_path=PackedInt32Array(309654739) index="3" unique_id=929405975 instance=ExtResource("2_f3ue7")]
 visible = false

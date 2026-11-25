@@ -792,7 +792,7 @@ metadata/source_cell = Vector2i(40, 28)
 position = Vector2(208, 120)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Trigger_X5_Y4" type="CollisionPolygon2D" parent="ArenaEntry"]
 position = Vector2(32, 80)
@@ -819,19 +819,19 @@ polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 position = Vector2(272, 280)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_3" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(464, 456)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(224, 464)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Stairs2" parent="Behind" instance=ExtResource("3_door")]
 position = Vector2(144, 568)

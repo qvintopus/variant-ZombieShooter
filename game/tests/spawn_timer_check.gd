@@ -1,4 +1,4 @@
-## Spawn pacing per difficulty and the HORDE meta stats, in room_A02's first fight
+## Spawn pacing per difficulty and the HORDE meta stats, the max_alive target, in room_test_arena's first fight
 ## (4 spawn points). Every point refills its slots on both difficulties, so a full
 ## room stays full on Easy. Normal adds one timed point that also spawns every 2s
 ## whether or not its enemies are alive; each Nest upgrade adds a timed point with
@@ -10,7 +10,7 @@
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM:String = "res://game/scenes/room_A02.tscn"
+const ROOM:String = "res://game/tests/rooms/room_test_arena.tscn"
 ## The same resources ArenaSection preloads (vars: a const's properties can't be set).
 var DIFFICULTY:DifficultyResource = load("res://addons/top_down/resources/global_resources/difficulty_resource.tres")
 var META:MetaUpgradeResource = load("res://game/resources/meta_upgrade_resource.tres")
@@ -35,7 +35,7 @@ func _ready()->void:
 	check(DIFFICULTY.timed_spawners() == 1, "Normal has one timed spawner")
 	check(is_zero_approx(_interval(DifficultyResource.Mode.EASY)), "Easy waits for free slots")
 	DIFFICULTY.mode = DifficultyResource.Mode.NORMAL
-	check(DIFFICULTY.max_alive_multiplier() <= 0.0, "Normal has no max_alive cap")
+	check(is_equal_approx(DIFFICULTY.max_alive_multiplier(), 1.0), "Normal keeps max_alive as authored")
 
 	await _check_easy([], 1)
 	await _check_easy(["twin_spawn"], 2)
@@ -48,6 +48,8 @@ func _ready()->void:
 	await _check_independent()
 	await _check_small_wave()
 	await _check_quota()
+	await _check_alive_target()
+	_check_spots()
 
 	DIFFICULTY.mode = _mode
 	META.owned = _owned
@@ -139,6 +141,42 @@ func _check_quota()->void:
 	check(_section._wave_quota(_wave) == _base * 2, "Swarm doubles a wave (%d -> %d)" % [_base, _section._wave_quota(_wave)])
 	_wave.is_boss = true
 	check(_section._wave_quota(_wave) == 10, "boss waves stay as they are")
+	_section.free()
+
+## max_alive is an alive target: the density slots fill at once, then each point tops
+## up one every fill_interval (Easy: no spawn timers) until the target, then holds.
+func _check_alive_target()->void:
+	DIFFICULTY.mode = DifficultyResource.Mode.EASY
+	META.owned = PackedStringArray()
+	var _room:Node = (load(ROOM) as PackedScene).instantiate()
+	add_child(_room)
+	var _section:ArenaSection = _room.get_node("EnemyManager/Section1")
+	_section.free_distance = 0.0
+	_section.waves[0] = _section.waves[0].duplicate()
+	_section.waves[0].count = 1000
+	var _points:int = _section.spawn_points.size()
+	var _slots:int = _points * roundi(_section.spawn_density)
+	var _target:int = _slots + _points + 1
+	_section.waves[0].max_alive = _target
+	var _times:Array[float] = await _watch(_section, 5.0)
+	var _burst:int = _times.filter(func (t:float)->bool: return t <= SLACK).size()
+	var _first:int = _times.filter(func (t:float)->bool: return absf(t - _section.fill_interval) <= SLACK).size()
+	check(_burst == _slots, "max_alive: the density slots fill at once (%d of %d)" % [_burst, _slots])
+	check(_first == _points, "max_alive: each point tops up one after %ss (%d)" % [_section.fill_interval, _first])
+	check(_times.size() == _target, "max_alive %d: reached, then held (%d spawned)" % [_target, _times.size()])
+	await _end_room(_room)
+
+## A spawner hosts several enemies on free spots (not one on top of another), and
+## a spawner whose spots are all taken waits.
+func _check_spots()->void:
+	var _section:ArenaSection = ArenaSection.new()
+	_section.free_distance = 8.0
+	var _spots:Array[Vector2] = _section._free_spots(Vector2.ZERO, 7)
+	var _apart:bool = true
+	for _i:int in _spots.size():
+		for _j:int in range(_i + 1, _spots.size()):
+			_apart = _apart && _spots[_i].distance_to(_spots[_j]) > _section.free_distance
+	check(_spots.size() == 7 && _apart, "7 free spots per spawner, apart (%d)" % _spots.size())
 	_section.free()
 
 ## Enemies of one spawn event don't land on the same spot.

@@ -11,6 +11,8 @@ const ICON_SIZE:int = 12
 ## Cursor brackets stand this far outside the frame.
 const CURSOR_GAP:int = 3
 const LOCKED_ICON:Color = Color(0.28, 0.26, 0.34)
+## Owned but switched off: the whole node dimmed.
+const OFF:Color = Color(0.45, 0.45, 0.5)
 const PULSE:Color = Color(1.45, 1.45, 1.45)
 const FLASH:Color = Color(3.0, 3.0, 3.0)
 
@@ -59,21 +61,22 @@ func setup(node_id:String)->void:
 	focus_entered.connect(_set_focused.bind(true))
 	focus_exited.connect(_set_focused.bind(false))
 
-## Frame by state, dark icon while locked, a slow pulse while it can be bought.
-func refresh(state:MetaUpgradeResource.State, affordable:bool)->void:
+## Frame by state, dark icon while locked, dimmed while switched off,
+## a slow pulse while it can be bought.
+func refresh(state:MetaUpgradeResource.State, affordable:bool, off:bool = false)->void:
 	_frame.region.position.x = int(state) * _frame.region.size.x
-	_icon.modulate = LOCKED_ICON if state == MetaUpgradeResource.State.LOCKED else Color.WHITE
+	_icon.modulate = LOCKED_ICON if state == MetaUpgradeResource.State.LOCKED else (OFF if off else Color.WHITE)
 	var _pulse:bool = state == MetaUpgradeResource.State.AVAILABLE && affordable
-	if _pulse == (_pulse_tween != null):
-		return
-	if _pulse_tween != null:
-		_pulse_tween.kill()
-		_pulse_tween = null
-		self_modulate = Color.WHITE
-	if _pulse:
-		_pulse_tween = create_tween().set_loops()
-		_pulse_tween.tween_property(self, "self_modulate", PULSE, 0.6).set_trans(Tween.TRANS_SINE)
-		_pulse_tween.tween_property(self, "self_modulate", Color.WHITE, 0.6).set_trans(Tween.TRANS_SINE)
+	if _pulse != (_pulse_tween != null):
+		if _pulse_tween != null:
+			_pulse_tween.kill()
+			_pulse_tween = null
+		if _pulse:
+			_pulse_tween = create_tween().set_loops()
+			_pulse_tween.tween_property(self, "self_modulate", PULSE, 0.6).set_trans(Tween.TRANS_SINE)
+			_pulse_tween.tween_property(self, "self_modulate", Color.WHITE, 0.6).set_trans(Tween.TRANS_SINE)
+	if _pulse_tween == null:
+		self_modulate = OFF if off else Color.WHITE
 
 ## Scale punch and a white flash.
 func play_bought()->void:

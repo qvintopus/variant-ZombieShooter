@@ -6,7 +6,7 @@
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM_START:String = "res://game/scenes/room_start.tscn"
+const ROOM_START:String = "res://game/tests/rooms/room_test_run_start.tscn"
 const ACTORS:String = TD + "resources/InstanceResources/actors/"
 const DEAD:String = TD + "scenes/vfx/dead/"
 

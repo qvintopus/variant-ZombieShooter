@@ -646,25 +646,25 @@ metadata/source_cell = Vector2i(25, 16)
 position = Vector2(16, 168)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(176, 248)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S2_1" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(304, 328)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S2_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(432, 392)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="SlimeWorkbench1" parent="WallLayer_Ysorted" instance=ExtResource("5_slime_workbe")]
 position = Vector2(304, 360)
@@ -712,25 +712,25 @@ position = Vector2(256, 416)
 position = Vector2(176, 392)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S2_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(304, 456)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_3" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(-144, 248)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(16, 328)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Section1" parent="EnemyManager"]
 waves = Array[ExtResource("8_SpawnWaveLis")]([SubResource("Resource_1")])

@@ -1164,13 +1164,13 @@ metadata/source_cell = Vector2i(20, 13)
 position = Vector2(48, 104)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(176, 168)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="AcidPuddle1" parent="Behind" instance=ExtResource("5_acid_puddle")]
 position = Vector2(384, 304)
@@ -1240,13 +1240,13 @@ position = Vector2(400, 456)
 position = Vector2(-144, 200)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(-16, 264)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="AcidPuddle3" parent="Behind" instance=ExtResource("5_acid_puddle")]
 position = Vector2(240, 424)

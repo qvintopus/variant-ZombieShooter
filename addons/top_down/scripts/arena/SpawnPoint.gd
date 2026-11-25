@@ -13,6 +13,8 @@ extends Marker2D
 var active_count:int = 0
 ## Timed points: seconds until the next timer spawn (section-maintained).
 var cooldown_left:float = 0.0
+## Seconds until this point may top up past its slots (max_alive waves; section-maintained).
+var fill_left:float = 0.0
 
 func _ready()->void:
 	assert(section != null)

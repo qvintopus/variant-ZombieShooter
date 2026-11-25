@@ -16,6 +16,8 @@ signal written(results:Dictionary)
 signal changed
 ## A write begins (co-op: the host tells its guests, NetHome)
 signal write_started
+## A write raised / lowered one ripple diagonal (the save keeps up mid-ripple)
+signal stepped
 
 enum Axis {ROW, COL}
 
@@ -198,6 +200,7 @@ func write()->void:
 		for _cell:Vector2i in _by_diagonal[_d]:
 			var _result:Piston.WriteResult = piston(_cell).try_write(data_value)
 			_results[_result] = _results.get(_result, 0) + 1
+		stepped.emit()
 	writing = false
 	changed.emit()
 	written.emit(_results)

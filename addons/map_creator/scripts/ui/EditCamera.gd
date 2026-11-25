@@ -1,5 +1,5 @@
 ## Free camera of the map creator's edit mode: WASD / arrows pan, middle mouse drags,
-## the wheel zooms at the cursor. Takes over from the room camera and hands back.
+## the wheel zooms at the cursor (not over a panel). Takes over from the room camera and hands back.
 class_name EditCamera
 extends Camera2D
 
@@ -48,6 +48,11 @@ func _unhandled_input(event:InputEvent)->void:
 	if !enabled:
 		return
 	if event is InputEventMouseButton:
+		# the wheel / drag over a panel (e.g. past the end of its scroll) isn't for the map
+		if event.pressed && over_ui():
+			if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_MIDDLE]:
+				get_viewport().set_input_as_handled()
+			return
 		if event.button_index == MOUSE_BUTTON_MIDDLE:
 			_dragging = event.pressed
 			get_viewport().set_input_as_handled()
@@ -58,6 +63,28 @@ func _unhandled_input(event:InputEvent)->void:
 	elif event is InputEventMouseMotion && _dragging:
 		global_position -= event.relative / zoom.x
 		get_viewport().set_input_as_handled()
+
+## The wheel over `spin` scrolls `scroll` (its panel) instead of changing the value,
+## unless the number is being typed in.
+static func wheel_scrolls(spin:SpinBox, scroll:ScrollContainer, step:int = 24)->void:
+	spin.gui_input.connect(func (event:InputEvent)->void:
+		if !(event is InputEventMouseButton) || spin.get_line_edit().has_focus():
+			return
+		var _button:MouseButton = (event as InputEventMouseButton).button_index
+		if _button != MOUSE_BUTTON_WHEEL_UP && _button != MOUSE_BUTTON_WHEEL_DOWN:
+			return
+		spin.accept_event()
+		if event.pressed:
+			scroll.scroll_vertical += -step if _button == MOUSE_BUTTON_WHEEL_UP else step)
+
+## The pointer is over a visible control of the map creator's UI (a panel, the
+## topbar...), not over the map.
+func over_ui()->bool:
+	var _hovered:Control = get_viewport().gui_get_hovered_control()
+	if _hovered == null || !_hovered.is_visible_in_tree():
+		return false
+	var _root:Node = get_parent().get_node_or_null(^"UI/Root") if get_parent() != null else null
+	return _root == null || _root.is_ancestor_of(_hovered)
 
 ## Zooms by `factor`, keeping the world point under `anchor` in place.
 func zoom_at(anchor:Vector2, factor:float)->void:

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_lxfxu"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_8i5v4"]
 
-[sub_resource type="Resource" id="Resource_tsg7m"]
+[sub_resource type="Resource" id="Resource_lxfxu"]
 script = ExtResource("1_lxfxu")
 item_id = &"piston_grid"
 cell = Vector2i(43, 30)
@@ -11,60 +11,70 @@ props = {
 "grid_size": 30
 }
 
-[sub_resource type="Resource" id="Resource_ujo7f"]
+[sub_resource type="Resource" id="Resource_8i5v4"]
 script = ExtResource("1_lxfxu")
 item_id = &"write_button"
 cell = Vector2i(48, 37)
 
-[sub_resource type="Resource" id="Resource_ttcfr"]
+[sub_resource type="Resource" id="Resource_tsg7m"]
 script = ExtResource("1_lxfxu")
 item_id = &"data_lever"
 cell = Vector2i(50, 37)
 
-[sub_resource type="Resource" id="Resource_geirb"]
+[sub_resource type="Resource" id="Resource_ujo7f"]
 script = ExtResource("1_lxfxu")
 item_id = &"gate_lever"
 cell = Vector2i(52, 37)
 
-[sub_resource type="Resource" id="Resource_gawf0"]
+[sub_resource type="Resource" id="Resource_ttcfr"]
 script = ExtResource("1_lxfxu")
 item_id = &"reset_button"
 cell = Vector2i(54, 37)
 
-[sub_resource type="Resource" id="Resource_uekn1"]
+[sub_resource type="Resource" id="Resource_geirb"]
 script = ExtResource("1_lxfxu")
 item_id = &"robot_printer"
 cell = Vector2i(42, 39)
 
-[sub_resource type="Resource" id="Resource_wqns7"]
+[sub_resource type="Resource" id="Resource_gawf0"]
 script = ExtResource("1_lxfxu")
 item_id = &"comms_terminal"
 cell = Vector2i(42, 41)
 
-[sub_resource type="Resource" id="Resource_y7rei"]
+[sub_resource type="Resource" id="Resource_uekn1"]
 script = ExtResource("1_lxfxu")
 item_id = &"player_spawn"
 cell = Vector2i(50, 41)
 
-[sub_resource type="Resource" id="Resource_g3ug7"]
+[sub_resource type="Resource" id="Resource_wqns7"]
 script = ExtResource("1_lxfxu")
 item_id = &"water_gun_spot"
 cell = Vector2i(47, 43)
 
-[sub_resource type="Resource" id="Resource_ixgfw"]
+[sub_resource type="Resource" id="Resource_y7rei"]
 script = ExtResource("1_lxfxu")
 item_id = &"home_exit"
 cell = Vector2i(53, 43)
 
-[sub_resource type="Resource" id="Resource_onpok"]
+[sub_resource type="Resource" id="Resource_g3ug7"]
 script = ExtResource("1_lxfxu")
 item_id = &"home_chest"
-cell = Vector2i(42, 45)
+cell = Vector2i(45, 38)
+
+[sub_resource type="Resource" id="Resource_ixgfw"]
+script = ExtResource("1_lxfxu")
+item_id = &"meta_workbench"
+cell = Vector2i(54, 40)
+
+[sub_resource type="Resource" id="Resource_onpok"]
+script = ExtResource("1_lxfxu")
+item_id = &"home_quit_portal"
+cell = Vector2i(53, 30)
 
 [sub_resource type="Resource" id="Resource_xy61q"]
 script = ExtResource("1_lxfxu")
 item_id = &"stash_lever"
-cell = Vector2i(44, 45)
+cell = Vector2i(46, 38)
 
 [resource]
 script = ExtResource("2_8i5v4")
@@ -1423,4 +1433,4 @@ Vector2i(55, 43): Vector3i(30, 0, 3),
 Vector2i(55, 44): Vector3i(30, 0, 3),
 Vector2i(55, 45): Vector3i(30, 0, 3)
 })
-entities = Array[ExtResource("1_lxfxu")]([SubResource("Resource_tsg7m"), SubResource("Resource_ujo7f"), SubResource("Resource_ttcfr"), SubResource("Resource_geirb"), SubResource("Resource_gawf0"), SubResource("Resource_uekn1"), SubResource("Resource_wqns7"), SubResource("Resource_y7rei"), SubResource("Resource_g3ug7"), SubResource("Resource_ixgfw"), SubResource("Resource_onpok"), SubResource("Resource_xy61q")])
+entities = Array[ExtResource("1_lxfxu")]([SubResource("Resource_lxfxu"), SubResource("Resource_8i5v4"), SubResource("Resource_tsg7m"), SubResource("Resource_ujo7f"), SubResource("Resource_ttcfr"), SubResource("Resource_geirb"), SubResource("Resource_gawf0"), SubResource("Resource_uekn1"), SubResource("Resource_wqns7"), SubResource("Resource_y7rei"), SubResource("Resource_g3ug7"), SubResource("Resource_ixgfw"), SubResource("Resource_onpok"), SubResource("Resource_xy61q")])

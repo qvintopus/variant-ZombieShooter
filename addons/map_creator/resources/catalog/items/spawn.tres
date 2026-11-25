@@ -21,7 +21,7 @@ label = "Max at once"
 min_value = 1.0
 max_value = 6.0
 options = PackedStringArray()
-hint = "Empty: the section's."
+hint = "Most enemies this spawner keeps alive at once. Empty: the section's Density."
 
 [resource]
 script = ExtResource("3_xskck")

@@ -104,4 +104,4 @@ func _draw_selection(preset:MapCreatorPreset)->void:
 	if !creator.moving.is_empty():
 		var _delta:Vector2i = creator.hover_cell - creator.moving.origin
 		for _p:Dictionary in creator.moving.payload:
-			fill_cell(_p.cell + _delta, Color(creator._type_color(_p.type), 0.5), 0.1)
+			fill_cell(MapCreator.landing(_p, _delta), Color(creator._type_color(_p.type), 0.5), 0.1)

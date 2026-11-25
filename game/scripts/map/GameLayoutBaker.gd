@@ -10,8 +10,8 @@ const TD:String = "res://addons/top_down/"
 @export_file("*.json") var balance_path:String = "res://game/balance/balance.json"
 ## Room entries (waves, spawn caps, loot): written by write_balance().
 @export_file("*.json") var maps_path:String = "res://game/balance/maps.json"
-## maps.json free_distance of every written section.
-@export var free_distance:int = 116
+## maps.json free_distance of every written section (gap around a new spawn spot, px).
+@export var free_distance:int = 8
 
 var _balance:Dictionary
 ## Room key -> maps.json "rooms" entry, written by write_balance().
@@ -19,11 +19,21 @@ var _entries:Dictionary = {}
 
 func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 	var _ctx:Dictionary = super.bake(layout, target_dir)
-	if layout.writes_balance && !_ctx.is_empty():
+	# a room already in maps.json keeps its entry current even when not a campaign room
+	# (boss path): a stale entry would override the scene's waves
+	if !_ctx.is_empty() && (layout.writes_balance || (target_dir.is_empty() && _has_balance(layout.key))):
 		var _entry:Dictionary = _balance_entry(_ctx.path, layout, _ctx.spawns)
 		if !_entry.is_empty():
 			_entries[layout.key] = _entry
 	return _ctx
+
+func _has_balance(key:String)->bool:
+	return FileAccess.file_exists(maps_path) && FileAccess.get_file_as_string(maps_path).contains("\t\t\"room_%s\": {" % key)
+
+## The Balance autoload (game running), else null (tools, editor).
+func _balance_node()->Node:
+	var _tree:SceneTree = Engine.get_main_loop() as SceneTree
+	return _tree.root.get_node_or_null(^"Balance") if _tree != null else null
 
 ## Rules a map can't show: boss fights last, campaign boss rooms get their portal and
 ## victory exit, and every portal arrives at a portal of the room it leads to.
@@ -185,6 +195,9 @@ func write_balance()->void:
 	var _file:FileAccess = FileAccess.open(maps_path, FileAccess.WRITE)
 	_file.store_string("\n".join(_lines))
 	_file.close()
+	var _node:Node = _balance_node()
+	if _node != null && _node.has_method(&"set_rooms"):
+		_node.call(&"set_rooms", take_entries())
 	_entries.clear()
 	_balance = {}
 
@@ -206,6 +219,9 @@ func remove_balance(key:String)->void:
 	var _file:FileAccess = FileAccess.open(maps_path, FileAccess.WRITE)
 	_file.store_string("\n".join(_lines))
 	_file.close()
+	var _node:Node = _balance_node()
+	if _node != null && _node.has_method(&"drop_room"):
+		_node.call(&"drop_room", "room_" + key)
 	_balance = {}
 
 ## Line of the "}" closing the top-level block that opens at `start`.

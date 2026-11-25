@@ -52,7 +52,7 @@ func rows()->Array:
 		["Waves / Problems", "%s / %s" % [_k.call(_p.key_waves), _k.call(_p.key_problems)]],
 		["Play from cursor", _k.call(_p.key_play_here)],
 		["Undo / Redo / Save", "Ctrl+%s / Ctrl+%s / Ctrl+%s" % [_k.call(_p.key_undo), _k.call(_p.key_redo), _k.call(_p.key_save)]],
-		["Copy / Paste / Duplicate", "Ctrl+C / Ctrl+V / Ctrl+D"], ["Restore autosave", "Ctrl+R"],
+		["Copy / Paste / Duplicate", "Ctrl+C / Ctrl+V / Ctrl+D"], ["Rotate selection / move", "R / Shift+R"], ["Restore autosave", "Ctrl+R"],
 		["Shift room", "Ctrl+Shift+arrows"], ["Delete selection", "Delete"],
 		["Select", "Ctrl+click toggles, Ctrl+drag box"], ["Menu", "Right click"],
 		["Camera", "WASD / arrows, middle drag, wheel"], ["Cancel", "Esc"],

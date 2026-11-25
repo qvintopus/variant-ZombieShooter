@@ -304,7 +304,6 @@ sections = Array[Dictionary]([{
 "enemies": ["skitter_spider", "web_spider"]
 }]
 }, {
-"max_simultaneous": 2,
 "spawn_density": 2,
 "waves": [{
 "count": 12,

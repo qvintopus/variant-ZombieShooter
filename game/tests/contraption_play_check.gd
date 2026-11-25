@@ -1,4 +1,4 @@
-## Plays room_A02 headless: walks the player to each contraption and presses interact.
+## Plays room_test_arena headless: walks the player to each contraption and presses interact.
 ## Also checks the zen animation (and its texts) the ZenAnnouncer plays for each result.
 ##   Godot --headless --path . res://game/tests/contraption_play_check.tscn
 extends Node
@@ -31,7 +31,7 @@ func _ready()->void:
 	_inventory.append(_database.list[0])
 	var _gun_path:String = _database.list[0].scene_path
 
-	var _room:Node = (load("res://game/scenes/room_A02.tscn") as PackedScene).instantiate()
+	var _room:Node = (load("res://game/tests/rooms/room_test_arena.tscn") as PackedScene).instantiate()
 	add_child(_room)
 	await _frames(10)
 	var _player_reference:ReferenceNodeResource = load(TD + "resources/ReferenceNodeResources/player_reference.tres")

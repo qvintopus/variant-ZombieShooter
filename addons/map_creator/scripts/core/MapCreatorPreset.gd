@@ -60,3 +60,16 @@ extends Resource
 ## Icon of the "open this room" buttons (empty: a drawn open-in-new-tab arrow).
 @export var open_room_icon:Texture2D
 @export var undo_limit:int = 100
+
+@export_group("Waves panel")
+@export var waves_panel_width:float = 190.0
+## Section card background (tinted by the section's own color).
+@export var section_card_color:Color = Color(0.13, 0.13, 0.17, 0.95)
+## Wave card background inside a section card.
+@export var wave_card_color:Color = Color(0.07, 0.1, 0.13, 0.95)
+@export var wave_accent_color:Color = Color(0.45, 0.6, 0.75)
+@export var boss_wave_color:Color = Color(0.95, 0.35, 0.3)
+## Delete buttons and destructive prompt choices.
+@export var danger_color:Color = Color(1.0, 0.4, 0.35)
+## Flash on the section card of the inspected entity.
+@export var focus_flash_color:Color = Color(1.0, 0.95, 0.6)

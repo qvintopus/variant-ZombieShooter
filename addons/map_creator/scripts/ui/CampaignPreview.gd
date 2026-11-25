@@ -4,6 +4,9 @@
 ## Positions are computed each time (nothing saved). Only stairs place rooms: portals
 ## jump anywhere, so a room reached only by portals lines up below. Portals show as dots
 ## named with their target room, with thin optional link lines (show_portal_links).
+## Right click a stairs / portal dot: a menu of rooms (those with free exits first), each
+## opening its exits; picking one links them (stairs both ways), or one way / room only
+## (broken on purpose, fixed later).
 class_name CampaignPreview
 extends Control
 
@@ -13,6 +16,8 @@ signal room_activated(key:String)
 @export var door_color:Color = Color(0.7, 0.9, 1.0)
 @export var portal_color:Color = Color(1.0, 0.75, 0.35)
 @export var selected_color:Color = Color(1, 1, 0.4)
+## Links that are broken (CampaignLinks: one way, arrive at a missing tag / nowhere).
+@export var problem_color:Color = Color(1, 0.3, 0.25)
 @export var dim_alpha:float = 0.25
 @export var label_size:int = 7
 ## Zoom above which labels add the room's name to its key.
@@ -42,6 +47,13 @@ var selected:String
 var _canvas:Node2D
 var _overlay:Control
 var _dragging:bool
+var _menu:PopupMenu
+## Pick ids of the open menu -> [to_key, to_index, one_way]
+var _picks:Array = []
+## Exit the menu is for: [key, index]
+var _menu_exit:Array = []
+## Hit radius (screen px) of an exit dot.
+@export var exit_pick_radius:float = 7.0
 var _fit_pending:bool
 
 func _ready()->void:
@@ -56,12 +68,17 @@ func _ready()->void:
 	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
+	_menu = PopupMenu.new()
+	_menu.id_pressed.connect(_on_pick)
+	add_child(_menu)
 	resized.connect(func ()->void:
 		if _fit_pending:
 			fit())
 
-## Places `keys` (start first) and redraws; tints: key -> Color.
-func show_rooms(keys:Array, start:String, tints:Dictionary)->void:
+## Places `keys` (start first) and redraws; tints: key -> Color. `refit` zooms to show
+## them all (else the view stays put: a refresh). `state_of` (key, entity index ->
+## CampaignLinks state) rates the exits against every room, not only the shown ones.
+func show_rooms(keys:Array, start:String, tints:Dictionary, refit:bool = true, state_of:Callable = Callable())->void:
 	var _layouts:Dictionary = {}
 	for _key:String in keys:
 		var _layout:RoomLayoutResource = graph.layout_of(_key) if graph != null else null
@@ -75,29 +92,40 @@ func show_rooms(keys:Array, start:String, tints:Dictionary)->void:
 		_shape.cell_offset = _offsets[_key]
 		_shape.offset = cell_px(Vector2(_offsets[_key])) - cell_px(Vector2.ZERO)
 		_shape.tint = tints.get(_key, Color.WHITE)
+		for _exit:Dictionary in _shape.exits:
+			if _exit.kind != &"victory":
+				_exit.state = state_of.call(_key, _exit.index) if state_of.is_valid() else CampaignLinks.state(_layouts, _key, _exit.index)
 		rooms[_key] = _shape
-	links.clear()
-	for _a:String in _layouts:
-		for _b:String in neighbours(_layouts, _a):
-			if _a < _b:
-				links.append({
-					"a": _a, "b": _b, "kind": &"door",
-					"from": cell_px(Vector2(_offsets[_a]) + ends(_layouts[_a], _a, _layouts[_b], _b)),
-					"to": cell_px(Vector2(_offsets[_b]) + ends(_layouts[_b], _b, _layouts[_a], _a)),
-				})
-		# one thin line per portal, to the portal it arrives at (else the room's centre)
-		for _entity:LayoutEntity in _layouts[_a].entities:
-			var _b:String = _target(_entity)
-			if _entity.item_id != &"portal" || !_layouts.has(_b) || _b == _a:
-				continue
-			links.append({
-				"a": _a, "b": _b, "kind": &"portal",
-				"from": cell_px(Vector2(_offsets[_a]) + Vector2(_entity.cell)),
-				"to": cell_px(Vector2(_offsets[_b]) + _arrival(_layouts[_b], String(_entity.props.get("connect_tag", "")))),
-			})
+	links = links_of(_layouts, _offsets)
 	_canvas.queue_redraw()
 	_overlay.queue_redraw()
-	fit()
+	if refit || rooms.is_empty():
+		fit()
+
+## One line per stairs from its cell to the stairs it arrives at (connect_tag; else the
+## target room's centre), a pair of stairs leading to each other drawn once; one thin line
+## per portal. {a, b, kind, from, to (px), state (CampaignLinks), index (exit of a)}.
+func links_of(layouts:Dictionary, offsets:Dictionary)->Array[Dictionary]:
+	var _out:Array[Dictionary] = []
+	for _a:String in layouts:
+		var _layout:RoomLayoutResource = layouts[_a]
+		for _i:int in _layout.entities.size():
+			var _entity:LayoutEntity = _layout.entities[_i]
+			var _b:String = _target(_entity)
+			if !CampaignLinks.is_link(_entity) || !layouts.has(_b) || _b == _a:
+				continue
+			var _state:StringName = CampaignLinks.state(layouts, _a, _i)
+			var _p:int = CampaignLinks.partner(layouts, _a, _i)
+			# the other half of a two way pair draws it
+			if _entity.item_id == &"door" && _state == CampaignLinks.LINKED && layouts[_b].entities[_p].item_id == &"door" && _b < _a:
+				continue
+			var _to:Vector2 = Vector2(layouts[_b].entities[_p].cell) if _p >= 0 else center_of(layouts[_b])
+			_out.append({
+				"a": _a, "b": _b, "kind": _entity.item_id, "state": _state, "index": _i,
+				"from": cell_px(Vector2(offsets[_a]) + Vector2(_entity.cell)),
+				"to": cell_px(Vector2(offsets[_b]) + _to),
+			})
+	return _out
 
 func set_dimmed(keys:Dictionary)->void:
 	dimmed = keys
@@ -141,7 +169,7 @@ static func shape_of(layout:RoomLayoutResource, px:Callable)->Dictionary:
 	var _exits:Array = []
 	for _i:int in CampaignStore.exits_of(layout):
 		var _entity:LayoutEntity = layout.entities[_i]
-		_exits.append({"pos": px.call(_entity.cell), "kind": _entity.item_id, "to": _target(_entity)})
+		_exits.append({"pos": px.call(_entity.cell), "kind": _entity.item_id, "to": _target(_entity), "index": _i, "state": CampaignLinks.LINKED})
 	return {"rect": _rect.grow(16.0), "center": _sum / maxf(layout.floor.size(), 1), "exits": _exits}
 
 ## Mean floor cell.
@@ -336,6 +364,11 @@ func _gui_input(event:InputEvent)->void:
 			_canvas.position = _mb.position - _before * _zoom
 			_overlay.queue_redraw()
 			accept_event()
+		elif _mb.pressed && _mb.button_index == MOUSE_BUTTON_RIGHT:
+			var _exit:Array = exit_at(_mb.position)
+			if !_exit.is_empty():
+				open_exit_menu(_exit[0], _exit[1], _mb.global_position)
+			accept_event()
 		elif _mb.button_index == MOUSE_BUTTON_LEFT || _mb.button_index == MOUSE_BUTTON_MIDDLE:
 			if _mb.pressed && _mb.button_index == MOUSE_BUTTON_LEFT:
 				var _key:String = room_at(_mb.position)
@@ -351,7 +384,71 @@ func _gui_input(event:InputEvent)->void:
 		_overlay.queue_redraw()
 		accept_event()
 
+## [key, entity index] of the stairs / portal dot under a screen point ([] = none).
+func exit_at(screen:Vector2)->Array:
+	var _best:Array = []
+	var _best_d:float = exit_pick_radius * exit_pick_radius
+	for _key:String in rooms:
+		for _exit:Dictionary in rooms[_key].exits:
+			if _exit.kind == &"victory":
+				continue
+			var _d:float = to_screen(rooms[_key].offset + _exit.pos).distance_squared_to(screen)
+			if _d <= _best_d:
+				_best = [_key, _exit.index]
+				_best_d = _d
+	return _best
+
+## The link menu of exit `index` of room `key` at a screen spot.
+func open_exit_menu(key:String, index:int, at:Vector2)->void:
+	if graph == null:
+		return
+	for _child:Node in _menu.get_children():
+		_menu.remove_child(_child)
+		_child.queue_free()
+	_menu.clear()
+	_picks.clear()
+	_menu_exit = [key, index]
+	var _entity:LayoutEntity = graph.layout_of(key).entities[index]
+	var _what:String = "stairs" if _entity.item_id == &"door" else "portal"
+	_menu.add_separator("room_%s %s %s" % [key, _what, _entity.props.get("tag", "")])
+	_pick_item(_menu, "(unlinked)", ["", -1, false])
+	for _room:Dictionary in graph.exit_targets(key, index):
+		var _sub:PopupMenu = PopupMenu.new()
+		_sub.id_pressed.connect(_on_pick)
+		for _exit:Dictionary in _room.exits:
+			_pick_item(_sub, _exit.text, [_room.key, _exit.index, false])
+		_sub.add_separator("only this %s" % _what)
+		for _exit:Dictionary in _room.exits:
+			_pick_item(_sub, "one way: " + String(_exit.text).get_slice("  ", 0), [_room.key, _exit.index, true])
+		_pick_item(_sub, "room only (arrives nowhere: broken)", [_room.key, -1, true])
+		_menu.add_child(_sub)
+		var _label:String = "room_%s %s" % [_room.key, graph.layout_of(_room.key).display_name if graph.layout_of(_room.key).display_name != "room_" + _room.key else ""]
+		_menu.add_submenu_node_item("%s%s" % [_label.strip_edges(), "  (%d free)" % _room.free if _room.free > 0 else ""], _sub)
+	_menu.reset_size()
+	_menu.position = Vector2i(at)
+	_menu.popup()
+
+func _pick_item(menu:PopupMenu, text:String, pick:Array)->void:
+	menu.add_item(text, _picks.size())
+	_picks.append(pick)
+
+func _on_pick(id:int)->void:
+	if id >= _picks.size() || _menu_exit.is_empty():
+		return
+	var _pick:Array = _picks[id]
+	_menu.hide()
+	if _pick[2]:
+		graph.link_one_way(_menu_exit[0], _menu_exit[1], _pick[0], _pick[1])
+	else:
+		graph.relink(_menu_exit[0], _menu_exit[1], _pick[0], _pick[1])
+
 func _get_tooltip(at_position:Vector2)->String:
+	var _exit:Array = exit_at(at_position)
+	if !_exit.is_empty() && graph != null:
+		var _e:LayoutEntity = graph.layout_of(_exit[0]).entities[_exit[1]]
+		var _to:String = CampaignLinks.target(_e)
+		return "room_%s %s '%s' -> %s\nRight click: link it to a room's stairs" % [_exit[0], "stairs" if _e.item_id == &"door" else "portal",
+			_e.props.get("tag", ""), "room_%s '%s'" % [_to, _e.props.get("connect_tag", "")] if !_to.is_empty() else "nowhere"]
 	var _key:String = room_at(at_position)
 	return graph.details_of(_key) if graph != null && !_key.is_empty() else ""
 
@@ -382,10 +479,14 @@ func _draw_overlay()->void:
 	var _font:Font = get_theme_default_font()
 	for _link:Dictionary in links:
 		var _faded:bool = dimmed.has(_link.a) && dimmed.has(_link.b)
+		var _broken:bool = _link.get("state", CampaignLinks.LINKED) != CampaignLinks.LINKED
 		if _link.kind == &"door":
-			var _color:Color = door_color
+			var _color:Color = problem_color if _broken else door_color
 			_color.a = dim_alpha if _faded else 0.9
-			_overlay.draw_line(to_screen(_link.from), to_screen(_link.to), _color, 2.0)
+			if _broken:
+				_overlay.draw_dashed_line(to_screen(_link.from), to_screen(_link.to), _color, 2.0, 5.0)
+			else:
+				_overlay.draw_line(to_screen(_link.from), to_screen(_link.to), _color, 2.0)
 		elif show_portal_links:
 			var _color:Color = portal_color
 			_color.a = dim_alpha if _faded else 0.5
@@ -398,6 +499,10 @@ func _draw_overlay()->void:
 			_color.a = _alpha
 			var _spot:Vector2 = to_screen(_room.offset + _exit.pos)
 			_overlay.draw_circle(_spot, 3.0, _color)
+			if !(_exit.get("state", CampaignLinks.LINKED) in [CampaignLinks.LINKED, CampaignLinks.UNKNOWN]):
+				var _ring:Color = problem_color
+				_ring.a = _alpha
+				_overlay.draw_arc(_spot, 5.0, 0.0, TAU, 12, _ring, 1.5)
 			if _exit.kind == &"portal" && !String(_exit.to).is_empty():
 				_overlay.draw_string(_font, _spot + Vector2(4, -3), "> " + String(_exit.to), HORIZONTAL_ALIGNMENT_LEFT, -1, label_size - 1, _color)
 		if _key == selected:

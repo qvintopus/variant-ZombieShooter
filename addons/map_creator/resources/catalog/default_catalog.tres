@@ -50,6 +50,8 @@
 [ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/player_spawn.tres" id="48_e7as5"]
 [ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/weapon_spot.tres" id="49_nbwf7"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/MapCatalog.gd" id="50_u6126"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/home_quit_portal.tres" id="51_quitp"]
+[ext_resource type="Resource" path="res://addons/map_creator/resources/catalog/items/meta_workbench.tres" id="52_metab"]
 
 [sub_resource type="Resource" id="Resource_ux0an"]
 script = ExtResource("1_o86u1")
@@ -96,7 +98,7 @@ script = ExtResource("1_o86u1")
 id = &"home"
 display_name = "Home base"
 color = Color(0.4, 0.6, 0.85, 1)
-items = Array[ExtResource("2_24t6h")]([ExtResource("35_iigis"), ExtResource("36_0cobb"), ExtResource("37_yt5gx"), ExtResource("38_kfcow"), ExtResource("39_jvlgp"), ExtResource("40_ecjn5"), ExtResource("41_4xvy1"), ExtResource("42_mxksg"), ExtResource("43_l1qc7"), ExtResource("44_5818g")])
+items = Array[ExtResource("2_24t6h")]([ExtResource("35_iigis"), ExtResource("36_0cobb"), ExtResource("37_yt5gx"), ExtResource("38_kfcow"), ExtResource("39_jvlgp"), ExtResource("40_ecjn5"), ExtResource("41_4xvy1"), ExtResource("42_mxksg"), ExtResource("43_l1qc7"), ExtResource("44_5818g"), ExtResource("51_quitp"), ExtResource("52_metab")])
 operations = Array[ExtResource("9_gkoll")]([ExtResource("10_jb7rr"), ExtResource("11_frvut"), ExtResource("12_i5jhq"), ExtResource("13_npnrs"), ExtResource("14_nf5mr"), ExtResource("15_5nvsa"), ExtResource("16_ref60"), ExtResource("17_ko1o5"), ExtResource("18_cfsj6")])
 
 [sub_resource type="Resource" id="Resource_5i718"]

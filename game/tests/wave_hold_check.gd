@@ -1,4 +1,4 @@
-## Plays room_A02 headless: starts the first fight and checks that no enemy
+## Plays room_test_arena headless: starts the first fight and checks that no enemy
 ## (or spawn mark) appears while the wave start zen animation plays, and that
 ## spawning begins once it has finished.
 ##   Godot --headless --path . res://game/tests/wave_hold_check.tscn
@@ -18,7 +18,7 @@ func check(condition:bool, label:String)->void:
 func _ready()->void:
 	var _actions:ActionResource = load(TD + "resources/global_resources/action_resource.tres")
 	_actions.reset_resource()
-	var _room:Node = (load("res://game/scenes/room_A02.tscn") as PackedScene).instantiate()
+	var _room:Node = (load("res://game/tests/rooms/room_test_arena.tscn") as PackedScene).instantiate()
 	add_child(_room)
 	await _frames(10)
 	var _announcer:ZenAnnouncer = _room.get_node("ZenAnnouncer")
@@ -57,7 +57,7 @@ func _frames(count:int)->void:
 ## Co-op guest: sections mirror the host through apply_net_state; the wave
 ## announcement must show the host's count, not 0 left by the last kill.
 func _guest_replay()->void:
-	var _room:Node = (load("res://game/scenes/room_A02.tscn") as PackedScene).instantiate()
+	var _room:Node = (load("res://game/tests/rooms/room_test_arena.tscn") as PackedScene).instantiate()
 	add_child(_room)
 	await _frames(10)
 	var _aggregator:ArenaSectionAggregator = get_tree().get_first_node_in_group(&"arena_aggregator")
