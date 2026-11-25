@@ -1,6 +1,7 @@
 ## Live problems of the edited room, without baking: the game baker's rules
 ## (LayoutBaker._validate), things under a wall collider or hole, barrier / trigger lines
-## with gaps (_report / _check_spans on the live layers), links to missing rooms, and a
+## with gaps (_report / _check_spans on the live layers), links to missing rooms, broken
+## stairs links (CampaignLinks: one way, arriving at a missing tag, shared tags), and a
 ## reachability flood from the player spawn and entries over walkable cells (floor
 ## without wall colliders or holes) that flags what the player can't get to.
 class_name MapChecks
@@ -36,8 +37,20 @@ static func run(creator:MapCreator)->Array[Dictionary]:
 		var _room:String = String(_entity.props.get("room", "")).trim_prefix("room_")
 		if _entity.props.has("room") && (_room.is_empty() || !(_baker.layouts.has(_room) || ResourceLoader.exists(creator.scene_of(_room)))):
 			_out.append({"text": "%s at %s leads to %s" % [_entity.item_id, _entity.cell, "nowhere" if _room.is_empty() else "missing room_" + _room], "cell": _entity.cell})
+	for _problem:Dictionary in link_problems(creator):
+		if !(_problem.kind in [CampaignLinks.NOWHERE, CampaignLinks.MISSING]):
+			_out.append({"text": _problem.text, "cell": _problem.cell})
 	_out.append_array(reachability(creator, _blocked))
 	return _out
+
+## CampaignLinks problems of the open room (its live layout against the stored others).
+static func link_problems(creator:MapCreator)->Array[Dictionary]:
+	if creator.layout == null || creator.baker == null:
+		return []
+	var _layouts:Dictionary = creator.baker.layouts.duplicate()
+	_layouts[creator.key] = creator.layout
+	return CampaignLinks.problems(_layouts, [creator.key],
+		func (k:String)->bool: return ResourceLoader.exists(creator.scene_of(k)))
 
 static func walkable(layout:RoomLayoutResource, cell:Vector2i, blocked:Dictionary, holes:TileMapLayer)->bool:
 	return layout.floor.has(cell) && !blocked.has(cell) && holes.get_cell_source_id(cell) == -1

@@ -3,7 +3,8 @@
 ## section). Room settings live in the topbar (MapTopBar). Every change is one undo step.
 ## Tag props list the rooms using the tag (expandable); room rows and room pickers have an
 ## open button (landing on the linked stairs selected). Section entities select the other
-## kinds of their section (triggers, spawners, barriers); a trigger shows the waves.
+## kinds of their section (triggers, spawners, barriers); a trigger shows the waves and
+## opens the Waves panel on its section.
 class_name MapInspector
 extends PanelContainer
 
@@ -11,6 +12,7 @@ extends PanelContainer
 @export var width:float = 120.0
 
 var _box:VBoxContainer
+var _scroll:ScrollContainer
 ## Prop key -> tag users list expanded.
 var _expanded:Dictionary = {}
 var _rebuild_queued:bool
@@ -30,7 +32,7 @@ func _ready()->void:
 	anchor_bottom = 1.0
 	offset_left = -width
 	offset_top = 40
-	var _scroll:ScrollContainer = ScrollContainer.new()
+	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(_scroll)
 	_box = VBoxContainer.new()
@@ -122,6 +124,7 @@ func _editor(entity:LayoutEntity, spec:MapPropertySpec, value:Variant)->Control:
 	match spec.type:
 		MapPropertySpec.Type.INT, MapPropertySpec.Type.FLOAT, MapPropertySpec.Type.SECTION:
 			var _spin:SpinBox = SpinBox.new()
+			EditCamera.wheel_scrolls(_spin, _scroll)
 			_spin.min_value = spec.min_value - (1 if spec.optional else 0)
 			_spin.max_value = spec.max_value
 			if spec.type == MapPropertySpec.Type.SECTION:
@@ -228,9 +231,12 @@ func _section_links(own:MapCatalogItem.Bake, number:int)->void:
 		_button(_box, "Select %s (%d)" % [_entry[1], _count], "Select every one of section %d" % number,
 			creator.select_section_entities.bind(number, _entry[0]))
 
-## Waves of section `number` (enemies each).
+## Waves of section `number` (enemies each), with a button opening the Waves panel on it.
 func _section_details(number:int)->void:
 	var _spec:Dictionary = creator.layout.section_spec(number - 1)
+	var _open:Button = _button(_box, "Edit section %d waves (%s)" % [number, OS.get_keycode_string(creator.preset.key_waves)],
+		"Open the Waves panel on this section", creator.waves_section_requested.emit.bind(number))
+	_open.add_theme_color_override(&"font_color", MapOverlay.section_color(number))
 	if _spec.is_empty():
 		_note("Section %d has no waves (Waves panel)" % number)
 		return

@@ -10,7 +10,7 @@ The title's **New Game** starts `game/scenes/room_N00.tscn`. **New Game+** start
 |---|---|---|
 | `new_game` | N00–N31 | Giant Zombie (N12), Broodmother (N23) |
 | `new_game_plus` | P00–P32 | Big Jelly (P12), Plague Mother (P23), Giant Zombie (P32) |
-| `boss_path` (from room_1) | C00–C31 | not a campaign (`writes_balance` off): no portals |
+| `boss_path` | C00–C31 | not a campaign (`writes_balance` off): no portals |
 | `home` | H00 | see `home_base.md` |
 
 ```

@@ -18,9 +18,33 @@ var meta_upgrade_resource:MetaUpgradeResource
 ## Tree whose links, labels and dots are drawn.
 var tree:String = MetaUpgrades.MAIN_TREE
 
+## A Control is only drawn while its own rect is on screen: sized to the whole
+## tree (fit), so links don't vanish once its origin is panned out of view.
+const FIT_MARGIN:float = 64.0
+
+## Covers every node, label and dot of the shown tree. Call after changing tree.
+func fit()->void:
+	var _rect:Rect2 = Rect2()
+	var _first:bool = true
+	var _points:Array[Vector2] = []
+	for _id:String in MetaUpgrades.nodes_in(tree):
+		_points.append(MetaUpgrades.position(_id))
+	for _label:Dictionary in MetaUpgrades.labels(tree):
+		var _pos:Array = _label.get("pos", [0, 0])
+		_points.append(Vector2(_pos[0], _pos[1]) * MetaUpgrades.grid())
+	for _point:Vector2 in _points:
+		_rect = Rect2(_point, Vector2.ZERO) if _first else _rect.expand(_point)
+		_first = false
+	_rect = _rect.grow(FIT_MARGIN + MetaUpgrades.grid() * DOT_MARGIN)
+	position = _rect.position
+	size = _rect.size
+	queue_redraw()
+
 func _draw()->void:
 	if meta_upgrade_resource == null:
 		return
+	# drawn in graph coordinates whatever the fitted rect
+	draw_set_transform(-position)
 	_draw_dots()
 	_draw_labels()
 	var _nodes:Dictionary = MetaUpgrades.nodes()
@@ -37,7 +61,7 @@ func _draw_link(from:String, to:String)->void:
 
 func link_color(from:String, to:String)->Color:
 	var _meta:MetaUpgradeResource = meta_upgrade_resource
-	if _meta.is_owned(from) && _meta.is_owned(to):
+	if _meta.is_owned(from) && _meta.is_owned(to) && !_meta.disabled.has(to):
 		return OWNED_KEYSTONE if MetaUpgrades.is_keystone(to) || (MetaUpgrades.is_keystone(from) && !MetaUpgrades.is_root(from)) else OWNED
 	if _meta.is_owned(from):
 		return AVAILABLE

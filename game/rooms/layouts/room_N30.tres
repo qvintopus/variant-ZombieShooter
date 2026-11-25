@@ -3,17 +3,7 @@
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/LayoutEntity.gd" id="1_kp2c8"]
 [ext_resource type="Script" path="res://addons/map_creator/scripts/data/RoomLayoutResource.gd" id="2_q8iom"]
 
-[sub_resource type="Resource" id="Resource_vacgw"]
-script = ExtResource("1_kp2c8")
-item_id = &"door"
-cell = Vector2i(10, 1)
-props = {
-"connect_tag": "n02_n30",
-"room": "room_N02",
-"tag": "n30_n02"
-}
-
-[sub_resource type="Resource" id="Resource_8l3il"]
+[sub_resource type="Resource" id="Resource_kp2c8"]
 script = ExtResource("1_kp2c8")
 item_id = &"barrier"
 cell = Vector2i(9, 3)
@@ -21,7 +11,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_h18wm"]
+[sub_resource type="Resource" id="Resource_q8iom"]
 script = ExtResource("1_kp2c8")
 item_id = &"barrier"
 cell = Vector2i(10, 3)
@@ -29,7 +19,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_dj6f8"]
+[sub_resource type="Resource" id="Resource_vacgw"]
 script = ExtResource("1_kp2c8")
 item_id = &"barrier"
 cell = Vector2i(11, 3)
@@ -37,12 +27,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_12btw"]
-script = ExtResource("1_kp2c8")
-item_id = &"player_spawn"
-cell = Vector2i(9, 4)
-
-[sub_resource type="Resource" id="Resource_cvplh"]
+[sub_resource type="Resource" id="Resource_8l3il"]
 script = ExtResource("1_kp2c8")
 item_id = &"trigger"
 cell = Vector2i(9, 5)
@@ -50,7 +35,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_fqffo"]
+[sub_resource type="Resource" id="Resource_h18wm"]
 script = ExtResource("1_kp2c8")
 item_id = &"trigger"
 cell = Vector2i(10, 5)
@@ -58,7 +43,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_yotco"]
+[sub_resource type="Resource" id="Resource_dj6f8"]
 script = ExtResource("1_kp2c8")
 item_id = &"trigger"
 cell = Vector2i(11, 5)
@@ -66,12 +51,12 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_0g36k"]
+[sub_resource type="Resource" id="Resource_12btw"]
 script = ExtResource("1_kp2c8")
 item_id = &"shrine_3"
 cell = Vector2i(9, 7)
 
-[sub_resource type="Resource" id="Resource_v0e3l"]
+[sub_resource type="Resource" id="Resource_cvplh"]
 script = ExtResource("1_kp2c8")
 item_id = &"spawn"
 cell = Vector2i(4, 8)
@@ -79,7 +64,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_kxtyj"]
+[sub_resource type="Resource" id="Resource_fqffo"]
 script = ExtResource("1_kp2c8")
 item_id = &"spawn"
 cell = Vector2i(16, 8)
@@ -87,22 +72,22 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_e3jsc"]
+[sub_resource type="Resource" id="Resource_yotco"]
 script = ExtResource("1_kp2c8")
 item_id = &"acid_puddle"
 cell = Vector2i(15, 10)
 
-[sub_resource type="Resource" id="Resource_mw5kb"]
+[sub_resource type="Resource" id="Resource_0g36k"]
 script = ExtResource("1_kp2c8")
 item_id = &"acid_puddle"
 cell = Vector2i(10, 11)
 
-[sub_resource type="Resource" id="Resource_ht5d8"]
+[sub_resource type="Resource" id="Resource_v0e3l"]
 script = ExtResource("1_kp2c8")
 item_id = &"acid_puddle"
 cell = Vector2i(5, 14)
 
-[sub_resource type="Resource" id="Resource_ystuq"]
+[sub_resource type="Resource" id="Resource_kxtyj"]
 script = ExtResource("1_kp2c8")
 item_id = &"spawn"
 cell = Vector2i(4, 16)
@@ -110,7 +95,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_8f24h"]
+[sub_resource type="Resource" id="Resource_e3jsc"]
 script = ExtResource("1_kp2c8")
 item_id = &"spawn"
 cell = Vector2i(16, 16)
@@ -118,7 +103,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_1u40w"]
+[sub_resource type="Resource" id="Resource_mw5kb"]
 script = ExtResource("1_kp2c8")
 item_id = &"gate"
 cell = Vector2i(9, 20)
@@ -126,7 +111,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_sgh0o"]
+[sub_resource type="Resource" id="Resource_ht5d8"]
 script = ExtResource("1_kp2c8")
 item_id = &"gate"
 cell = Vector2i(10, 20)
@@ -134,7 +119,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_18440"]
+[sub_resource type="Resource" id="Resource_ystuq"]
 script = ExtResource("1_kp2c8")
 item_id = &"gate"
 cell = Vector2i(11, 20)
@@ -142,7 +127,7 @@ props = {
 "section": 1
 }
 
-[sub_resource type="Resource" id="Resource_skpta"]
+[sub_resource type="Resource" id="Resource_8f24h"]
 script = ExtResource("1_kp2c8")
 item_id = &"door"
 cell = Vector2i(10, 23)
@@ -151,6 +136,21 @@ props = {
 "room": "room_N31",
 "tag": "n30_n31"
 }
+
+[sub_resource type="Resource" id="Resource_1u40w"]
+script = ExtResource("1_kp2c8")
+item_id = &"door"
+cell = Vector2i(10, -6)
+props = {
+"connect_tag": "n02_n30",
+"room": "room_N02",
+"tag": "n30_n02"
+}
+
+[sub_resource type="Resource" id="Resource_sgh0o"]
+script = ExtResource("1_kp2c8")
+item_id = &"player_spawn"
+cell = Vector2i(10, 4)
 
 [resource]
 script = ExtResource("2_q8iom")
@@ -243,6 +243,9 @@ Vector2i(7, 15): Vector3i(30, 0, 3),
 Vector2i(7, 16): Vector3i(30, 3, 3),
 Vector2i(7, 17): Vector3i(30, 0, 3),
 Vector2i(7, 18): Vector3i(30, 0, 3),
+Vector2i(8, -7): Vector3i(30, 0, 3),
+Vector2i(8, -6): Vector3i(30, 0, 3),
+Vector2i(8, -5): Vector3i(30, 0, 3),
 Vector2i(8, 6): Vector3i(30, 0, 3),
 Vector2i(8, 7): Vector3i(30, 0, 3),
 Vector2i(8, 8): Vector3i(30, 0, 3),
@@ -256,6 +259,13 @@ Vector2i(8, 15): Vector3i(30, 0, 3),
 Vector2i(8, 16): Vector3i(30, 0, 3),
 Vector2i(8, 17): Vector3i(30, 0, 3),
 Vector2i(8, 18): Vector3i(30, 0, 3),
+Vector2i(9, -7): Vector3i(30, 0, 3),
+Vector2i(9, -6): Vector3i(30, 0, 3),
+Vector2i(9, -5): Vector3i(30, 0, 3),
+Vector2i(9, -4): Vector3i(30, 0, 3),
+Vector2i(9, -3): Vector3i(30, 0, 3),
+Vector2i(9, -2): Vector3i(30, 0, 3),
+Vector2i(9, -1): Vector3i(30, 0, 3),
 Vector2i(9, 0): Vector3i(30, 0, 3),
 Vector2i(9, 1): Vector3i(30, 0, 3),
 Vector2i(9, 2): Vector3i(30, 0, 3),
@@ -282,6 +292,13 @@ Vector2i(9, 22): Vector3i(30, 0, 3),
 Vector2i(9, 23): Vector3i(30, 0, 3),
 Vector2i(9, 24): Vector3i(30, 0, 3),
 Vector2i(9, 25): Vector3i(30, 0, 3),
+Vector2i(10, -7): Vector3i(30, 0, 3),
+Vector2i(10, -6): Vector3i(30, 0, 3),
+Vector2i(10, -5): Vector3i(30, 0, 3),
+Vector2i(10, -4): Vector3i(30, 0, 3),
+Vector2i(10, -3): Vector3i(30, 0, 3),
+Vector2i(10, -2): Vector3i(30, 0, 3),
+Vector2i(10, -1): Vector3i(30, 0, 3),
 Vector2i(10, 0): Vector3i(30, 0, 3),
 Vector2i(10, 1): Vector3i(30, 0, 3),
 Vector2i(10, 2): Vector3i(30, 0, 3),
@@ -308,6 +325,13 @@ Vector2i(10, 22): Vector3i(30, 0, 3),
 Vector2i(10, 23): Vector3i(30, 0, 3),
 Vector2i(10, 24): Vector3i(30, 0, 3),
 Vector2i(10, 25): Vector3i(30, 0, 3),
+Vector2i(11, -7): Vector3i(30, 0, 3),
+Vector2i(11, -6): Vector3i(30, 0, 3),
+Vector2i(11, -5): Vector3i(30, 0, 3),
+Vector2i(11, -4): Vector3i(30, 0, 3),
+Vector2i(11, -3): Vector3i(30, 0, 3),
+Vector2i(11, -2): Vector3i(30, 0, 3),
+Vector2i(11, -1): Vector3i(30, 0, 3),
 Vector2i(11, 0): Vector3i(30, 3, 3),
 Vector2i(11, 1): Vector3i(30, 0, 3),
 Vector2i(11, 2): Vector3i(30, 0, 3),
@@ -334,6 +358,9 @@ Vector2i(11, 22): Vector3i(30, 0, 3),
 Vector2i(11, 23): Vector3i(30, 0, 3),
 Vector2i(11, 24): Vector3i(30, 0, 3),
 Vector2i(11, 25): Vector3i(30, 0, 3),
+Vector2i(12, -7): Vector3i(30, 0, 3),
+Vector2i(12, -6): Vector3i(30, 0, 3),
+Vector2i(12, -5): Vector3i(30, 0, 3),
 Vector2i(12, 6): Vector3i(10, 0, 3),
 Vector2i(12, 7): Vector3i(10, 0, 3),
 Vector2i(12, 8): Vector3i(10, 0, 3),
@@ -422,4 +449,4 @@ Vector2i(18, 16): Vector3i(30, 0, 3),
 Vector2i(18, 17): Vector3i(30, 0, 3),
 Vector2i(18, 18): Vector3i(10, 0, 3)
 })
-entities = Array[ExtResource("1_kp2c8")]([SubResource("Resource_vacgw"), SubResource("Resource_8l3il"), SubResource("Resource_h18wm"), SubResource("Resource_dj6f8"), SubResource("Resource_12btw"), SubResource("Resource_cvplh"), SubResource("Resource_fqffo"), SubResource("Resource_yotco"), SubResource("Resource_0g36k"), SubResource("Resource_v0e3l"), SubResource("Resource_kxtyj"), SubResource("Resource_e3jsc"), SubResource("Resource_mw5kb"), SubResource("Resource_ht5d8"), SubResource("Resource_ystuq"), SubResource("Resource_8f24h"), SubResource("Resource_1u40w"), SubResource("Resource_sgh0o"), SubResource("Resource_18440"), SubResource("Resource_skpta")])
+entities = Array[ExtResource("1_kp2c8")]([SubResource("Resource_kp2c8"), SubResource("Resource_q8iom"), SubResource("Resource_vacgw"), SubResource("Resource_8l3il"), SubResource("Resource_h18wm"), SubResource("Resource_dj6f8"), SubResource("Resource_12btw"), SubResource("Resource_cvplh"), SubResource("Resource_fqffo"), SubResource("Resource_yotco"), SubResource("Resource_0g36k"), SubResource("Resource_v0e3l"), SubResource("Resource_kxtyj"), SubResource("Resource_e3jsc"), SubResource("Resource_mw5kb"), SubResource("Resource_ht5d8"), SubResource("Resource_ystuq"), SubResource("Resource_8f24h"), SubResource("Resource_1u40w"), SubResource("Resource_sgh0o")])

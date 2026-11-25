@@ -5,18 +5,29 @@
 ## focused node centred; dragging the background pans it by hand.
 ## The header's tree button (or Tab) switches between the main tree and its
 ## sister trees; only the shown tree's nodes are built into the focus walk.
-## ui_cancel / pause goes back to the title.
+## In toggleable trees (UPGRADES, HORDE) pressing an owned node switches it
+## off / on, and the header's All button switches the whole tree.
+## ui_cancel / pause goes back to the title, or, opened over the home base by the
+## meta workbench (open_overlay), closes the overlay and unpauses the room.
+class_name MetaTreeScreen
 extends Control
+
+## The overlay was closed (open_overlay)
+signal closed
 
 const TITLE_SCENE:String = "res://game/scenes/title.tscn"
 ## Neighbour search: how far off a direction (in degrees) a node may sit.
 const NEIGHBOUR_CONE:float = 50.0
 const PAN_TIME:float = 0.25
+const ZOOM_MIN:float = 0.35
+const ZOOM_MAX:float = 2.0
+const ZOOM_STEP:float = 1.15
 const OWNED_TEXT:Color = Color(0.55, 0.9, 0.6)
 const SHORT_TEXT:Color = Color(1.0, 0.42, 0.42)
 const COST_TEXT:Color = Color(1.0, 0.72, 0.94)
 const LOCKED_TEXT:Color = Color(0.6, 0.58, 0.68)
 const KEYSTONE_TEXT:Color = Color8(255, 214, 90)
+const OFF_TEXT:Color = Color(0.75, 0.7, 0.55)
 
 @export var meta_upgrade_resource:MetaUpgradeResource
 @export var boss_crystal_resource:ScoreResource
@@ -42,17 +53,48 @@ const KEYSTONE_TEXT:Color = Color8(255, 214, 90)
 @export var title_label:Label
 ## Switches to the next tree; reads that tree's title.
 @export var tree_button:Button
+## Switches every owned node of a toggleable tree off / on; hidden elsewhere.
+@export var toggle_all_button:Button
+@export var hint_label:Label
 
 ## id -> MetaNodeButton
 var buttons:Dictionary
 var focused_id:String = MetaUpgrades.ROOT
 var tree:String = MetaUpgrades.MAIN_TREE
 var _pan_tween:Tween
+## graph_content scale (mouse wheel, +/-)
+var zoom:float = 1.0
 var _dragging:bool
 ## Focus taken by hovering: show its info without panning under the mouse.
 var _mouse_focus:bool
 var _reset_armed:bool
 var _leaving:bool
+## Opened over a room (open_overlay): back closes instead of going to the title
+var overlay:bool
+
+const SCENE:String = "res://game/scenes/meta_upgrades.tscn"
+const OVERLAY_LAYER:String = "MetaUpgradesLayer"
+
+## Shows the tree over the running game (paused under it); the music stays.
+static func open_overlay(owner_node:Node)->MetaTreeScreen:
+	var _tree:SceneTree = owner_node.get_tree()
+	var _old:Node = _tree.root.get_node_or_null(OVERLAY_LAYER)
+	if _old != null:
+		return _old.get_child(0) as MetaTreeScreen
+	var _screen:MetaTreeScreen = (load(SCENE) as PackedScene).instantiate()
+	_screen.overlay = true
+	var _music:Node = _screen.get_node_or_null("MusicSetter")
+	if _music != null:
+		_screen.remove_child(_music)
+		_music.free()
+	var _layer:CanvasLayer = CanvasLayer.new()
+	_layer.name = OVERLAY_LAYER
+	_layer.layer = 4
+	_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	_layer.add_child(_screen)
+	_tree.root.add_child(_layer)
+	_tree.paused = true
+	return _screen
 
 func _ready()->void:
 	assert(meta_upgrade_resource != null)
@@ -76,6 +118,8 @@ func _ready()->void:
 	back_button.pressed.connect(_back)
 	reset_button.pressed.connect(_on_reset)
 	tree_button.pressed.connect(next_tree)
+	if toggle_all_button != null:
+		toggle_all_button.pressed.connect(toggle_all)
 	show_tree(tree)
 	_start.call_deferred()
 
@@ -95,20 +139,54 @@ func show_tree(id:String)->void:
 		buttons[_id].visible = MetaUpgrades.tree_of(_id) == tree
 	_set_neighbours()
 	graph_links.tree = tree
+	graph_links.fit()
 	title_label.text = MetaUpgrades.tree_title(tree)
 	var _trees:Array = MetaUpgrades.tree_ids()
 	tree_button.visible = _trees.size() > 1
-	tree_button.text = "%s (Tab)" % MetaUpgrades.tree_title(_trees[(_trees.find(tree) + 1) % _trees.size()])
+	tree_button.text = tab_text(_trees, tree)
 	focused_id = MetaUpgrades.tree_root(tree)
 	_refresh()
 	if is_node_ready():
 		buttons[focused_id].grab_focus()
+
+## All off when any owned node of the shown tree is on, else all on.
+func toggle_all()->void:
+	if !MetaUpgrades.is_toggleable(tree):
+		return
+	var _on:bool = !meta_upgrade_resource.any_enabled_in(tree)
+	meta_upgrade_resource.set_tree_enabled(tree, _on)
+	if buy_sound != null:
+		buy_sound.play_managed()
+
+## Every tree, the shown one in brackets: "[UPGRADES] HORDE CO-OP (Tab)"
+static func tab_text(trees:Array, current:String)->String:
+	var _parts:PackedStringArray = []
+	for _id:String in trees:
+		var _title:String = MetaUpgrades.tree_title(_id)
+		_parts.append("[%s]" % _title if _id == current else _title)
+	return "%s (Tab)" % " ".join(_parts)
 
 func next_tree()->void:
 	var _trees:Array = MetaUpgrades.tree_ids()
 	show_tree(_trees[(_trees.find(tree) + 1) % _trees.size()])
 
 func _input(event:InputEvent)->void:
+	# before the room's pause menu (PausingManager) takes the key
+	if overlay && (event.is_action("ui_cancel") || (action_resource != null && event.is_action(action_resource.pause_action))):
+		get_viewport().set_input_as_handled()
+		if event.is_released():
+			_back()
+		return
+	if event is InputEventKey && event.pressed:
+		match event.physical_keycode:
+			KEY_EQUAL, KEY_KP_ADD:
+				set_zoom(zoom * ZOOM_STEP)
+				get_viewport().set_input_as_handled()
+				return
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				set_zoom(zoom / ZOOM_STEP)
+				get_viewport().set_input_as_handled()
+				return
 	if event.is_action_pressed("ui_focus_next") && tree_button.visible:
 		get_viewport().set_input_as_handled()
 		next_tree()
@@ -124,10 +202,21 @@ func _back()->void:
 	_leaving = true
 	if back_sound != null:
 		back_sound.play_managed()
+	if overlay:
+		get_tree().paused = false
+		var _layer:Node = get_parent()
+		(_layer if _layer is CanvasLayer else self).queue_free()
+		closed.emit()
+		return
 	Transition.change_scene(TITLE_SCENE)
 
 func _buy(id:String)->void:
 	var _button:MetaNodeButton = buttons[id]
+	if meta_upgrade_resource.toggle(id):
+		_button.play_bought()
+		if buy_sound != null:
+			buy_sound.play_managed()
+		return
 	if meta_upgrade_resource.buy(id):
 		_button.play_bought()
 		if buy_sound != null:
@@ -164,9 +253,16 @@ func _refresh()->void:
 			_shown += 1
 			if _state == MetaUpgradeResource.State.OWNED:
 				_owned += 1
-		buttons[_id].refresh(_state, LootItems.can_afford(MetaUpgrades.cost(_id)))
+		buttons[_id].refresh(_state, LootItems.can_afford(MetaUpgrades.cost(_id)), meta_upgrade_resource.disabled.has(_id))
 	progress_label.text = "%d/%d" % [_owned, _shown]
 	reset_button.disabled = meta_upgrade_resource.owned.is_empty()
+	var _toggleable:bool = MetaUpgrades.is_toggleable(tree)
+	if toggle_all_button != null:
+		toggle_all_button.visible = _toggleable
+		toggle_all_button.disabled = meta_upgrade_resource.toggleable_in(tree).is_empty()
+		toggle_all_button.text = "All off" if meta_upgrade_resource.any_enabled_in(tree) || toggle_all_button.disabled else "All on"
+	if hint_label != null:
+		hint_label.text = "Arrows: move   Enter: buy / on-off   Wheel / +-: zoom   Esc: back" if _toggleable else "Arrows: move   Enter: buy   Wheel / +-: zoom   Esc: back"
 	graph_links.queue_redraw()
 	_show_info(focused_id)
 
@@ -179,8 +275,12 @@ func _show_info(id:String)->void:
 	text_label.text = MetaUpgrades.describe(id)
 	match meta_upgrade_resource.state(id):
 		MetaUpgradeResource.State.OWNED:
-			state_label.text = "Owned"
-			state_label.modulate = OWNED_TEXT
+			if meta_upgrade_resource.disabled.has(id):
+				state_label.text = "Owned - OFF"
+				state_label.modulate = OFF_TEXT
+			else:
+				state_label.text = "Owned - ON" if meta_upgrade_resource.can_toggle(id) else "Owned"
+				state_label.modulate = OWNED_TEXT
 		MetaUpgradeResource.State.AVAILABLE:
 			var _cost:Array = MetaUpgrades.cost(id)
 			var _affordable:bool = LootItems.can_afford(_cost)
@@ -207,7 +307,20 @@ func _on_hover(button:MetaNodeButton)->void:
 	_mouse_focus = false
 
 func _pan_target(id:String)->Vector2:
-	return (graph_view.size * 0.5 - MetaUpgrades.position(id)).round()
+	return (graph_view.size * 0.5 - MetaUpgrades.position(id) * zoom).round()
+
+## Zooms keeping the graph point under `pivot` (graph_view coordinates) in place.
+func set_zoom(value:float, pivot:Vector2 = Vector2.INF)->void:
+	if pivot == Vector2.INF:
+		pivot = graph_view.size * 0.5
+	var _new:float = clampf(value, ZOOM_MIN, ZOOM_MAX)
+	if is_equal_approx(_new, zoom):
+		return
+	if _pan_tween != null:
+		_pan_tween.kill()
+	graph_content.position = (pivot - (pivot - graph_content.position) * (_new / zoom)).round()
+	zoom = _new
+	graph_content.scale = Vector2.ONE * zoom
 
 func _pan_to(id:String)->void:
 	if _pan_tween != null:
@@ -216,6 +329,11 @@ func _pan_to(id:String)->void:
 	_pan_tween.tween_property(graph_content, "position", _pan_target(id), PAN_TIME)
 
 func _on_graph_input(event:InputEvent)->void:
+	if event is InputEventMouseButton && event.pressed && (event.button_index == MOUSE_BUTTON_WHEEL_UP || event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		var _step:float = ZOOM_STEP if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / ZOOM_STEP
+		set_zoom(zoom * _step, event.position)
+		accept_event()
+		return
 	if event is InputEventMouseButton && event.button_index == MOUSE_BUTTON_LEFT:
 		_dragging = event.pressed
 		if _dragging && _pan_tween != null:

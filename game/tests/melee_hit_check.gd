@@ -4,7 +4,7 @@
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM:String = "res://game/scenes/room_A02.tscn"
+const ROOM:String = "res://game/tests/rooms/room_test_arena.tscn"
 const SLIME:String = TD + "resources/InstanceResources/actors/slime_small_instance_resource.tres"
 const SLASH:String = TD + "resources/InstanceResources/projectiles/sword_slash_instance_resource.tres"
 ## Enemy layer

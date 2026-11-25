@@ -8,6 +8,9 @@
 class_name LayoutBaker
 extends Resource
 
+## SpawnPoint.max_simultaneous of a spawner without its own limit (the export's max).
+const SPAWNER_NO_LIMIT:int = 6
+
 const DIAMOND:PackedVector2Array = [Vector2(0, -8), Vector2(16, 0), Vector2(0, 8), Vector2(-16, 0)]
 const AUTOTILER:String = "TileVisualAutotiler.gd"
 
@@ -47,8 +50,14 @@ func load_layouts()->Dictionary:
 			continue
 		var _layout:RoomLayoutResource = ResourceLoader.load(layouts_dir.path_join(_file), "", ResourceLoader.CACHE_MODE_REPLACE)
 		if _layout != null:
+			_layout.migrate()
 			layouts[_layout.key] = _layout
 	return layouts
+
+## Most enemies a spawner keeps alive: its own max_simultaneous, else no limit (the
+## section's spawn_density decides).
+static func spawner_limit(props:Dictionary)->int:
+	return int(props.get("max_simultaneous", SPAWNER_NO_LIMIT))
 
 func layout_path(key:String)->String:
 	return layouts_dir.path_join("room_%s.tres" % key)
@@ -186,15 +195,15 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 				_ctx.door_names.append("NodePath(\"../Behind/%s\")" % _door_name)
 				_out.node(_door_name, "Behind", {
 					"position": _pos,
-					"tag": "\"%s\"" % _p.get("tag", ""),
-					"connect_tag": "\"%s\"" % _p.get("connect_tag", ""),
-					"scene_path": "\"%s%s.tscn\"" % [scenes_dir, _p.get("room", "")],
+					"tag": "\"%s\"" % _or_unset(_p.get("tag", "")),
+					"connect_tag": "\"%s\"" % _or_unset(_p.get("connect_tag", "")),
+					"scene_path": "\"%s%s.tscn\"" % [scenes_dir, _room_or_own(_p.get("room", ""), layout.key)],
 				}, _door_scene)
 			MapCatalogItem.Bake.PORTAL, MapCatalogItem.Bake.VICTORY:
 				_portal_index += 1
 				var _portal:Array = [victory_tag, victory_tag, victory_tag, layout.key]
 				if _item.bake == MapCatalogItem.Bake.PORTAL:
-					_portal = [_p.get("tag", ""), _p.get("connect_tag", ""), _p.get("room", ""), _p.get("waits_for", "")]
+					_portal = [_or_unset(_p.get("tag", "")), _or_unset(_p.get("connect_tag", "")), _room_or_own(_p.get("room", ""), layout.key), _p.get("waits_for", "")]
 				var _portal_props:Dictionary = {
 					"position": _pos,
 					"tag": "\"%s\"" % _portal[0],
@@ -234,7 +243,7 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 				else:
 					_spawn_counts[_index] += 1
 					_name = "Spawn_S%d_%d" % [_index + 1, _spawn_counts[_index]]
-					_max = int(_p.get("max_simultaneous", layout.section_spec(_index).get("max_simultaneous", 1)))
+					_max = spawner_limit(_p)
 					_props.max_simultaneous = str(_max)
 				_ctx.spawns[_name] = {"section": _index, "max_simultaneous": _max}
 				_out.node(_name, "EnemySpawnPoints", _props, "", "Marker2D")
@@ -261,6 +270,15 @@ func bake(layout:RoomLayoutResource, target_dir:String = "")->Dictionary:
 
 ## Contraptions, hazards and markers: an instance of scene_path (named after its root,
 ## numbered) or a plain node_type node.
+## SceneEntry asserts its tags aren't empty: unlinked exits bake as "unset" (as the
+## editor's live entities do).
+static func _or_unset(value:Variant)->String:
+	return "unset" if String(value).is_empty() else String(value)
+
+## An exit without a room leads back into its own room (a valid scene path).
+static func _room_or_own(room:Variant, key:String)->String:
+	return "room_" + key if String(room).is_empty() else String(room)
+
 func _bake_scene(out:SceneText, item:MapCatalogItem, entity:LayoutEntity, pos:String, counts:Dictionary)->void:
 	var _props:Dictionary = {}
 	if !item.script_path.is_empty():

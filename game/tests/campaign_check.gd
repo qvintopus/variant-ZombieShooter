@@ -20,7 +20,7 @@ const BOSS_COUNT:Dictionary = {"new_game": 2, "new_game_plus": 3, "boss_path": 3
 const LOOK_SOURCE:Dictionary = {"base": 1, "mossy": 10, "bloody": 20, "metal": 30, "sandstone": 40, "flesh": 50}
 const INTERACTABLES_DIR:String = TD + "scenes/interactables/"
 ## Contraptions of the home base memory grid, never in a campaign room
-const HOME_ONLY:Array[String] = ["data_lever.tscn", "gate_lever.tscn", "reset_button.tscn", "write_button.tscn", "comms_terminal.tscn", "robot_printer.tscn", "home_chest.tscn", "stash_lever.tscn"]
+const HOME_ONLY:Array[String] = ["data_lever.tscn", "gate_lever.tscn", "reset_button.tscn", "write_button.tscn", "comms_terminal.tscn", "robot_printer.tscn", "home_chest.tscn", "stash_lever.tscn", "meta_workbench.tscn"]
 const VICTORY:String = SCENES + "victory.tscn"
 const TRIGGERS:Array[String] = ["ArenaEntry", "ArenaSection1Entry", "ArenaSection2Entry"]
 const GATE:int = 1 # ArenaDoorBlock.WallMode.GATE
@@ -38,20 +38,16 @@ func check(condition:bool, label:String)->void:
 		printerr("FAIL: ", label)
 
 func _ready()->void:
+	# rooms are built and freed here (the home base saves on leaving): to a temp name,
+	# the player's own save stays untouched
+	var _home:SaveableResource = load("res://game/resources/home_base_resource.tres")
+	var _home_name:String = _home.resource_name
+	_home.resource_name = _home_name + "_campaign_check"
 	var _actions:ActionResource = load(TD + "resources/global_resources/action_resource.tres")
 	_actions.reset_resource()
 	_balance = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/balance.json"))
 	_balance.rooms = JSON.parse_string(FileAccess.get_file_as_string("res://game/balance/maps.json")).rooms
 	_state = load(TD + "resources/global_resources/room_state_resource.tres")
-
-	var _room_1:Node = _load_room("room_1")
-	var _boss_door:Node = _room_1.get_node("Behind/Stairs4")
-	check(_boss_door.visible && _boss_door.monitoring, "room_1 Stairs4 is open")
-	check(_boss_door.scene_path == SCENES + "room_C00.tscn", "room_1 Stairs4 leads to room_C00")
-	_check_door_link("room_1", _boss_door)
-	for _wave:SpawnWaveList in _room_1.get_node("EnemyManager/Section1").waves:
-		check(!_wave.is_boss, "room_1 has no boss wave left")
-	_room_1.free()
 
 	var _campaigns:Dictionary = _layout_specs()
 	for _campaign:String in CAMPAIGN_IDS:
@@ -70,6 +66,9 @@ func _ready()->void:
 	await _play_loot_box()
 	await _play_campaign_start()
 	print("campaign_check: %d checks, %d failures" % [checks, failures])
+	_home.delete_resource()
+	SaveableResource.persist_locked = true
+	_home.resource_name = _home_name
 	get_tree().quit(1 if failures > 0 else 0)
 
 ## Campaign id -> {rooms: {key: spec}, campaign: writes balance}, from the layouts.

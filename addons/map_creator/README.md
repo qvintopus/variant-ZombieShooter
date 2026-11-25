@@ -60,7 +60,7 @@ key: the room name menu. Sections and waves: `WavesPanel`.
   look, generated wall, hole.
 - Ctrl+drag box-selects.
 - A plain click lets go of the selection.
-- Delete removes the selection. Ctrl+D duplicates it.
+- Delete removes the selection. Ctrl+D duplicates it. R / Shift+R turns the selection (or what Move / paste carries) a quarter around its centre.
 - With the Move tool, drag the selection.
 - Esc cancels.
 - A selection of one entity type is edited together in the inspector.

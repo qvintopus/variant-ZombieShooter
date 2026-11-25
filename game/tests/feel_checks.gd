@@ -3,7 +3,7 @@
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM:String = "res://game/scenes/room_A02.tscn"
+const ROOM:String = "res://game/tests/rooms/room_test_arena.tscn"
 
 var failures:int = 0
 var checks:int = 0

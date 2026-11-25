@@ -34,7 +34,7 @@ border_color = Color(0.333333, 0.317647, 0.431373, 1)
 atlas = ExtResource("11_icons")
 region = Rect2(108, 0, 12, 12)
 
-[node name="MetaUpgrades" type="ColorRect" node_paths=PackedStringArray("graph_view", "graph_content", "graph_links", "crystal_label", "progress_label", "name_label", "tag_label", "text_label", "state_label", "back_button", "reset_button", "title_label", "tree_button")]
+[node name="MetaUpgrades" type="ColorRect" node_paths=PackedStringArray("graph_view", "graph_content", "graph_links", "crystal_label", "progress_label", "name_label", "tag_label", "text_label", "state_label", "back_button", "reset_button", "title_label", "tree_button", "toggle_all_button", "hint_label")]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -62,6 +62,8 @@ back_button = NodePath("Header/Row/Back")
 reset_button = NodePath("Header/Row/Reset")
 title_label = NodePath("Header/Row/TitleLabel")
 tree_button = NodePath("Header/Row/TreeButton")
+toggle_all_button = NodePath("Header/Row/ToggleAll")
+hint_label = NodePath("Info/Rows/StateRow/HintLabel")
 
 [node name="MusicSetter" type="Node" parent="."]
 script = ExtResource("10_music")
@@ -118,6 +120,13 @@ layout_mode = 2
 focus_mode = 0
 theme_override_font_sizes/font_size = 8
 text = "HORDE (Tab)"
+
+[node name="ToggleAll" type="Button" parent="Header/Row"]
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 8
+text = "All off"
 
 [node name="Spacer" type="Control" parent="Header/Row"]
 layout_mode = 2

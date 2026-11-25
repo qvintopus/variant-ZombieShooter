@@ -1,12 +1,12 @@
 ## A new run (Try Again / title / victory) clears weapons and loot, walking back
-## into room_start through its stairs keeps them, and an empty inventory falls
+## into room_test_run_start through its stairs keeps them, and an empty inventory falls
 ## back to the fists weapon. Scene changes are done by hand (Transition needs a
 ## real screen): free the room, then instance the next one.
 ##   Godot --headless --path . res://game/tests/run_reset_check.tscn
 extends Node
 
 const TD:String = "res://addons/top_down/"
-const ROOM_START:String = "res://game/scenes/room_start.tscn"
+const ROOM_START:String = "res://game/tests/rooms/room_test_run_start.tscn"
 const FISTS:String = TD + "scenes/weapons/fists.tscn"
 
 var failures:int = 0
@@ -81,7 +81,7 @@ func _ready()->void:
 	check(_inventory.drop() == null, "drop on an empty inventory does nothing")
 	check(_manager.current_weapon == _fists, "still fists after an empty drop")
 
-	# Walk out to room_1 and back in through its stairs
+	# Walk out and back in through its stairs
 	_inventory.append(_database.list[2])
 	_score.add(5)
 	_transition.next_scene_path = ROOM_START
@@ -150,7 +150,7 @@ func _check_fists_damage(player:Node2D)->void:
 	_zombie.queue_free()
 	await _frames(2)
 
-## Frees the current room (with whatever player is still in it) and loads room_start.
+## Frees the current room (with whatever player is still in it) and loads room_test_run_start.
 func _load_room()->void:
 	if _room != null:
 		_room.queue_free()

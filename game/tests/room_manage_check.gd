@@ -8,7 +8,9 @@ extends Node
 const BAKER:String = "res://game/resources/map_creator/layout_baker.tres"
 const CREATOR:String = "res://addons/map_creator/scenes/map_creator.tscn"
 const OUT:String = "user://room_manage_check/"
-const HAND_MADE:Array[String] = ["A01", "A02", "B01", "1", "3", "start"]
+## Hand-made test rooms (game/tests/rooms/room_<key>.tscn) the importer reads
+const HAND_MADE:Array[String] = ["test_arena", "test_run_start"]
+const HAND_MADE_DIR:String = "res://game/tests/rooms/"
 
 var failures:int = 0
 var checks:int = 0
@@ -129,7 +131,7 @@ func _check_original(creator:MapCreator)->void:
 func _check_import(creator:MapCreator, baker:GameLayoutBaker)->void:
 	for _key:String in HAND_MADE:
 		var _importer:RoomImporter = RoomImporter.new()
-		var _layout:RoomLayoutResource = _importer.import_scene("res://game/scenes/room_%s.tscn" % _key, _key, baker)
+		var _layout:RoomLayoutResource = _importer.import_scene(HAND_MADE_DIR + "room_%s.tscn" % _key, _key, baker)
 		check(_layout != null && _layout.floor.size() > 0, "room_%s imports (%s)" % [_key, _importer.warnings])
 		if _layout == null:
 			continue
@@ -137,7 +139,7 @@ func _check_import(creator:MapCreator, baker:GameLayoutBaker)->void:
 		# the import bakes the same floor, holes and walls
 		baker.bake(_layout)
 		var _baked:Node = (ResourceLoader.load(baker.written_path(_key), "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
-		var _original:Node = (load("res://game/scenes/room_%s.tscn" % _key) as PackedScene).instantiate()
+		var _original:Node = (load(HAND_MADE_DIR + "room_%s.tscn" % _key) as PackedScene).instantiate()
 		for _path:String in ["Background/FloorLayer", "Background/ObstacleLayer", "WallLayer_Ysorted"]:
 			var _a:Array = _original.get_node(_path).get_used_cells()
 			var _b:Array = _baked.get_node(_path).get_used_cells()
@@ -149,8 +151,12 @@ func _check_import(creator:MapCreator, baker:GameLayoutBaker)->void:
 	baker.take_entries()
 	for _key:String in HAND_MADE:
 		baker.layouts.erase(_key)
-	check(creator.rooms.import_room("A01") && baker.layouts.has("A01"), "Import adds the layout")
-	check(FileAccess.file_exists("res://game/scenes/room_A01.tscn"), "the project's hand-made scene stays")
+	# import_room reads <scenes_dir>room_<key>.tscn
+	var _scenes_dir:String = baker.scenes_dir
+	baker.scenes_dir = HAND_MADE_DIR
+	check(creator.rooms.import_room("test_arena") && baker.layouts.has("test_arena"), "Import adds the layout")
+	baker.scenes_dir = _scenes_dir
+	check(FileAccess.file_exists(HAND_MADE_DIR + "room_test_arena.tscn"), "the project's hand-made scene stays")
 
 func _check_shift(creator:MapCreator)->void:
 	var _cells:int = creator.layout.floor.size()

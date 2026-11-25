@@ -833,25 +833,25 @@ metadata/source_cell = Vector2i(35, 11)
 position = Vector2(400, 232)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S2_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(576, 320)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S1_1" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(80, 104)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_2" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(192, 160)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Trigger_X5_Y6" type="CollisionPolygon2D" parent="ArenaEntry"]
 position = Vector2(0, 96)
@@ -882,7 +882,7 @@ polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 position = Vector2(400, 312)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Stairs2" parent="Behind" instance=ExtResource("3_door")]
 position = Vector2(608, 416)
@@ -906,25 +906,25 @@ polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 position = Vector2(-32, 160)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S1_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(80, 216)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section1")
-max_simultaneous = 1
+max_simultaneous = 6
 
 [node name="Spawn_S2_4" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(224, 320)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Spawn_S2_5" type="Marker2D" parent="EnemySpawnPoints" node_paths=PackedStringArray("section")]
 position = Vector2(400, 408)
 script = ExtResource("4_SpawnPoint")
 section = NodePath("../../EnemyManager/Section2")
-max_simultaneous = 2
+max_simultaneous = 6
 
 [node name="Section1" parent="EnemyManager"]
 waves = Array[ExtResource("5_SpawnWaveLis")]([SubResource("Resource_1")])

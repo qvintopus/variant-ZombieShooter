@@ -81,6 +81,7 @@ func from_dict(data:Variant, catalog:MapCatalog)->RoomLayoutResource:
 		if _section is Dictionary:
 			_sections.append(_clean_section(_section))
 	_layout.sections = _sections
+	_layout.migrate()
 	for _row:Variant in _array(data, "floor"):
 		if _row is Array && _row.size() == 5:
 			var _cell:Vector2i = Vector2i(_i(_row[0]), _i(_row[1]))

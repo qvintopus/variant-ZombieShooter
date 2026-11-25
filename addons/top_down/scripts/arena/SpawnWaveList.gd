@@ -8,7 +8,8 @@ extends Resource
 
 @export var count:int
 
-## Most enemies of this wave alive at once, 0 = only limited by spawn points.
+## Enemies of this wave kept alive at once (spawners keep spawning to hold it, past
+## the section's density), 0 = each spawner keeps its density slots.
 @export var max_alive:int
 
 @export var instance_list:Array[InstanceResource]
